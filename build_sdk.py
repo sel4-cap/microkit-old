@@ -85,6 +85,19 @@ SUPPORTED_BOARDS = (
         examples = {
             "ethernet": Path("example/imx8mm/passive_server")
         }
+    ),
+    BoardInfo(
+        name="maaxboard",
+        gcc_cpu="cortex-a53",
+        loader_link_address=0x40480000,
+        kernel_options = {
+            "KernelPlatform": "imx8mq-evk",
+            "KernelIsMCS": True,
+            "KernelArmExportPCNTUser": True,
+        },
+        examples = {
+            "hello": Path("example/maaxboard/hello")
+        }
     )
 )
 

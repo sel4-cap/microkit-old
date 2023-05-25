@@ -260,10 +260,10 @@ usb_valid_block_p(usb_dma_block_t *b, struct usb_dma_block_qh *qh)
 Static void
 usb_block_freemem(usb_dma_block_t *b)
 {
-	// USBHIST_FUNC();
-	// USBHIST_CALLARGS(usbdebug, "size=%ju", b->size, 0, 0, 0);
+	USBHIST_FUNC();
+	USBHIST_CALLARGS(usbdebug, "size=%ju", b->size, 0, 0, 0);
 
-	// KASSERT(mutex_owned(&usb_blk_lock));
+	KASSERT(mutex_owned(&usb_blk_lock));
 
 #ifdef DEBUG
 	LIST_REMOVE(b, next);

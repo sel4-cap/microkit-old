@@ -311,12 +311,12 @@ static const struct usbd_pipe_methods xhci_device_intr_methods = {
 
 uint32_t xhci_read_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size){
     uint32_t busval = bus_space_read_4(tag, bsh, size);
-    printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
+    // printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
     return busval;
 }
 
 void xhci_write_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size, uint32_t val){
-    printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
+    // printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
     bus_space_write_4(tag, bsh, size, val);
 }
 
@@ -1942,26 +1942,26 @@ xhci_unconfigure_endpoint(struct usbd_pipe *pipe)
 static void
 xhci_reset_endpoint(struct usbd_pipe *pipe)
 {
-	// struct xhci_softc * const sc = XHCI_PIPE2SC(pipe);
-	// struct xhci_slot * const xs = pipe->up_dev->ud_hcpriv;
-	// const u_int dci = xhci_ep_get_dci(pipe->up_endpoint->ue_edesc);
-	// struct xhci_soft_trb trb;
+	struct xhci_softc * const sc = XHCI_PIPE2SC(pipe);
+	struct xhci_slot * const xs = pipe->up_dev->ud_hcpriv;
+	const u_int dci = xhci_ep_get_dci(pipe->up_endpoint->ue_edesc);
+	struct xhci_soft_trb trb;
 
-	// XHCIHIST_FUNC();
-	// XHCIHIST_CALLARGS("slot %ju dci %ju", xs->xs_idx, dci, 0, 0);
+	XHCIHIST_FUNC();
+	XHCIHIST_CALLARGS("slot %ju dci %ju", xs->xs_idx, dci, 0, 0);
 
-	// KASSERT(mutex_owned(&sc->sc_lock));
+	KASSERT(mutex_owned(&sc->sc_lock));
 
-	// trb.trb_0 = 0;
-	// trb.trb_2 = 0;
-	// trb.trb_3 = XHCI_TRB_3_SLOT_SET(xs->xs_idx) |
-	//     XHCI_TRB_3_EP_SET(dci) |
-	//     XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_RESET_EP);
+	trb.trb_0 = 0;
+	trb.trb_2 = 0;
+	trb.trb_3 = XHCI_TRB_3_SLOT_SET(xs->xs_idx) |
+	    XHCI_TRB_3_EP_SET(dci) |
+	    XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_RESET_EP);
 
-	// if (xhci_do_command_locked(sc, &trb, USBD_DEFAULT_TIMEOUT)) {
-	// 	device_printf(sc->sc_dev, "%s: endpoint 0x%x: timed out\n",
-	// 	    __func__, pipe->up_endpoint->ue_edesc->bEndpointAddress);
-	// }
+	if (xhci_do_command_locked(sc, &trb, USBD_DEFAULT_TIMEOUT)) {
+		device_printf(sc->sc_dev, "%s: endpoint 0x%x: timed out\n",
+		    __func__, pipe->up_endpoint->ue_edesc->bEndpointAddress);
+	}
 }
 
 /*
@@ -2077,16 +2077,12 @@ xhci_open(struct usbd_pipe *pipe)
 
 	/* Root Hub */
 	if (dev->ud_depth == 0 && dev->ud_powersrc->up_portno == 0) {
-		DPRINTFN(0, "Xhci root hub in xhci_open",
-	    0, 0, 0,
-	    0);
 		pipe->up_methods = kmem_alloc(sizeof(struct usbd_pipe_methods), 0) //added
 		switch (ed->bEndpointAddress) {
 		case USB_CONTROL_ENDPOINT:
 			pipe->up_methods = &roothub_ctrl_methods;
 			break;
 		case UE_DIR_IN | USBROOTHUB_INTR_ENDPT:
-			aprint_debug("DIR_IN or USBROOTHUB_INTR_EP\n");
 			pipe->up_methods = &xhci_root_intr_methods;
 			break;
 		default:
@@ -2395,10 +2391,8 @@ xhci_rhpsc(struct xhci_softc * const sc, u_int ctlrport)
 	DPRINTFN(4, "xhci%jd: bus %jd bp %ju xfer %#jx status change",
 	    device_unit(sc->sc_dev), bn, rhp, (uintptr_t)xfer);
 
-	if (xfer == NULL) {
-		printf("xfer is null\n");
+	if (xfer == NULL)
 		return;
-	}
 	KASSERT(xfer->ux_status == USBD_IN_PROGRESS);
 
 	uint8_t *p = xfer->ux_buf;
@@ -2673,7 +2667,6 @@ xhci_softintr(void *v)
 	struct xhci_ring * const er = sc->sc_er;
 	struct xhci_trb *trb;
 	int i, j, k;
-    // printf("reached xhci_softintr\n");
 
 	XHCIHIST_FUNC();
 
@@ -2684,7 +2677,6 @@ xhci_softintr(void *v)
 
 	XHCIHIST_CALLARGS("er: xr_ep %jd xr_cs %jd", i, j, 0, 0);
 
-    // printf("about to enter while loop\n");
 	while (1) {
 		usb_syncmem(&er->xr_dma, XHCI_TRB_SIZE * i, XHCI_TRB_SIZE,
 		    BUS_DMASYNC_POSTREAD);
@@ -2703,7 +2695,6 @@ xhci_softintr(void *v)
 		}
 	}
 
-    // printf("finished while loop\n");
 
 	er->xr_ep = i;
 	er->xr_cs = j;
@@ -2741,7 +2732,6 @@ xhci_allocx(struct usbd_bus *bus, unsigned int nframes)
 	u_int ntrbs;
 
 	XHCIHIST_FUNC(); XHCIHIST_CALLED();
-	printf("xhci_allocx called\n");
 
 	ntrbs = uimax(3, nframes);
 	const size_t trbsz = sizeof(*xx->xx_trb) * ntrbs;
@@ -2834,8 +2824,6 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 	XHCIHIST_FUNC();
 	XHCIHIST_CALLARGS("port %ju depth %ju speed %ju up %#jx",
 	    port, depth, speed, (uintptr_t)up);
-	// printf("xhci_new_device called: port %u depth %u speed %u up %x\n",
-	//     port, depth, speed, (uintptr_t)up);
 
 	// KASSERT(KERNEL_LOCKED_P());
 
@@ -3248,76 +3236,74 @@ static usbd_status
 xhci_do_command_locked(struct xhci_softc * const sc,
     struct xhci_soft_trb * const trb, int timeout)
 {
-	printf("not implemented do command locked\n");
-	return 0;
-// 	struct xhci_ring * const cr = sc->sc_cr;
-// 	usbd_status err;
+	struct xhci_ring * const cr = sc->sc_cr;
+	usbd_status err;
 
-// 	XHCIHIST_FUNC();
-// 	XHCIHIST_CALLARGS("input: 0x%016jx 0x%08jx 0x%08jx",
-// 	    trb->trb_0, trb->trb_2, trb->trb_3, 0);
+	XHCIHIST_FUNC();
+	XHCIHIST_CALLARGS("input: 0x%016jx 0x%08jx 0x%08jx",
+	    trb->trb_0, trb->trb_2, trb->trb_3, 0);
 
-// 	KASSERTMSG(!cpu_intr_p() && !cpu_softintr_p(), "called from intr ctx");
-// 	KASSERT(mutex_owned(&sc->sc_lock));
+	KASSERTMSG(!cpu_intr_p() && !cpu_softintr_p(), "called from intr ctx");
+	KASSERT(mutex_owned(&sc->sc_lock));
 
-// 	while (sc->sc_command_addr != 0 ||
-// 	    (sc->sc_suspender != NULL && sc->sc_suspender != curlwp))
-// 		cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock);
+	while (sc->sc_command_addr != 0 ||
+	    (sc->sc_suspender != NULL && sc->sc_suspender != curlwp))
+		cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock);
 
-// 	/*
-// 	 * If enqueue pointer points at last of ring, it's Link TRB,
-// 	 * command TRB will be stored in 0th TRB.
-// 	 */
-// 	if (cr->xr_ep == cr->xr_ntrb - 1)
-// 		sc->sc_command_addr = xhci_ring_trbp(cr, 0);
-// 	else
-// 		sc->sc_command_addr = xhci_ring_trbp(cr, cr->xr_ep);
+	/*
+	 * If enqueue pointer points at last of ring, it's Link TRB,
+	 * command TRB will be stored in 0th TRB.
+	 */
+	if (cr->xr_ep == cr->xr_ntrb - 1)
+		sc->sc_command_addr = xhci_ring_trbp(cr, 0);
+	else
+		sc->sc_command_addr = xhci_ring_trbp(cr, cr->xr_ep);
 
-// 	sc->sc_resultpending = true;
+	sc->sc_resultpending = true;
 
-// 	mutex_enter(&cr->xr_lock);
-// 	xhci_ring_put(sc, cr, NULL, trb, 1);
-// 	mutex_exit(&cr->xr_lock);
+	mutex_enter(&cr->xr_lock);
+	xhci_ring_put(sc, cr, NULL, trb, 1);
+	mutex_exit(&cr->xr_lock);
 
-// 	xhci_db_write_4(sc, XHCI_DOORBELL(0), 0);
+	xhci_db_write_4(sc, XHCI_DOORBELL(0), 0);
 
-// 	while (sc->sc_resultpending) {
-// 		if (cv_timedwait(&sc->sc_command_cv, &sc->sc_lock,
-// 		    MAX(1, mstohz(timeout))) == EWOULDBLOCK) {
-// 			xhci_abort_command(sc);
-// 			err = USBD_TIMEOUT;
-// 			goto timedout;
-// 		}
-// 	}
+	while (sc->sc_resultpending) {
+		if (cv_timedwait(&sc->sc_command_cv, &sc->sc_lock,
+		    MAX(1, mstohz(timeout))) == EWOULDBLOCK) {
+			xhci_abort_command(sc);
+			err = USBD_TIMEOUT;
+			goto timedout;
+		}
+	}
 
-// 	trb->trb_0 = sc->sc_result_trb.trb_0;
-// 	trb->trb_2 = sc->sc_result_trb.trb_2;
-// 	trb->trb_3 = sc->sc_result_trb.trb_3;
+	trb->trb_0 = sc->sc_result_trb.trb_0;
+	trb->trb_2 = sc->sc_result_trb.trb_2;
+	trb->trb_3 = sc->sc_result_trb.trb_3;
 
-// 	DPRINTFN(12, "output: 0x%016jx 0x%08jx 0x%08jx",
-// 	    trb->trb_0, trb->trb_2, trb->trb_3, 0);
+	DPRINTFN(12, "output: 0x%016jx 0x%08jx 0x%08jx",
+	    trb->trb_0, trb->trb_2, trb->trb_3, 0);
 
-// 	switch (XHCI_TRB_2_ERROR_GET(trb->trb_2)) {
-// 	case XHCI_TRB_ERROR_SUCCESS:
-// 		err = USBD_NORMAL_COMPLETION;
-// 		break;
-// 	default:
-// 	case 192 ... 223:
-// 		DPRINTFN(5, "error %#jx",
-// 		    XHCI_TRB_2_ERROR_GET(trb->trb_2), 0, 0, 0);
-// 		err = USBD_IOERROR;
-// 		break;
-// 	case 224 ... 255:
-// 		err = USBD_NORMAL_COMPLETION;
-// 		break;
-// 	}
+	switch (XHCI_TRB_2_ERROR_GET(trb->trb_2)) {
+	case XHCI_TRB_ERROR_SUCCESS:
+		err = USBD_NORMAL_COMPLETION;
+		break;
+	default:
+	case 192 ... 223:
+		DPRINTFN(5, "error %#jx",
+		    XHCI_TRB_2_ERROR_GET(trb->trb_2), 0, 0, 0);
+		err = USBD_IOERROR;
+		break;
+	case 224 ... 255:
+		err = USBD_NORMAL_COMPLETION;
+		break;
+	}
 
-// timedout:
-// 	sc->sc_resultpending = false;
-// 	sc->sc_command_addr = 0;
-// 	cv_broadcast(&sc->sc_cmdbusy_cv);
+timedout:
+	sc->sc_resultpending = false;
+	sc->sc_command_addr = 0;
+	cv_broadcast(&sc->sc_cmdbusy_cv);
 
-// 	return err;
+	return err;
 }
 
 static usbd_status

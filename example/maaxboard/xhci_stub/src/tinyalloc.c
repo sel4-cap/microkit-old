@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <printf.h>
 
-#define TA_DEBUG
+// #define TA_DEBUG
 
 #ifdef TA_DEBUG
 #define print_s(c) printf(c); printf("\n")

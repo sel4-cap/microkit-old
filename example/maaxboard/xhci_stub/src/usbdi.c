@@ -340,7 +340,6 @@ usbd_open_pipe_intr(struct usbd_interface *iface, uint8_t address,
 	err = usbd_open_pipe_ival(iface, address,
 				  USBD_EXCLUSIVE_USE | (flags & USBD_MPSAFE),
 				  &ipipe, ival);
-	aprint_debug("After open pipe ival\n");
 	if (err)
 		return err;
 	err = usbd_create_xfer(ipipe, len, flags, 0, &xfer);
@@ -472,14 +471,11 @@ usbd_transfer(struct usbd_xfer *xfer)
 		}
 		if (err)
 			break;
-		aprint_debug("xfer err sts pre upm_transfer = %d\n", err);
 		err = pipe->up_methods->upm_transfer(xfer);
-		aprint_debug("xfer err sts post upm_transfer = %d\n", err);
 	} while (0);
 	// SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
 
 	usbd_unlock_pipe(pipe);
-	aprint_debug("xfer err sts post unlock pipe = %d\n", err);
 
 	if (err != USBD_IN_PROGRESS && err) {
 		/*

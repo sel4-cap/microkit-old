@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2021, Breakaway Consulting Pty. Ltd.
+
+ SPDX-License-Identifier: BSD-2-Clause
+-->
+<system>
+    <memory_region name="heap_mem" size="0x2_000_000"/>
+    <memory_region name="dma_pool" size="0x2_000_000"/>
+    <memory_region name="xhci_mem" size="0x10_000" phys_addr="0x38200000"/>
+    <memory_region name="xhci_phys_mem" size="0x1000" phys_addr="0x382f0000"/> <!--won't let me specify the correct size or base address, but this encompasses the phy-->
+
+    <protection_domain name="xhci_stub" priority="253">
+        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
+        <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="false" setvar_vaddr="dma_base"/>
+        <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
+        <irq irq="73" id="7"/> <!--usb irq offset by 32 (not sure why)-->
+        <map mr="xhci_phys_mem" vaddr="0x382f0000" perms="rw" cached="false" setvar_vaddr="xhci_phy_base"/>
+        <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
+        <program_image path="xhci_stub.elf" />
+    </protection_domain>
+</system>

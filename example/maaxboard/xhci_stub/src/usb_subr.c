@@ -1073,13 +1073,12 @@ usbd_attach_roothub(device_t parent, struct usbd_device *dev)
 	uaa->uaa_proto = dd->bDeviceProtocol;
 
 	KERNEL_LOCK(1, curlwp);
-	dv = 0;
 	// dv = config_found(parent, &uaa, NULL,
 	//     CFARGS(.iattr = "usbroothubif"));
 	struct uhub_softc *uhub_sc = kmem_alloc(sizeof(struct uhub_softc), 0);
-	// device_t *self;
 	device_t self = kmem_alloc(sizeof(device_t), 0);
 	self->dv_private = uhub_sc;
+	dv = self;
 	uhub_sc->sc_hub = kmem_alloc(sizeof(struct usbd_device),0);
 	uhub_sc->sc_ipipe = kmem_alloc(sizeof(struct usbd_pipe),0);
 	// uhub_sc->sc_exploring = kmem_alloc(sizeof(struct lwp),0);

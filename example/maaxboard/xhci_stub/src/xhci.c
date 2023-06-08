@@ -311,12 +311,12 @@ static const struct usbd_pipe_methods xhci_device_intr_methods = {
 
 uint32_t xhci_read_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size){
     uint32_t busval = bus_space_read_4(tag, bsh, size);
-    // printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
+    printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
     return busval;
 }
 
 void xhci_write_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size, uint32_t val){
-    // printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
+    printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
     bus_space_write_4(tag, bsh, size, val);
 }
 
@@ -1740,8 +1740,8 @@ xhci_intr(void *v)
 
 	mutex_spin_enter(&sc->sc_intr_lock);
 
-	if (sc->sc_dying || !device_has_power(sc->sc_dev))
-		goto done;
+	// if (sc->sc_dying || !device_has_power(sc->sc_dev))
+	// 	goto done;
 
 	/* If we get an interrupt while polling, then just ignore it. */
 	if (xhci_polling_p(sc)) {
@@ -1806,12 +1806,12 @@ xhci_intr1(struct xhci_softc * const sc)
 	iman |= XHCI_IMAN_INTR_PEND;
 	xhci_rt_write_4(sc, XHCI_IMAN(0), iman);
 
-#ifdef XHCI_DEBUG
+// #ifdef XHCI_DEBUG
 	iman = xhci_rt_read_4(sc, XHCI_IMAN(0));
 	DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0);
 	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
 	DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0);
-#endif
+// #endif
 
 	return 1;
 }
@@ -3246,9 +3246,9 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 	KASSERTMSG(!cpu_intr_p() && !cpu_softintr_p(), "called from intr ctx");
 	KASSERT(mutex_owned(&sc->sc_lock));
 
-	while (sc->sc_command_addr != 0 ||
-	    (sc->sc_suspender != NULL && sc->sc_suspender != curlwp))
-		cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock);
+	/* while (sc->sc_command_addr != 0 || */
+	/*     (sc->sc_suspender != NULL && sc->sc_suspender != curlwp)) */
+	/* 	cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock); */
 
 	/*
 	 * If enqueue pointer points at last of ring, it's Link TRB,
@@ -3267,14 +3267,14 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 
 	xhci_db_write_4(sc, XHCI_DOORBELL(0), 0);
 
-	while (sc->sc_resultpending) {
-		if (cv_timedwait(&sc->sc_command_cv, &sc->sc_lock,
-		    MAX(1, mstohz(timeout))) == EWOULDBLOCK) {
-			xhci_abort_command(sc);
-			err = USBD_TIMEOUT;
-			goto timedout;
-		}
-	}
+	/* while (sc->sc_resultpending) { */
+	/* 	if (cv_timedwait(&sc->sc_command_cv, &sc->sc_lock, */
+	/* 	    MAX(1, mstohz(timeout))) == EWOULDBLOCK) { */
+	/* 		xhci_abort_command(sc); */
+	/* 		err = USBD_TIMEOUT; */
+	/* 		goto timedout; */
+	/* 	} */
+	/* } */
 
 	trb->trb_0 = sc->sc_result_trb.trb_0;
 	trb->trb_2 = sc->sc_result_trb.trb_2;

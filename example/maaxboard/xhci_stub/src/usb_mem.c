@@ -294,7 +294,7 @@ usb_allocmem(bus_dma_tag_t tag, size_t size, size_t align, u_int flags,
 	/* If the request is large then just use a full block. */
 	if (size > USB_MEM_SMALL || align > USB_MEM_SMALL) {
 		DPRINTFN(1, "large alloc %jd", size, 0, 0, 0);
-		aprint_debug("Large alloc %d\n", size);
+		// aprint_debug("Large alloc %d\n", size);
 		size = (size + USB_MEM_BLOCK - 1) & ~(USB_MEM_BLOCK - 1);
 		// mutex_enter(&usb_blk_lock);
 		err = usb_block_allocmem(tag, size, align, flags,

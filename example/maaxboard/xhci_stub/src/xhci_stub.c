@@ -16,6 +16,7 @@
 #include <sys/kernel.h>
 #include <sys/kmem.h>
 
+#include <timer.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdivar.h>
@@ -61,6 +62,7 @@ uintptr_t dma_base;
 uintptr_t dma_cp_paddr;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t ta_limit;
+uintptr_t timer_base;
 
 // TODO: put these in a header file so can change it in a single place for a platform
 uint64_t heap_size = 0x2000000;
@@ -110,6 +112,8 @@ init(void) {
     bool error = ta_init((void*)heap_base, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
     printf("Init malloc: %d\n", error);
 
+    initialise_and_start_timer(timer_base);
+
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x2000000);
     printf("dma init ok\n");
 
@@ -123,10 +127,10 @@ init(void) {
 
     struct xhci_softc *sc_xhci = kmem_alloc(sizeof(struct xhci_softc), 0);
     glob_xhci_sc = sc_xhci;
+    sel4cp_ppcall(0, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
     sc_xhci->sc_ioh=0x38200000;
 	bus_space_tag_t iot = kmem_alloc(sizeof(bus_space_tag_t), 0);
     sc_xhci->sc_iot=iot;
-    sel4cp_ppcall(0, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
 
     __sync_synchronize();
 
@@ -134,6 +138,18 @@ init(void) {
 
     printf("Starting fdt_attach\n");
     dwc3_fdt_attach(parent_xhci,self_xhci,aux_xhci);
+
+    //     struct usb_softc *usb_sc = kmem_alloc(sizeof(struct usb_softc),0);
+    //     struct usbd_bus *sc_bus = kmem_alloc(sizeof(struct usbd_bus),0);
+    //     device_t self = kmem_alloc(sizeof(device_t), 0);
+    //     *sc_bus = glob_xhci_sc->sc_bus;
+    //     sc_bus->ub_methods = glob_xhci_sc->sc_bus.ub_methods;
+    //     printf("does sc_bus have newdev? %d\n", (sc_bus->ub_methods->ubm_newdev != NULL));
+    //     // sc_bus->ub_revision = USBREV_3_0;
+    //     self->dv_unit = 1;
+    //     self->dv_private = usb_sc;
+    //     device_t parent = NULL;
+    //     usb_attach(parent, self, sc_bus);
 }
 
 

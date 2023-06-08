@@ -54,24 +54,12 @@ notified(sel4cp_channel ch) {
                 printf("FATAL: sc not defined");
             }
             sel4cp_irq_ack(ch);
-            sel4cp_irq_ack(73);
             printf("end of ch\n");
-            // if (!int_once) {
-            //     int_once = true;
-            //     struct usb_softc *usb_sc = kmem_alloc(sizeof(struct usb_softc),0);
-            //     struct usbd_bus *sc_bus = kmem_alloc(sizeof(struct usbd_bus),0);
-            //     device_t self = kmem_alloc(sizeof(device_t), 0);
-            //     *sc_bus = glob_xhci_sc->sc_bus;
-            //     sc_bus->ub_methods = glob_xhci_sc->sc_bus.ub_methods;
-            //     printf("does sc_bus have newdev? %d\n", (sc_bus->ub_methods->ubm_newdev != NULL));
-            //     // sc_bus->ub_revision = USBREV_3_0;
-            //     self->dv_unit = 1;
-            //     self->dv_private = usb_sc;
-            //     device_t parent = NULL;
-            //     usb_attach(parent, self, sc_bus);
-            //     // usbd_new_device();
-            // }
             break;
+    }
+    printf("Hanging to prevent io spam\n");
+    while(1) {
+
     }
 }
 

@@ -126,6 +126,7 @@ init(void) {
     sc_xhci->sc_ioh=0x38200000;
 	bus_space_tag_t iot = kmem_alloc(sizeof(bus_space_tag_t), 0);
     sc_xhci->sc_iot=iot;
+    sel4cp_ppcall(0, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
 
     __sync_synchronize();
 
@@ -140,35 +141,4 @@ init(void) {
 void
 notified(sel4cp_channel ch)
 {
-    switch(ch) {
-        case 7:
-            //handle interrupt
-            printf("!!xhci interrupt!!\n");
-            if (glob_xhci_sc != NULL) {
-                xhci_intr(glob_xhci_sc);
-            } else {
-                printf("FATAL: sc not defined");
-            }
-
-            if (!int_once) {
-                int_once = true;
-                struct usb_softc *usb_sc = kmem_alloc(sizeof(struct usb_softc),0);
-                struct usbd_bus *sc_bus = kmem_alloc(sizeof(struct usbd_bus),0);
-                device_t self = kmem_alloc(sizeof(device_t), 0);
-                *sc_bus = glob_xhci_sc->sc_bus;
-                sc_bus->ub_methods = glob_xhci_sc->sc_bus.ub_methods;
-                printf("does sc_bus have newdev? %d\n", (sc_bus->ub_methods->ubm_newdev != NULL));
-                // sc_bus->ub_revision = USBREV_3_0;
-                self->dv_unit = 1;
-                self->dv_private = usb_sc;
-                device_t parent = NULL;
-                usb_attach(parent, self, sc_bus);
-                // usbd_new_device();
-            }
-            printf("end of ch\n");
-            return;
-        default:
-            printf("idiot boy, unexpected interrupt channel\n");
-            break;
-    }
 }

@@ -10,13 +10,33 @@
     <memory_region name="xhci_mem" size="0x10_000" phys_addr="0x38200000"/>
     <memory_region name="xhci_phys_mem" size="0x1000" phys_addr="0x382f0000"/> <!--won't let me specify the correct size or base address, but this encompasses the phy-->
 
-    <protection_domain name="xhci_stub" priority="253">
+    <protection_domain name="xhci_stub" pp="true" priority="250">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
-        <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="false" setvar_vaddr="dma_base"/>
+        <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
-        <irq irq="73" id="7"/> <!--usb irq offset by 32 (not sure why)-->
         <map mr="xhci_phys_mem" vaddr="0x382f0000" perms="rw" cached="false" setvar_vaddr="xhci_phy_base"/>
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
         <program_image path="xhci_stub.elf" />
     </protection_domain>
+
+    <!-- <protection_domain name="timer" priority="253">
+        <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
+        <program_image path="timer.elf" />
+    </protection_domain> -->
+
+ 
+
+    <protection_domain name="hardware_interrupt" pp="true" priority="253">
+        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
+        <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
+        <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
+        <irq irq="73" id="6"/> <!--usb irq offset by 32 (not sure why)-->
+        <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
+        <program_image path="hardware.elf" />
+    </protection_domain>
+
+    <channel>
+        <end pd="hardware_interrupt" id="0"/>
+        <end pd="xhci_stub" id="0"/>
+    </channel>
 </system>

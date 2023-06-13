@@ -1673,7 +1673,7 @@ xhci_init(struct xhci_softc *sc)
 	    XHCI_ERSTE_SIZE * XHCI_EVENT_RING_SEGMENTS, BUS_DMASYNC_PREWRITE);
 
 	xhci_rt_write_4(sc, XHCI_ERSTSZ(0), XHCI_EVENT_RING_SEGMENTS);
-	xhci_rt_write_8(sc, XHCI_ERSTBA(0), DMAADDR(&sc->sc_eventst_dma, 0) + 0x8000);
+	xhci_rt_write_8(sc, XHCI_ERSTBA(0), DMAADDR(&sc->sc_eventst_dma, 0));
 	xhci_rt_write_8(sc, XHCI_ERDP(0), xhci_ring_trbp(sc->sc_er, 0) |
 	    XHCI_ERDP_BUSY);
 
@@ -1731,7 +1731,6 @@ xhci_intr(void *v)
 
 	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-    __sync_synchronize();
 	if (sc == NULL)
 		return 0;
 

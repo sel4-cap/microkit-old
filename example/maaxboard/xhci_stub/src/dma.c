@@ -56,9 +56,11 @@ int sel4_dma_alloc(size_t size, bus_dma_segment_t *sg) {
 }
 
 uintptr_t* getPhys(void* virt) {
-    uintptr_t *offset = virt - virt_base;
+    int offset = (int)virt - (int)virt_base;
+    printf("offset = %d\n", offset);
+    printf("phys_base: %d + offset %x = %p");
     printf("getting phys of %p: %p\n", virt, phys_base+offset);
-    return phys_base + offset;
+    return (phys_base+offset);
 }
 
 uintptr_t* getVirt(void* paddr) {

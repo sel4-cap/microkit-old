@@ -63,6 +63,10 @@ uint64_t tick_frequency = 0;
 uintptr_t tmr_base;
 
 
+uint64_t get_clock_freq(uintptr_t timer_base) {
+    return readl(timer_base, 0x020);
+}
+
 void initialise_and_start_timer(uintptr_t timer_base)
 {
     tmr_base = timer_base;

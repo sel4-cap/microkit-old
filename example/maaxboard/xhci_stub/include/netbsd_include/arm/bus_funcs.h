@@ -66,6 +66,7 @@
 
 #include <sel4_bus_funcs.h>
 #include <dma.h>
+#include <sel4cp.h>
 
 #ifdef _KERNEL_OPT
 #include "opt_cputypes.h"
@@ -724,8 +725,16 @@ void bus_dmamap_sync(bus_dma_tag_t, bus_dmamap_t, bus_addr_t, bus_size_t, int);
 	There are post and pre ops tho, not sure how they would affect things.
 */
 #define bus_dmamap_sync(t, dmam, o, len, f) \
-	__sync_synchronize();
-	// void* h = (void*) dmam->dm_segs->ds_addr;					\
+    void* h = ((void*) dmam->dm_segs->ds_addr);					\
+	if (f == BUS_DMASYNC_POSTREAD || f == BUS_DMASYNC_PREREAD) { \
+		aprint_debug("Invalidating from %p\n", h); \
+		int err = seL4_ARM_VSpace_Invalidate_Data(3,(h+o), (h+o+len)); \
+		aprint_debug("invalidate complete err=%d\n", err); \
+	} else { \
+		aprint_debug("flushing from %p\n", h); \
+		int err = seL4_ARM_VSpace_Clean_Data(3,h+o, h+o+len); \
+		aprint_debug("flush complete err=%d\n", err); \
+	}
 	// sel4_dma_flush_range_new(h + o, h + o + len)
 
 #define	bus_dmamem_alloc(t, s, a, b, sg, n, r, f)		\

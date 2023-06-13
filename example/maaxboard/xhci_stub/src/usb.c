@@ -135,19 +135,19 @@ fail:
 #define	DPRINTF(FMT,A,B,C,D)	USBHIST_LOG(usbdebug,FMT,A,B,C,D)
 #define	DPRINTFN(N,FMT,A,B,C,D)	USBHIST_LOGN(usbdebug,N,FMT,A,B,C,D)
 
-struct usb_softc {
-#if 0
-	device_t	sc_dev;		/* base device */
-#endif
-	struct usbd_bus *sc_bus;	/* USB controller */
-	struct usbd_port sc_port;	/* dummy port for root hub */
+// struct usb_softc {
+// #if 0
+// 	device_t	sc_dev;		/* base device */
+// #endif
+// 	struct usbd_bus *sc_bus;	/* USB controller */
+// 	struct usbd_port sc_port;	/* dummy port for root hub */
 
-	struct lwp	*sc_event_thread;
-	struct lwp	*sc_attach_thread;
+// 	struct lwp	*sc_event_thread;
+// 	struct lwp	*sc_attach_thread;
 
-	char		sc_dying;
-	bool		sc_pmf_registered;
-};
+// 	char		sc_dying;
+// 	bool		sc_pmf_registered;
+// };
 
 struct usb_taskq {
 	TAILQ_HEAD(, usb_task) tasks;
@@ -230,7 +230,7 @@ static struct usb_taskq usb_taskq[USB_NUM_TASKQS];
 // 	.d_flag = D_OTHER
 // };
 
-Static void	usb_discover(struct usb_softc *);
+// Static void	usb_discover(struct usb_softc *);
 Static void	usb_create_event_thread(device_t);
 Static void	usb_event_thread(void *);
 Static void	usb_task_thread(void *);
@@ -1176,7 +1176,7 @@ usb_task_thread(void *arg)
 // }
 
 // /* Explore device tree from the root. */
-Static void
+void
 usb_discover(struct usb_softc *sc)
 {
 	struct usbd_bus *bus = sc->sc_bus;

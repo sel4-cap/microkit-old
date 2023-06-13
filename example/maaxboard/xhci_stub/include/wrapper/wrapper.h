@@ -14,5 +14,20 @@
 
 #include <dev/fdt/fdtvar.h>
 
+struct usb_softc {
+#if 0
+	device_t	sc_dev;		/* base device */
+#endif
+	struct usbd_bus *sc_bus;	/* USB controller */
+	struct usbd_port sc_port;	/* dummy port for root hub */
+
+	struct lwp	*sc_event_thread;
+	struct lwp	*sc_attach_thread;
+
+	char		sc_dying;
+	bool		sc_pmf_registered;
+};
+
 void	dwc3_fdt_attach(device_t, device_t, void *);
 void	usb_attach(device_t, device_t, void *);
+void    usb_discover(struct usb_softc *);

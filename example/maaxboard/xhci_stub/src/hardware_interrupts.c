@@ -16,6 +16,7 @@
 #include <sys/kernel.h>
 #include <sys/kmem.h>
 
+#include <timer.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdivar.h>
@@ -34,12 +35,15 @@ uintptr_t dma_base;
 uintptr_t heap_base;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t dma_cp_paddr;
+uintptr_t timer_base;
 
 struct xhci_softc *glob_xhci_sc	= NULL;
 
 void
 init(void) {
-    sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x2000000);
+    printf("HARDWARE: dmapaddr = %p\n", dma_cp_paddr);
+    sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
+    initialise_and_start_timer(timer_base);
     printf("Hardware up and running\n");
 }
 
@@ -48,6 +52,8 @@ notified(sel4cp_channel ch) {
     switch (ch) {
         case 6:
             printf("!!xhci interrupt!!\n");
+            ms_delay(1000);
+            printf("delay over\n");
             if (glob_xhci_sc != NULL) {
                 xhci_intr(glob_xhci_sc);
             } else {
@@ -57,10 +63,10 @@ notified(sel4cp_channel ch) {
             printf("end of ch\n");
             break;
     }
-    printf("Hanging to prevent io spam\n");
-    while(1) {
+    // printf("Hanging to prevent io spam\n");
+    // while(1) {
 
-    }
+    // }
 }
 
 sel4cp_msginfo

@@ -395,12 +395,13 @@ LIST_HEAD(cfattachlist, cfattach);
 // 	.ca_childdetached	= chdetfn,				\
 // }
 
-#define	CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn, rescanfn, chdetfn)						\
+// #define	CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn,	\
+// 	rescanfn, chdetfn)						\
 // 	CFATTACH_DECL3_NEW(name, ddsize, matfn, attfn, detfn, actfn,	\
 // 	    rescanfn, chdetfn, 0)
 
-// #define	CFATTACH_DECL_NEW(name, ddsize, matfn, attfn, detfn, actfn)
-CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn, NULL, NULL)
+// #define	CFATTACH_DECL_NEW(name, ddsize, matfn, attfn, detfn, actfn)	\
+// 	CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn, NULL, NULL)
 
 /* Flags given to config_detach(), and the ca_detach function. */
 #define	DETACH_FORCE	0x01		/* force detachment; hardware gone */
@@ -465,8 +466,6 @@ struct pdevinit {
 /* This allows us to wildcard a device unit. */
 #define	DVUNIT_ANY	-1
 
-#define	CFARGS_NONE		NULL	/* no cfargs to pass */
-
 #if defined(_KERNEL) || defined(_KMEMUSER) || defined(_STANDALONE)
 /*
  * Arguments passed to config_search() and config_found().
@@ -486,7 +485,7 @@ struct cfargs {
 
 #define	CFARGS_VERSION		1	/* current cfargs version */
 
-
+#define	CFARGS_NONE		NULL	/* no cfargs to pass */
 
 /*
  * Construct a cfargs with this macro, like so:

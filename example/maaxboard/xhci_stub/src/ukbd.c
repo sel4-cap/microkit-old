@@ -408,8 +408,8 @@ static void ukbd_childdet(device_t, device_t);
 
 
 
-CFATTACH_DECL2_NEW(ukbd, sizeof(struct ukbd_softc), ukbd_match, ukbd_attach,
-    ukbd_detach, ukbd_activate, NULL, ukbd_childdet);
+// CFATTACH_DECL2_NEW(ukbd, sizeof(struct ukbd_softc), ukbd_match, ukbd_attach,
+    // ukbd_detach, ukbd_activate, NULL, ukbd_childdet);
 
 int
 ukbd_match(device_t parent, cfdata_t match, void *aux)
@@ -526,7 +526,7 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
 	    sc);
 
-	sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
+	// sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
 
 	sc->sc_attached = true;
 

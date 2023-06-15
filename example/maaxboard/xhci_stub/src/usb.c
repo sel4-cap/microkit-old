@@ -232,7 +232,7 @@ static struct usb_taskq usb_taskq[USB_NUM_TASKQS];
 
 // Static void	usb_discover(struct usb_softc *);
 Static void	usb_create_event_thread(device_t);
-Static void	usb_event_thread(void *);
+// Static void	usb_event_thread(void *);
 Static void	usb_task_thread(void *);
 
 /*
@@ -1209,18 +1209,18 @@ usb_discover(struct usb_softc *sc)
 	// SDT_PROBE1(usb, kernel, bus, discover__done,  bus);
 }
 
-// void
-// usb_needs_explore(struct usbd_device *dev)
-// {
+void
+usb_needs_explore(struct usbd_device *dev)
+{
 
-// 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-// 	SDT_PROBE1(usb, kernel, bus, needs__explore,  dev->ud_bus);
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+	// SDT_PROBE1(usb, kernel, bus, needs__explore,  dev->ud_bus);
 
-// 	mutex_enter(dev->ud_bus->ub_lock);
-// 	dev->ud_bus->ub_needsexplore = 1;
-// 	cv_signal(&dev->ud_bus->ub_needsexplore_cv);
-// 	mutex_exit(dev->ud_bus->ub_lock);
-// }
+	mutex_enter(dev->ud_bus->ub_lock);
+	dev->ud_bus->ub_needsexplore = 1;
+	cv_signal(&dev->ud_bus->ub_needsexplore_cv);
+	mutex_exit(dev->ud_bus->ub_lock);
+}
 
 // void
 // usb_needs_reattach(struct usbd_device *dev)
@@ -1299,7 +1299,7 @@ Static void
 usb_add_event(int type, struct usb_event *uep)
 {
 	struct usb_event_q *ueq;
-	struct timeval thetime;
+	// struct timeval thetime;
 
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
 

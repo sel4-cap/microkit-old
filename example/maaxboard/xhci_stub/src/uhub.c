@@ -887,7 +887,7 @@ uhub_explore(struct usbd_device *dev)
 			memcpy(sc->sc_status, sc->sc_statuspend,
 			    sc->sc_statuslen);
 			memset(sc->sc_statuspend, 0, sc->sc_statuslen);
-			// usb_needs_explore(sc->sc_hub); //? maybe need to reimplement
+			usb_needs_explore(sc->sc_hub); //? maybe need to reimplement
 			break;
 		}
 	}
@@ -1071,7 +1071,7 @@ uhub_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 				    i, sc->sc_status[i], 0);
 			}
 
-			// usb_needs_explore(sc->sc_hub); //? maybe needs reimplement
+			usb_needs_explore(sc->sc_hub); //? maybe needs reimplement
 		}
 		mutex_exit(&sc->sc_lock);
 	}

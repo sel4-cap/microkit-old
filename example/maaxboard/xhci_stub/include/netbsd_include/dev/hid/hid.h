@@ -34,8 +34,6 @@
 #ifndef _HIDHID_H_
 #define _HIDHID_H_
 
-#if defined(_KERNEL) || defined(_RUMPKERNEL)
-
 enum hid_kind {
 	hid_input,
 	hid_output,
@@ -82,6 +80,10 @@ struct hid_item {
 	/* */
 	struct hid_item *next;
 };
+
+long hid_get_data(const u_char *, const struct hid_location *);
+
+#if defined(_KERNEL) || defined(_RUMPKERNEL)
 
 struct hid_data *hid_start_parse(const void *, int, enum hid_kind);
 void hid_end_parse(struct hid_data *);

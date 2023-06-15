@@ -33,6 +33,7 @@
 #define	_SYS_ANSI_H_
 
 #include <evbarm/ansi.h>
+#include <sys/_types.h>
 
 typedef char *		__caddr_t;	/* core address */
 // typedef __uint32_t	__gid_t;	/* group id */

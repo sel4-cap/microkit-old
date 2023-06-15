@@ -1,7 +1,7 @@
-/*	$NetBSD: kernel.h,v 1.35 2022/10/26 23:27:32 riastradh Exp $	*/
+/*	$NetBSD: filio.h,v 1.11 2018/02/25 18:55:23 chs Exp $	*/
 
 /*-
- * Copyright (c) 1990, 1993
+ * Copyright (c) 1982, 1986, 1990, 1993, 1994
  *	The Regents of the University of California.  All rights reserved.
  * (c) UNIX System Laboratories, Inc.
  * All or some portions of this file are derived from material licensed
@@ -33,44 +33,32 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)kernel.h	8.3 (Berkeley) 1/21/94
+ *	@(#)filio.h	8.1 (Berkeley) 3/28/94
  */
 
-#ifndef _SYS_KERNEL_H_
-#define _SYS_KERNEL_H_
+#ifndef	_SYS_FILIO_H_
+#define	_SYS_FILIO_H_
 
-#include "param.h"
-extern int hz;			/* system clock's frequency */
+#include <sys/ioccom.h>
 
-#if defined(_KERNEL) || defined(_STANDALONE)
+/* Generic file-descriptor ioctl's. */
+#define	FIOCLEX		 _IO('f', 1)		/* set close on exec on fd */
+#define	FIONCLEX	 _IO('f', 2)		/* remove close on exec */
+/* Handle lseek SEEK_DATA and SEEK_HOLE for holey file knowledge. */
+#define	FIOSEEKDATA	_IOWR('f', 97, off_t)	/* SEEK_DATA */
+#define	FIOSEEKHOLE	_IOWR('f', 98, off_t)	/* SEEK_HOLE */
+#define	FIONREAD	_IOR('f', 127, int)	/* get # bytes to read */
+#define	FIONBIO		_IOW('f', 126, int)	/* set/clear non-blocking i/o */
+#define	FIOASYNC	_IOW('f', 125, int)	/* set/clear async i/o */
+#define	FIOSETOWN	_IOW('f', 124, int)	/* set owner */
+#define	FIOGETOWN	_IOR('f', 123, int)	/* get owner */
+#define	OFIOGETBMAP	_IOWR('f', 122, uint32_t) /* get underlying block no. */
+#define	FIOGETBMAP	_IOWR('f', 122, daddr_t) /* get underlying block no. */
+#define	FIONWRITE	_IOR('f', 121, int)	/* get # bytes outstanding
+						 * in send queue. */
+#define	FIONSPACE	_IOR('f', 120, int)	/* get space in send queue. */
 
-/* Global variables for the kernel. */
+/* Ugly symbol for compatibility with other operating systems */
+#define	FIBMAP		FIOGETBMAP
 
-extern long hostid;
-extern char hostname[MAXHOSTNAMELEN];
-extern int hostnamelen;
-extern char domainname[MAXHOSTNAMELEN];
-extern int domainnamelen;
-
-extern int rtc_offset;		/* offset of rtc from UTC in minutes */
-
-extern int cold;		/* still working on startup */
-extern int start_init_exec;	/* init(8) may have started */
-extern int shutting_down;	/* system is shutting down */
-extern int tick;		/* usec per tick (1000000 / hz) */
-extern int tickadj;		/* "standard" clock skew, us./tick */
-extern int stathz;		/* statistics clock's frequency */
-extern int profhz;		/* profiling clock's frequency */
-
-extern int profsrc;		/* profiling source */
-extern int psratio;		/* ratio: prof / stat */
-
-/* Accessors. */
-
-int getticks(void);
-
-#define PROFSRC_CLOCK	0
-
-#endif
-
-#endif /* _SYS_KERNEL_H_ */
+#endif /* !_SYS_FILIO_H_ */

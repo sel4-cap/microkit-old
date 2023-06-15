@@ -1,13 +1,11 @@
-/*	$NetBSD: usbhid.h,v 1.19 2020/03/04 01:23:08 christos Exp $	*/
-/*	$FreeBSD: src/sys/dev/usb/usbhid.h,v 1.7 1999/11/17 22:33:51 n_hibma Exp $ */
+/*	$NetBSD: wsksymvar.h,v 1.11 2008/04/28 20:24:01 martin Exp $ */
 
-/*
- * Copyright (c) 1998 The NetBSD Foundation, Inc.
+/*-
+ * Copyright (c) 1997 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Lennart Augustsson (lennart@augustsson.net) at
- * Carlstedt Research & Technology.
+ * by Juergen Hannken-Illjes.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,43 +29,50 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _DEV_WSCONS_WSKSYMVAR_H_
+#define _DEV_WSCONS_WSKSYMVAR_H_
 
-#ifndef _DEV_USB_USBHID_H_
-#define _DEV_USB_USBHID_H_
+#ifndef _KERNEL
+#include <sys/types.h>
+#endif
 
-#include <dev/hid/hid.h>
- #include <sys/ioccom.h>
+typedef u_int16_t keysym_t;
+typedef u_int32_t kbd_t;
 
-#define UR_GET_HID_DESCRIPTOR	0x06
-#define  UDESC_HID		0x21
-#define  UDESC_REPORT		0x22
-#define  UDESC_PHYSICAL		0x23
-#define UR_SET_HID_DESCRIPTOR	0x07
-#define UR_GET_REPORT		0x01
-#define UR_SET_REPORT		0x09
-#define UR_GET_IDLE		0x02
-#define UR_SET_IDLE		0x0a
-#define UR_GET_PROTOCOL		0x03
-#define UR_SET_PROTOCOL		0x0b
+struct wscons_keymap {
+	keysym_t command;
+	keysym_t group1[2];
+	keysym_t group2[2];
+};
 
-typedef struct usb_hid_descriptor {
-	uByte		bLength;
-	uByte		bDescriptorType;
-	uWord		bcdHID;
-	uByte		bCountryCode;
-	uByte		bNumDescriptors;
-	struct {
-		uByte		bDescriptorType;
-		uWord		wDescriptorLength;
-	} descrs[1];
-} UPACKED usb_hid_descriptor_t;
-#define USB_HID_DESCRIPTOR_SIZE(n) (9+(n)*3)
+struct wskbd_mapdata {
+	const struct wscons_keydesc *keydesc;
+	kbd_t layout;
+};
 
-#define UHID_INPUT_REPORT 0x01
-#define UHID_OUTPUT_REPORT 0x02
-#define UHID_FEATURE_REPORT 0x03
+struct wscons_keydesc {
+	kbd_t	name;				/* name of this map */
+	kbd_t	base;				/* map this one is based on */
+	int	map_size;			/* size of map */
+	const keysym_t *map;			/* the map itself */
+};
 
-#define USB_HID_GET_RAW	_IOR('h', 1, int)
-#define USB_HID_SET_RAW	_IOW('h', 2, int)
+#ifdef _KERNEL
 
-#endif /* _DEV_USB_USBHID_H_ */
+
+/* layout variant bits ignored by mapping code */
+#define KB_HANDLEDBYWSKBD KB_METAESC
+
+/*
+ * Utility functions.
+ */
+void	wskbd_get_mapentry(const struct wskbd_mapdata *, int,
+			   struct wscons_keymap *);
+void	wskbd_init_keymap(int, struct wscons_keymap **, int *);
+int	wskbd_load_keymap(const struct wskbd_mapdata *,
+                          struct wscons_keymap **, int *);
+keysym_t wskbd_compose_value(keysym_t *);
+
+#endif
+
+#endif /* !_DEV_WSCONS_WSKSYMVAR_H_ */

@@ -155,9 +155,10 @@
 #endif
 
 /* More types and definitions used throughout the kernel. */
+#include <sys/errno.h>
 #ifdef _KERNEL
 #include <sys/cdefs.h>
-#include <sys/errno.h>
+
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/ucred.h>
@@ -509,8 +510,9 @@
 #define	UBC_NWINS	1024
 #endif
 
-#ifdef _KERNEL
 extern int hz;
+#ifdef _KERNEL
+
 /*
  * macro to convert from milliseconds to hz without integer overflow
  * The 32 bit version uses only 32bit arithmetic; 0x20000 is safe for hz < 20000

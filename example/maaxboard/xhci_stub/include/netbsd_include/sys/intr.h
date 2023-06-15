@@ -37,9 +37,13 @@
 
 #define	SOFTINT_SERIAL	0x0002
 #define	SOFTINT_MPSAFE	0x0100
+
 #ifdef _KERNEL
 
+#define	spltty()	splvm()
+
 #include <sys/types.h>
+
 
 struct cpu_info;
 

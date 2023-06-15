@@ -696,15 +696,15 @@ usbd_create_xfer(struct usbd_pipe *pipe, size_t len, unsigned int flags,
 		}
 	}
 
-	if (xfer->ux_methods) { // added this check because it crashes otherwise
-		if (xfer->ux_methods->upm_init) {
-			int err = xfer->ux_methods->upm_init(xfer);
-			if (err) {
-				usbd_free_xfer(xfer);
-				return err;
-			}
+	// if (xfer->ux_methods) { // added this check because it crashes otherwise
+	if (xfer->ux_methods->upm_init) {
+		int err = xfer->ux_methods->upm_init(xfer);
+		if (err) {
+			usbd_free_xfer(xfer);
+			return err;
 		}
 	}
+	// }
 
 	*xp = xfer;
 	// SDT_PROBE5(usb, device, xfer, create,
@@ -1208,6 +1208,7 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 	    (uintptr_t)pipe->up_methods->upm_done, 0, 0);
 	// SDT_PROBE2(usb, device, xfer, done,  xfer, xfer->ux_status);
 	pipe->up_methods->upm_done(xfer);
+	// aprint_debug("should have gone to xhci_done\n");
 
 	if (xfer->ux_length != 0 && xfer->ux_buffer != xfer->ux_buf) {
 		KDASSERTMSG(xfer->ux_actlen <= xfer->ux_length,
@@ -1259,6 +1260,7 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 	}
 	if (pipe->up_running && pipe->up_serialise)
 		usbd_start_next(pipe);
+	USBHIST_LOG(usbdebug, "done!", 0,0,0,0);
 }
 
 /* Called with USB lock held. */

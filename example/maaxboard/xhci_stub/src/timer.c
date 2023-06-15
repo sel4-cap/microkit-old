@@ -33,6 +33,12 @@
 #include <sel4_bus_funcs.h>
 #include <sel4cp.h>
 
+#ifdef TIMER_DEBUG
+#define timer_print(...) printf(__VA_ARGS__)
+#else
+#define timer_print(...) 0
+#endif
+
 #define hang() 0 //noop
 
 struct cntl_reg {
@@ -120,15 +126,15 @@ unsigned long timer_get_us(void) {
 }
 
 void ms_delay(int delay) {
-    printf("TIMER START\n");
+    timer_print("TIMER START\n");
     unsigned long timer_count_init = get_ticks();
-	printf("Start count: %ld\n", timer_count_init);
+	timer_print("Start count: %ld\n", timer_count_init);
     unsigned long delay_ticks = delay*(tick_frequency/1000);
-    printf("Delay ticks: %ld\n", delay_ticks);
+    timer_print("Delay ticks: %ld\n", delay_ticks);
 	while (get_ticks() < timer_count_init + delay_ticks) {
         seL4_Yield();
 	}
-	printf("Finish count: %ld\n", get_ticks());
-    printf("Target end was: %ld\n", timer_count_init + delay_ticks);
-    printf("TIMER END\n");
+	timer_print("Finish count: %ld\n", get_ticks());
+    timer_print("Target end was: %ld\n", timer_count_init + delay_ticks);
+    timer_print("TIMER END\n");
 }

@@ -2073,12 +2073,14 @@ xhci_open(struct usbd_pipe *pipe)
 
 	/* Root Hub */
 	if (dev->ud_depth == 0 && dev->ud_powersrc->up_portno == 0) {
-		pipe->up_methods = kmem_alloc(sizeof(struct usbd_pipe_methods), 0) //added
+		// pipe->up_methods = kmem_alloc(sizeof(struct usbd_pipe_methods), 0) //added
 		switch (ed->bEndpointAddress) {
 		case USB_CONTROL_ENDPOINT:
 			pipe->up_methods = &roothub_ctrl_methods;
 			break;
 		case UE_DIR_IN | USBROOTHUB_INTR_ENDPT:
+			DPRINTFN(0, "setting xhci_root_intr :D",
+			    0, 0, 0, 0);
 			pipe->up_methods = &xhci_root_intr_methods;
 			break;
 		default:

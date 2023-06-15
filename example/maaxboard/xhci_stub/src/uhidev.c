@@ -146,8 +146,8 @@ static void uhidev_attach(device_t, device_t, void *);
 static void uhidev_childdet(device_t, device_t);
 static int uhidev_detach(device_t, int);
 
-CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
-    uhidev_attach, uhidev_detach, NULL, NULL, uhidev_childdet);
+// CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
+//     uhidev_attach, uhidev_detach, NULL, NULL, uhidev_childdet);
 
 static int
 uhidev_match(device_t parent, cfdata_t match, void *aux)

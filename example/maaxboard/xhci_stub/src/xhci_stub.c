@@ -151,6 +151,7 @@ init(void) {
     usb_attach(parent, self, sc_bus);
     // int response  = bus_space_read_4(0, 0x38200020, 4);
     // printf("Attempted bus_space_read_4: %08x\n", response);
+	usb_sc->sc_bus->ub_needsexplore = 1;
     usb_discover(usb_sc);
 }
 

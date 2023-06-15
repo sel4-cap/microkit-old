@@ -1,13 +1,11 @@
-/*	$NetBSD: usbhid.h,v 1.19 2020/03/04 01:23:08 christos Exp $	*/
-/*	$FreeBSD: src/sys/dev/usb/usbhid.h,v 1.7 1999/11/17 22:33:51 n_hibma Exp $ */
+/*	$NetBSD: stdbool.h,v 1.1 2015/07/29 00:10:25 christos Exp $	*/
 
-/*
- * Copyright (c) 1998 The NetBSD Foundation, Inc.
+/*-
+ * Copyright (c) 2002 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Lennart Augustsson (lennart@augustsson.net) at
- * Carlstedt Research & Technology.
+ * by Jason R. Thorpe of Wasabi Systems, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,43 +29,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _SYS_STDBOOL_H_
+#define	_SYS_STDBOOL_H_
 
-#ifndef _DEV_USB_USBHID_H_
-#define _DEV_USB_USBHID_H_
+#ifndef __bool_true_false_are_defined
+#ifndef __cplusplus
+#define	bool	_Bool
 
-#include <dev/hid/hid.h>
- #include <sys/ioccom.h>
+#define	true	1
+#define	false	0
 
-#define UR_GET_HID_DESCRIPTOR	0x06
-#define  UDESC_HID		0x21
-#define  UDESC_REPORT		0x22
-#define  UDESC_PHYSICAL		0x23
-#define UR_SET_HID_DESCRIPTOR	0x07
-#define UR_GET_REPORT		0x01
-#define UR_SET_REPORT		0x09
-#define UR_GET_IDLE		0x02
-#define UR_SET_IDLE		0x0a
-#define UR_GET_PROTOCOL		0x03
-#define UR_SET_PROTOCOL		0x0b
+#endif /* __cplusplus */
 
-typedef struct usb_hid_descriptor {
-	uByte		bLength;
-	uByte		bDescriptorType;
-	uWord		bcdHID;
-	uByte		bCountryCode;
-	uByte		bNumDescriptors;
-	struct {
-		uByte		bDescriptorType;
-		uWord		wDescriptorLength;
-	} descrs[1];
-} UPACKED usb_hid_descriptor_t;
-#define USB_HID_DESCRIPTOR_SIZE(n) (9+(n)*3)
+#define	__bool_true_false_are_defined	1
+#endif
 
-#define UHID_INPUT_REPORT 0x01
-#define UHID_OUTPUT_REPORT 0x02
-#define UHID_FEATURE_REPORT 0x03
-
-#define USB_HID_GET_RAW	_IOR('h', 1, int)
-#define USB_HID_SET_RAW	_IOW('h', 2, int)
-
-#endif /* _DEV_USB_USBHID_H_ */
+#endif /* _SYS_STDBOOL_H_ */

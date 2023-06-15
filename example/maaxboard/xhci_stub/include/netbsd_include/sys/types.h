@@ -147,65 +147,65 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 // #endif
 // #endif
 
-// #ifdef __daddr_t
-// typedef	__daddr_t	daddr_t;	/* disk address */
-// #undef __daddr_t
-// #else
-// typedef	int64_t		daddr_t;	/* disk address */
-// #endif
+ #ifdef __daddr_t
+ typedef	__daddr_t	daddr_t;	/* disk address */
+ #undef __daddr_t
+ #else
+ typedef	int64_t		daddr_t;	/* disk address */
+ #endif
 
-// typedef	uint64_t	dev_t;		/* device number */
+ typedef	uint64_t	dev_t;		/* device number */
 // typedef	uint32_t	fixpt_t;	/* fixed point number */
 
-// #ifndef	gid_t
-// typedef	__gid_t		gid_t;		/* group id */
-// #define	gid_t		__gid_t
-// #endif
+ #ifndef	gid_t
+ typedef	__gid_t		gid_t;		/* group id */
+ #define	gid_t		__gid_t
+ #endif
 
 // typedef	uint32_t	id_t;		/* group id, process id or user id */
-// #ifdef __ino_t
+ #ifdef __ino_t
 // /*
 //  * Some first stage bootloaders may want to avoid 64bit math, especially
 //  * when the firmware can only access small disks/partitions anyway.
 //  * Example: hppa/stand/xxboot
 //  */
-// typedef	__ino_t		ino_t;
-// #undef __ino_t
-// #else
-// typedef	uint64_t	ino_t;		/* inode number */
-// #endif
+ typedef	__ino_t		ino_t;
+ #undef __ino_t
+ #else
+ typedef	uint64_t	ino_t;		/* inode number */
+ #endif
 // typedef	long		key_t;		/* IPC key (for Sys V IPC) */
 
-// #ifndef	mode_t
-// typedef	__mode_t	mode_t;		/* permissions */
-// #define	mode_t		__mode_t
-// #endif
+ #ifndef	mode_t
+ typedef	__mode_t	mode_t;		/* permissions */
+ #define	mode_t		__mode_t
+ #endif
 
 // #ifndef	accmode_t
 // typedef	__accmode_t	accmode_t;	/* access permissions */
 // #define	accmode_t	__accmode_t
 // #endif
 
-// typedef	uint32_t	nlink_t;	/* link count */
+ typedef	uint32_t	nlink_t;	/* link count */
 
-// #ifndef	off_t
-// typedef	__off_t		off_t;		/* file offset */
-// #define	off_t		__off_t
-// #endif
+ #ifndef	off_t
+ typedef	__off_t		off_t;		/* file offset */
+ #define	off_t		__off_t
+ #endif
 
-// #ifndef	pid_t
-// typedef	__pid_t		pid_t;		/* process id */
-// #define	pid_t		__pid_t
-// #endif
-// typedef int32_t		lwpid_t;	/* LWP id */
+ #ifndef	pid_t
+ typedef	__pid_t		pid_t;		/* process id */
+ #define	pid_t		__pid_t
+ #endif
+ typedef int32_t		lwpid_t;	/* LWP id */
 // typedef uint64_t	rlim_t;		/* resource limit */
 // typedef	int32_t		segsz_t;	/* segment size */
 // typedef	int32_t		swblk_t;	/* swap offset */
 
-// #ifndef	uid_t
-// typedef	__uid_t		uid_t;		/* user id */
-// #define	uid_t		__uid_t
-// #endif
+ #ifndef	uid_t
+ typedef	__uid_t		uid_t;		/* user id */
+ #define	uid_t		__uid_t
+ #endif
 
 // typedef int		mqd_t;
 
@@ -279,10 +279,10 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 // 				 (((dev_t)(y) <<  0) & 0x000000ffU)))
 // #endif
 
-// #ifdef	_BSD_CLOCK_T_
-// typedef	_BSD_CLOCK_T_		clock_t;
-// #undef	_BSD_CLOCK_T_
-// #endif
+ #ifdef	_BSD_CLOCK_T_
+ typedef	_BSD_CLOCK_T_		clock_t;
+ #undef	_BSD_CLOCK_T_
+ #endif
 
 // #ifdef	_BSD_PTRDIFF_T_
 // typedef	_BSD_PTRDIFF_T_		ptrdiff_t;
@@ -295,10 +295,10 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 // #undef	_BSD_SIZE_T_
 // #endif
 
-// #ifdef	_BSD_SSIZE_T_
-// typedef	_BSD_SSIZE_T_		ssize_t;
-// #undef	_BSD_SSIZE_T_
-// #endif
+ #ifdef	_BSD_SSIZE_T_
+ typedef	_BSD_SSIZE_T_		ssize_t;
+ #undef	_BSD_SSIZE_T_
+ #endif
 
 // #ifdef	_BSD_TIME_T_
 // typedef	_BSD_TIME_T_		time_t;

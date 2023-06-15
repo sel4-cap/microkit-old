@@ -29,7 +29,7 @@
 #ifndef _SYS_PMF_H
 #define _SYS_PMF_H
 
-#if defined(_KERNEL) || defined(_KMEMUSER)
+
 
 #include <sys/types.h>
 #include <sys/device_if.h>
@@ -59,6 +59,7 @@ typedef enum {
 	PMFE_KEYBOARD_BRIGHTNESS_TOGGLE
 } pmf_generic_event_t;
 
+#if defined(_KERNEL) || defined(_KMEMUSER)
 struct pmf_qual {
 	const device_suspensor_t	*pq_suspensor;
 	devact_level_t			pq_actlvl;

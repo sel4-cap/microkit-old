@@ -1,13 +1,8 @@
-/*	$NetBSD: kernel.h,v 1.35 2022/10/26 23:27:32 riastradh Exp $	*/
+/*	$NetBSD: select.h,v 1.39 2021/09/29 02:47:22 thorpej Exp $	*/
 
 /*-
- * Copyright (c) 1990, 1993
+ * Copyright (c) 1992, 1993
  *	The Regents of the University of California.  All rights reserved.
- * (c) UNIX System Laboratories, Inc.
- * All or some portions of this file are derived from material licensed
- * to the University of California by American Telephone and Telegraph
- * Co. or Unix System Laboratories, Inc. and are reproduced herein with
- * the permission of UNIX System Laboratories, Inc.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,44 +28,51 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)kernel.h	8.3 (Berkeley) 1/21/94
+ *	@(#)select.h	8.2 (Berkeley) 1/4/94
  */
 
-#ifndef _SYS_KERNEL_H_
-#define _SYS_KERNEL_H_
+#ifndef _SYS_SELECT_H_
+#define	_SYS_SELECT_H_
 
-#include "param.h"
-extern int hz;			/* system clock's frequency */
+#include <sys/cdefs.h>
+#include <sys/featuretest.h>
+#include <sys/fd_set.h>
 
-#if defined(_KERNEL) || defined(_STANDALONE)
+#ifdef _KERNEL
+#include <sys/selinfo.h>		/* for struct selinfo */
+#include <sys/signal.h>			/* for sigset_t */
 
-/* Global variables for the kernel. */
+struct lwp;
+struct proc;
+struct timespec;
+struct cpu_info;
+struct socket;
+struct knote;
 
-extern long hostid;
-extern char hostname[MAXHOSTNAMELEN];
-extern int hostnamelen;
-extern char domainname[MAXHOSTNAMELEN];
-extern int domainnamelen;
+int	selcommon(register_t *, int, fd_set *, fd_set *, fd_set *,
+    struct timespec *, sigset_t *);
+void	selrecord(struct lwp *selector, struct selinfo *);
+void	selrecord_knote(struct selinfo *, struct knote *);
+bool	selremove_knote(struct selinfo *, struct knote *);
+void	selnotify(struct selinfo *, int, long);
+void	selsysinit(struct cpu_info *);
+void	selinit(struct selinfo *);
+void	seldestroy(struct selinfo *);
 
-extern int rtc_offset;		/* offset of rtc from UTC in minutes */
+#else /* _KERNEL */
 
-extern int cold;		/* still working on startup */
-extern int start_init_exec;	/* init(8) may have started */
-extern int shutting_down;	/* system is shutting down */
-extern int tick;		/* usec per tick (1000000 / hz) */
-extern int tickadj;		/* "standard" clock skew, us./tick */
-extern int stathz;		/* statistics clock's frequency */
-extern int profhz;		/* profiling clock's frequency */
+#include <sys/sigtypes.h>
+//#include <time.h>
 
-extern int profsrc;		/* profiling source */
-extern int psratio;		/* ratio: prof / stat */
+__BEGIN_DECLS
+#ifndef __LIBC12_SOURCE__
+int	pselect(int, fd_set * __restrict, fd_set * __restrict,
+    fd_set * __restrict, const struct timespec * __restrict,
+    const sigset_t * __restrict) __RENAME(__pselect50);
+int	select(int, fd_set * __restrict, fd_set * __restrict,
+    fd_set * __restrict, struct timeval * __restrict) __RENAME(__select50);
+#endif /* __LIBC12_SOURCE__ */
+__END_DECLS
+#endif /* _KERNEL */
 
-/* Accessors. */
-
-int getticks(void);
-
-#define PROFSRC_CLOCK	0
-
-#endif
-
-#endif /* _SYS_KERNEL_H_ */
+#endif /* !_SYS_SELECT_H_ */

@@ -37,7 +37,7 @@
 #include <sys/types.h>
 // #include <sys/time.h>
 
-// #include <sys/ioctl.h>
+#include <sys/ioctl.h>
 
 #include <sys/device.h>
 #if defined(_KERNEL)
@@ -1030,5 +1030,7 @@ struct usb_event_old {
 /* Modem device */
 #define USB_GET_CM_OVER_DATA	_IOR ('U', 130, int)
 #define USB_SET_CM_OVER_DATA	_IOW ('U', 131, int)
+
+void	usb_event_thread(void *); //moved from usb.c
 
 #endif /* _USB_H_ */

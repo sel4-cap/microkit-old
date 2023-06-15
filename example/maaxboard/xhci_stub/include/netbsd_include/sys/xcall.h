@@ -1,13 +1,11 @@
-/*	$NetBSD: usbhid.h,v 1.19 2020/03/04 01:23:08 christos Exp $	*/
-/*	$FreeBSD: src/sys/dev/usb/usbhid.h,v 1.7 1999/11/17 22:33:51 n_hibma Exp $ */
+/*	$NetBSD: xcall.h,v 1.8 2019/10/06 15:11:16 uwe Exp $	*/
 
-/*
- * Copyright (c) 1998 The NetBSD Foundation, Inc.
+/*-
+ * Copyright (c) 2007 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
- * by Lennart Augustsson (lennart@augustsson.net) at
- * Carlstedt Research & Technology.
+ * by Andrew Doran.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,43 +29,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _SYS_XCALL_H_
+#define	_SYS_XCALL_H_
 
-#ifndef _DEV_USB_USBHID_H_
-#define _DEV_USB_USBHID_H_
 
-#include <dev/hid/hid.h>
- #include <sys/ioccom.h>
+#include <sys/types.h>
 
-#define UR_GET_HID_DESCRIPTOR	0x06
-#define  UDESC_HID		0x21
-#define  UDESC_REPORT		0x22
-#define  UDESC_PHYSICAL		0x23
-#define UR_SET_HID_DESCRIPTOR	0x07
-#define UR_GET_REPORT		0x01
-#define UR_SET_REPORT		0x09
-#define UR_GET_IDLE		0x02
-#define UR_SET_IDLE		0x0a
-#define UR_GET_PROTOCOL		0x03
-#define UR_SET_PROTOCOL		0x0b
+#define XC_HIGHPRI		0x01	/* high priority */
+#define XC_HIGHPRI_IPL(ipl)	(XC_HIGHPRI | xc_encode_ipl(ipl))
 
-typedef struct usb_hid_descriptor {
-	uByte		bLength;
-	uByte		bDescriptorType;
-	uWord		bcdHID;
-	uByte		bCountryCode;
-	uByte		bNumDescriptors;
-	struct {
-		uByte		bDescriptorType;
-		uWord		wDescriptorLength;
-	} descrs[1];
-} UPACKED usb_hid_descriptor_t;
-#define USB_HID_DESCRIPTOR_SIZE(n) (9+(n)*3)
+typedef void (*xcfunc_t)(void *, void *);
 
-#define UHID_INPUT_REPORT 0x01
-#define UHID_OUTPUT_REPORT 0x02
-#define UHID_FEATURE_REPORT 0x03
+struct cpu_info;
 
-#define USB_HID_GET_RAW	_IOR('h', 1, int)
-#define USB_HID_SET_RAW	_IOW('h', 2, int)
+void		xc_init_cpu(struct cpu_info *);
+void		xc_send_ipi(struct cpu_info *);
+void		xc_ipi_handler(void);
 
-#endif /* _DEV_USB_USBHID_H_ */
+void		xc__highpri_intr(void *);
+
+uint64_t	xc_broadcast(u_int, xcfunc_t, void *, void *);
+uint64_t	xc_unicast(u_int, xcfunc_t, void *, void *, struct cpu_info *);
+void		xc_wait(uint64_t);
+
+void		xc_barrier(u_int);
+
+unsigned int	xc_encode_ipl(int);
+
+#ifdef _KERNEL
+
+
+
+#endif	/* _KERNEL */
+
+#endif	/* _SYS_XCALL_H_ */

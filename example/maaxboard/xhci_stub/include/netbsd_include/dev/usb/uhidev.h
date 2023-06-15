@@ -1,8 +1,7 @@
-/*	$NetBSD: usbhid.h,v 1.19 2020/03/04 01:23:08 christos Exp $	*/
-/*	$FreeBSD: src/sys/dev/usb/usbhid.h,v 1.7 1999/11/17 22:33:51 n_hibma Exp $ */
+/*	$NetBSD: uhidev.h,v 1.27 2022/03/28 12:44:37 riastradh Exp $	*/
 
 /*
- * Copyright (c) 1998 The NetBSD Foundation, Inc.
+ * Copyright (c) 2001 The NetBSD Foundation, Inc.
  * All rights reserved.
  *
  * This code is derived from software contributed to The NetBSD Foundation
@@ -31,43 +30,30 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef	_DEV_USB_UHIDEV_H_
+#define	_DEV_USB_UHIDEV_H_
 
-#ifndef _DEV_USB_USBHID_H_
-#define _DEV_USB_USBHID_H_
+#include <dev/usb/usbdi.h>
 
-#include <dev/hid/hid.h>
- #include <sys/ioccom.h>
+struct uhidev;
 
-#define UR_GET_HID_DESCRIPTOR	0x06
-#define  UDESC_HID		0x21
-#define  UDESC_REPORT		0x22
-#define  UDESC_PHYSICAL		0x23
-#define UR_SET_HID_DESCRIPTOR	0x07
-#define UR_GET_REPORT		0x01
-#define UR_SET_REPORT		0x09
-#define UR_GET_IDLE		0x02
-#define UR_SET_IDLE		0x0a
-#define UR_GET_PROTOCOL		0x03
-#define UR_SET_PROTOCOL		0x0b
+struct uhidev_attach_arg {
+	struct usbif_attach_arg *uiaa;
+	struct uhidev *parent;
+	int reportid;
+};
 
-typedef struct usb_hid_descriptor {
-	uByte		bLength;
-	uByte		bDescriptorType;
-	uWord		bcdHID;
-	uByte		bCountryCode;
-	uByte		bNumDescriptors;
-	struct {
-		uByte		bDescriptorType;
-		uWord		wDescriptorLength;
-	} descrs[1];
-} UPACKED usb_hid_descriptor_t;
-#define USB_HID_DESCRIPTOR_SIZE(n) (9+(n)*3)
+void uhidev_get_report_desc(struct uhidev *, void **, int *);
+int uhidev_open(struct uhidev *, void (*)(void *, void *, unsigned), void *);
+void uhidev_stop(struct uhidev *);
+void uhidev_close(struct uhidev *);
+usbd_status uhidev_set_report(struct uhidev *, int, void *, int);
+usbd_status uhidev_get_report(struct uhidev *, int, void *, int);
+usbd_status uhidev_write(struct uhidev *, void *, int);
+usbd_status uhidev_write_async(struct uhidev *, void *, int, int, int,
+    usbd_callback, void *);
 
-#define UHID_INPUT_REPORT 0x01
-#define UHID_OUTPUT_REPORT 0x02
-#define UHID_FEATURE_REPORT 0x03
+#define	UHIDEV_OSIZE	64
+#define	UHIDEV_MAXREPID	255
 
-#define USB_HID_GET_RAW	_IOR('h', 1, int)
-#define USB_HID_SET_RAW	_IOW('h', 2, int)
-
-#endif /* _DEV_USB_USBHID_H_ */
+#endif	/* _DEV_USB_UHIDEV_H_ */

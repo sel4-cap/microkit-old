@@ -38,10 +38,14 @@ uintptr_t dma_cp_paddr;
 uintptr_t timer_base;
 
 struct xhci_softc *glob_xhci_sc	= NULL;
+uintptr_t xhci_root_intr_pointer;
+uintptr_t xhci_root_intr_pointer_other;
 
 void
 init(void) {
     printf("HARDWARE: dmapaddr = %p\n", dma_cp_paddr);
+    xhci_root_intr_pointer = get_root_intr_methods();
+    printf("root_intr_ptr = %p\n", xhci_root_intr_pointer);
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);
     printf("Hardware up and running\n");
@@ -51,16 +55,14 @@ void
 notified(sel4cp_channel ch) {
     switch (ch) {
         case 6:
-            printf("!!xhci interrupt!!\n");
-            ms_delay(1000);
-            printf("delay over\n");
+            printf("!!xhci hard interrupt!!\n");
             if (glob_xhci_sc != NULL) {
                 xhci_intr(glob_xhci_sc);
             } else {
                 printf("FATAL: sc not defined");
             }
+            // printf("end of ch\n");
             sel4cp_irq_ack(ch);
-            printf("end of ch\n");
             break;
     }
     // printf("Hanging to prevent io spam\n");
@@ -73,8 +75,12 @@ sel4cp_msginfo
 protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
     switch (ch) {
         case 0:
-            glob_xhci_sc = (uintptr_t) sel4cp_msginfo_get_label(msginfo);
+            glob_xhci_sc = (struct xhci_softc *) sel4cp_msginfo_get_label(msginfo);
             break;
+        case 1:
+            xhci_root_intr_pointer_other = sel4cp_msginfo_get_label(msginfo);
+            printf("sending xhci_root_intr_pointer: %p\n", xhci_root_intr_pointer);
+            return seL4_MessageInfo_new((uint64_t) xhci_root_intr_pointer, 1, 0, 0);
         default:
             printf("Unexpected channel\n");
     }

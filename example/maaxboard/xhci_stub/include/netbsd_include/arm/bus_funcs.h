@@ -155,17 +155,17 @@
  */
 #define	bus_space_read_1(t, h, o)	({\
 	void *_GET_ADDR;												\
-	_GET_ADDR = (void*)(h + o);									\
+	_GET_ADDR = (uint32_t*)(h + o);									\
 	(*(volatile uint8_t *)(_GET_ADDR));								\
 })
 #define	bus_space_read_2(t, h, o)	({ \
 	void *_GET_ADDR;												\
-	_GET_ADDR = (void*)(h + o);									\
+	_GET_ADDR = (uint32_t*)(h + o);									\
 	(*(volatile uint16_t *)(_GET_ADDR));							\
 })
 #define	bus_space_read_4(t, h, o)	({ 								\
 	void *_GET_ADDR;												\
-	_GET_ADDR = (void*)(h + o);									\
+	_GET_ADDR = (uint32_t*)(h + o);									\
 	(*(volatile uint32_t *)(_GET_ADDR));							\
 })
 #ifdef __HAVE_BUS_SPACE_8
@@ -239,18 +239,18 @@
  * Bus write (single) operations.
  */
 #define	bus_space_write_1(t, h, o, v) ({\
-	void *_GET_ADDR;												\
-	_GET_ADDR = (void*)(h + o);									\
+	uint32_t *_GET_ADDR;												\
+	_GET_ADDR = (uint32_t*)(h + o);									\
 	(*(volatile uint8_t *)(_GET_ADDR) = (v));			\
 })
 #define	bus_space_write_2(t, h, o, v)	({\
-	void *_GET_ADDR;												\
-	_GET_ADDR = (void*)(h + o);									\
+	uint32_t *_GET_ADDR;												\
+	_GET_ADDR = (uint32_t*)(h + o);									\
 	(*(volatile uint16_t *)(_GET_ADDR) = (v));			\
 })
 #define	bus_space_write_4(t, h, o, v)	({\
-	void *_GET_ADDR;												\
-	_GET_ADDR = (void*)(h + o);									\
+	uint32_t *_GET_ADDR;												\
+	_GET_ADDR = (uint32_t*)(h + o);									\
 	(*(volatile uint32_t *)(_GET_ADDR) = (v));			\
 })
 #ifdef __HAVE_BUS_SPACE_8
@@ -727,13 +727,9 @@ void bus_dmamap_sync(bus_dma_tag_t, bus_dmamap_t, bus_addr_t, bus_size_t, int);
 #define bus_dmamap_sync(t, dmam, o, len, f) \
     void* h = ((void*) dmam->dm_segs->ds_addr);					\
 	if (f == BUS_DMASYNC_POSTREAD || f == BUS_DMASYNC_PREREAD) { \
-		aprint_debug("Invalidating from %p\n", h); \
-		int err = seL4_ARM_VSpace_Invalidate_Data(3,(h+o), (h+o+len)); \
-		aprint_debug("invalidate complete err=%d\n", err); \
+		seL4_ARM_VSpace_Invalidate_Data(3, (long)(h+o), (long)(h+o+len)); \
 	} else { \
-		aprint_debug("flushing from %p\n", h); \
-		int err = seL4_ARM_VSpace_Clean_Data(3,h+o, h+o+len); \
-		aprint_debug("flush complete err=%d\n", err); \
+		seL4_ARM_VSpace_Clean_Data(3, (long)(h+o), (long)(h+o+len)); \
 	}
 	// sel4_dma_flush_range_new(h + o, h + o + len)
 

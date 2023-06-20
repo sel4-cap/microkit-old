@@ -170,6 +170,8 @@ int	xhci_intr(void *);
 int	xhci_detach(struct xhci_softc *, int);
 int	xhci_activate(device_t, enum devact);
 void	xhci_childdet(device_t, device_t);
+uintptr_t 	get_root_intr_methods();
+void xhci_softintr(void *);
 // bool	xhci_suspend(device_t, const pmf_qual_t *);
 // bool	xhci_resume(device_t, const pmf_qual_t *);
 bool	xhci_shutdown(device_t, int);

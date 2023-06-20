@@ -11,7 +11,7 @@
     <memory_region name="timer_mem" size="0x20_000" phys_addr="0x306c0000"/>
     <memory_region name="xhci_phys_mem" size="0x1000" phys_addr="0x382f0000"/> <!--won't let me specify the correct size or base address, but this encompasses the phy-->
 
-    <protection_domain name="xhci_stub" pp="true" priority="250">
+    <protection_domain name="xhci_stub" pp="true" priority="100">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
@@ -36,5 +36,15 @@
     <channel>
         <end pd="hardware_interrupt" id="0"/>
         <end pd="xhci_stub" id="0"/>
+    </channel>
+
+    <channel>
+        <end pd="hardware_interrupt" id="1"/>
+        <end pd="xhci_stub" id="1"/>
+    </channel>
+
+    <channel>
+        <end pd="hardware_interrupt" id="7"/>
+        <end pd="xhci_stub" id="7"/>
     </channel>
 </system>

@@ -60,6 +60,8 @@ __KERNEL_RCSID(0, "$NetBSD: usbdi.c,v 1.247 2022/09/13 10:32:58 riastradh Exp $"
 #include <dev/usb/usb_sdt.h>
 #include <dev/usb/usbhist.h>
 
+extern uintptr_t xhci_root_intr_pointer;
+extern uintptr_t xhci_root_intr_pointer_other;
 
 #define mutex_enter(d) 0
 #define mutex_init(d, f, i) 0
@@ -1207,7 +1209,12 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 	USBHIST_LOG(usbdebug, "xfer %#jx doing done %#jx", (uintptr_t)xfer,
 	    (uintptr_t)pipe->up_methods->upm_done, 0, 0);
 	// SDT_PROBE2(usb, device, xfer, done,  xfer, xfer->ux_status);
-	pipe->up_methods->upm_done(xfer);
+	// context switch (shouldn't be necessary)
+    if (pipe->up_methods == xhci_root_intr_pointer_other) {
+        /* printf("switch context\n"); */
+        pipe->up_methods = xhci_root_intr_pointer;
+    }
+    pipe->up_methods->upm_done(xfer);
 	// aprint_debug("should have gone to xhci_done\n");
 
 	if (xfer->ux_length != 0 && xfer->ux_buffer != xfer->ux_buf) {
@@ -1232,7 +1239,9 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 				KERNEL_LOCK(1, curlwp);
 		}
 
-		xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
+		// xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
+		printf("WARNING: hard coded uhub_intr\n");
+		uhub_intr(xfer, xfer->ux_priv, xfer->ux_status);
 
 		if (!polling) {
 			if (!(pipe->up_flags & USBD_MPSAFE))
@@ -1344,15 +1353,11 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 		return USBD_NOMEM;
 	}
 
-	// printf("created xfer\n");
 	usbd_setup_default_xfer(xfer, dev, 0, timeout, req, data,
 	    UGETW(req->wLength), flags, NULL);
-	// printf("setup default_xfer OK\n");
 	KASSERT(xfer->ux_pipe == dev->ud_pipe0);
-	// printf("about to sync_transfer\n");
 	err = usbd_sync_transfer(xfer);
-	// printf("sync_transfer ok\n");
-#if defined(USB_DEBUG) || defined(DIAGNOSTIC)
+// #if defined(USB_DEBUG) || defined(DIAGNOSTIC)
 	if (xfer->ux_actlen > xfer->ux_length) {
 		USBHIST_LOG(usbdebug, "overrun addr = %jd type = 0x%02jx",
 		    dev->ud_addr, xfer->ux_request.bmRequestType, 0, 0);
@@ -1365,7 +1370,7 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 		    UGETW(xfer->ux_request.wLength),
 		    xfer->ux_length, xfer->ux_actlen, 0);
 	}
-#endif
+// #endif
 	if (actlen != NULL)
 		*actlen = xfer->ux_actlen;
 

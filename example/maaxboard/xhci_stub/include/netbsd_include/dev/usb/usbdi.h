@@ -322,5 +322,6 @@ struct usbif_attach_arg {
 // #define IPL_SOFTUSB IPL_SOFTSERIAL
 #define IPL_SOFTUSB NULL
 #define splusb splsoftserial
+void uhub_intr(struct usbd_xfer *, void *, usbd_status);
 
 #endif /* _USBDI_H_ */

@@ -175,7 +175,7 @@ fail:
 	((sc)->sc_status[(port) / 8] & (1 << ((port) % 8)))
 
 Static usbd_status uhub_explore(struct usbd_device *);
-Static void uhub_intr(struct usbd_xfer *, void *, usbd_status);
+// Static void uhub_intr(struct usbd_xfer *, void *, usbd_status);
 
 
 /*
@@ -860,7 +860,7 @@ uhub_explore(struct usbd_device *dev)
 			DPRINTF("uhub%jd: usbd_new_device failed, error %jd",
 			    device_unit(sc->sc_dev), err, 0, 0);
 			/* Avoid addressing problems by disabling. */
-			/* usbd_reset_port(dev, port, &up->status); */
+			// usbd_reset_port(dev, port, &up->status);
 
 			/*
 			 * The unit refused to accept a new address, or had

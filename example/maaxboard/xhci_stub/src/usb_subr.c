@@ -946,8 +946,6 @@ usbd_setup_pipe_flags(struct usbd_device *dev, struct usbd_interface *iface,
 	USBHIST_FUNC();
 	USBHIST_CALLARGS(usbdebug, "dev=%#jx addr=%jd iface=%#jx ep=%#jx",
 	    (uintptr_t)dev, dev->ud_addr, (uintptr_t)iface, (uintptr_t)ep);
-	// printf("usbd_setup_pipe_flags: dev=%x addr=%d iface=%x ep=%x\n",
-	//     (uintptr_t)dev, dev->ud_addr, (uintptr_t)iface, (uintptr_t)ep);
 	struct usbd_pipe *p = NULL;
 	bool ep_acquired = false;
 	usbd_status err;
@@ -1000,7 +998,6 @@ out:	if (p) {
 	}
 	if (ep_acquired)
 		usbd_endpoint_release(dev, ep);
-	// printf("usbd_setup_pipe_flags OK\n");
 	return err;
 }
 

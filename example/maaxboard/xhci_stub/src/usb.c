@@ -486,6 +486,7 @@ usb_doattach(device_t self)
 		speed = USB_SPEED_SUPER_PLUS;
 		break;
 	default:
+		speed = 0;
 		panic("usb_doattach");
 	}
 
@@ -506,6 +507,7 @@ usb_doattach(device_t self)
 			return;
 		}
 		sc->sc_bus->ub_roothub = dev;
+		printf("HUB SET HERE: %p\n", dev);
 		usb_create_event_thread(self);
 	} else {
 		aprint_error("%s: root hub problem, error=%s\n",
@@ -524,7 +526,7 @@ usb_doattach(device_t self)
 	// if (!pmf_device_register(self, NULL, NULL))
 	// 	aprint_error_dev(self, "couldn't establish power handler\n");
 	// else
-		sc->sc_pmf_registered = true;
+	sc->sc_pmf_registered = true;
 
 	return;
 }

@@ -89,6 +89,8 @@ __KERNEL_RCSID(0, "$NetBSD: usbroothub.c,v 1.15 2022/03/13 11:28:52 riastradh Ex
 
 /* helper functions for USB root hub emulation */
 
+extern struct usbd_bus_methods *xhci_bus_methods_ptr;
+
 static usbd_status	roothub_ctrl_transfer(struct usbd_xfer *);
 static usbd_status	roothub_ctrl_start(struct usbd_xfer *);
 static void		roothub_ctrl_abort(struct usbd_xfer *);
@@ -575,7 +577,9 @@ roothub_ctrl_start(struct usbd_xfer *xfer)
 	if (!bus->ub_usepolling)
 		mutex_exit(bus->ub_lock);
 
-	actlen = bus->ub_methods->ubm_rhctrl(bus, req, buf, buflen);
+    printf("tryinng to do bus methods\n");
+	actlen = xhci_bus_methods_ptr->ubm_rhctrl(bus, req, buf, buflen);
+    printf("done bus methods\n");
 
 	if (!bus->ub_usepolling)
 		mutex_enter(bus->ub_lock);

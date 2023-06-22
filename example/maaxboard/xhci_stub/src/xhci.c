@@ -70,6 +70,7 @@ __KERNEL_RCSID(0, "$NetBSD: xhci.c,v 1.175 2022/10/11 11:01:17 msaitoh Exp $");
 #include <dev/usb/xhcireg.h>
 #include <dev/usb/xhcivar.h>
 #include <dev/usb/usbroothub.h>
+#include <pipe_methods.h>
 
 extern uintptr_t xhci_root_intr_pointer;
 
@@ -314,6 +315,29 @@ static const struct usbd_pipe_methods xhci_device_intr_methods = {
 	.upm_done = xhci_device_intr_done,
 };
 
+
+struct usbd_bus_methods *get_bus_methods() {
+	return &xhci_bus_methods;
+}
+
+struct usbd_pipe_methods *get_up_methods(int method_ptr) {
+	switch (method_ptr) {
+		case ROOTHUB_CTRL:
+			return &roothub_ctrl_methods;
+		case XHCI_ROOT_INTR:
+			return &xhci_root_intr_methods;
+		case XHCI_DEVICE_CTRL:
+			return &xhci_device_ctrl_methods;
+		case XHCI_DEVICE_ISOC:
+			return &xhci_device_isoc_methods;
+		case XHCI_DEVICE_BULK:
+			return &xhci_device_bulk_methods;
+		case XHCI_DEVICE_INTR:
+			return &xhci_device_intr_methods;
+		default:
+			return 0;
+	}
+}
 
 uint32_t xhci_read_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size){
     uint32_t busval = bus_space_read_4(tag, bsh, size);
@@ -1768,8 +1792,8 @@ xhci_intr(void *v)
 		// 	usb_schedsoftintr(&sc->sc_bus2);
 
 		printf("scheduling soft interrupt\n");
-		// sel4cp_notify(7);
-		xhci_softintr(&sc->sc_bus);
+		sel4cp_notify(7); 
+		/* xhci_softintr(&sc->sc_bus); */
 	}
 done:
 	mutex_spin_exit(&sc->sc_intr_lock);
@@ -2080,10 +2104,14 @@ xhci_open(struct usbd_pipe *pipe)
 		return USBD_IOERROR;
 
 	/* Root Hub */
+	struct pipe_method_init *pmi = kmem_alloc(sizeof(struct pipe_method_init), 0);
 	if (dev->ud_depth == 0 && dev->ud_powersrc->up_portno == 0) {
 		// pipe->up_methods = kmem_alloc(sizeof(struct usbd_pipe_methods), 0) //added
 		switch (ed->bEndpointAddress) {
 		case USB_CONTROL_ENDPOINT:
+			// pmi->pipe = pipe;
+			// pmi->method_ptr = ROOTHUB_CTRL;
+			// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
 			pipe->up_methods = &roothub_ctrl_methods;
 			break;
 		case UE_DIR_IN | USBROOTHUB_INTR_ENDPT:
@@ -2093,6 +2121,9 @@ xhci_open(struct usbd_pipe *pipe)
 				structure in there instead of the one in xhci_stub PD.
 			*/ 
 			pipe->up_methods = xhci_root_intr_pointer;
+			// pmi->pipe = pipe;
+			// pmi->method_ptr = XHCI_ROOT_INTR;
+			// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
 			// pipe->up_methods = &xhci_root_intr_methods;
 			break;
 		default:
@@ -2109,17 +2140,29 @@ xhci_open(struct usbd_pipe *pipe)
 
 	switch (xfertype) {
 	case UE_CONTROL:
+		// pmi->pipe = pipe;
+		// pmi->method_ptr = XHCI_DEVICE_CTRL;
+		// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
 		pipe->up_methods = &xhci_device_ctrl_methods;
 		break;
 	case UE_ISOCHRONOUS:
+		// pmi->pipe = pipe;
+		// pmi->method_ptr = XHCI_DEVICE_ISOC;
+		// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
 		pipe->up_methods = &xhci_device_isoc_methods;
 		pipe->up_serialise = false;
 		xpipe->xp_isoc_next = -1;
 		break;
 	case UE_BULK:
-		pipe->up_methods = &xhci_device_bulk_methods;
+		pmi->pipe = pipe;
+		pmi->method_ptr = XHCI_DEVICE_BULK;
+		sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
+		// pipe->up_methods = &xhci_device_bulk_methods;
 		break;
 	case UE_INTERRUPT:
+		// pmi->pipe = pipe;
+		// pmi->method_ptr = XHCI_DEVICE_INTR;
+		// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
 		pipe->up_methods = &xhci_device_intr_methods;
 		break;
 	default:
@@ -2420,7 +2463,6 @@ static void
 xhci_event_transfer(struct xhci_softc * const sc,
     const struct xhci_trb * const trb)
 {
-	// printf("xhci_event_transfer not implemented\n");
 	uint64_t trb_0;
 	uint32_t trb_2, trb_3;
 	uint8_t trbcode;
@@ -2608,6 +2650,7 @@ xhci_event_cmd(struct xhci_softc * const sc, const struct xhci_trb * const trb)
 		sc->sc_result_trb.trb_3 = trb_3;
 		if (XHCI_TRB_2_ERROR_GET(trb_2) !=
 		    XHCI_TRB_ERROR_SUCCESS) {
+			printf("command error = %016jx\n", XHCI_TRB_2_ERROR_GET(trb_2));
 			DPRINTFN(1, "command completion "
 			    "failure: 0x%016jx 0x%08jx 0x%08jx",
 			    trb_0, trb_2, trb_3, 0);
@@ -2864,6 +2907,7 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 	dev->ud_ep0desc.bInterval = 0;
 
 	/* 4.3,  4.8.2.1 */
+	DPRINTF("Speed of device = %x", speed, 0, 0, 0);
 	switch (speed) {
 	case USB_SPEED_SUPER:
 	case USB_SPEED_SUPER_PLUS:
@@ -2876,9 +2920,11 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 		break;
 	case USB_SPEED_LOW:
 	default:
+		printf("Device should have packet size of %d\n", USB_MAX_IPACKET);
 		USETW(dev->ud_ep0desc.wMaxPacketSize, USB_MAX_IPACKET);
 		break;
 	}
+	DPRINTF("wMaxPacketSize of device = %x", dev->ud_ep0desc.wMaxPacketSize, 0, 0, 0);
 
 	up->up_dev = dev;
 
@@ -2987,9 +3033,11 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 			}
 			USETW(dev->ud_ep0desc.wMaxPacketSize,
 			    (1 << dd->bMaxPacketSize));
-		} else
-			USETW(dev->ud_ep0desc.wMaxPacketSize,
-			    dd->bMaxPacketSize);
+		} else {
+			// USETW(dev->ud_ep0desc.wMaxPacketSize,
+			//     dd->bMaxPacketSize);
+			printf("WARNING: avoiding setting maxpacketsize for now\n");
+		}
 		DPRINTFN(4, "bMaxPacketSize %ju", dd->bMaxPacketSize, 0, 0, 0);
 		err = xhci_update_ep0_mps(sc, xs,
 		    UGETW(dev->ud_ep0desc.wMaxPacketSize));
@@ -4451,9 +4499,9 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 	xhci_db_write_4(sc, XHCI_DOORBELL(xs->xs_idx), dci);
 
 out:	if (xfer->ux_status == USBD_NOT_STARTED) {
-		printf("usb not started mayhaps?\n");
-		usbd_xfer_schedule_timeout(xfer);
 		xfer->ux_status = USBD_IN_PROGRESS;
+		printf("set xfer status to IN PROG (xfer addr = %p)\n", xfer);
+		usbd_xfer_schedule_timeout(xfer);
 	} else {
 		/*
 		 * We must be coming from xhci_pipe_restart -- timeout
@@ -4462,7 +4510,6 @@ out:	if (xfer->ux_status == USBD_NOT_STARTED) {
 	}
 	KASSERT(xfer->ux_status == USBD_IN_PROGRESS);
 
-    printf("ctrl_start done\n");
 	return USBD_IN_PROGRESS;
 }
 

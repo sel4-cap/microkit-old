@@ -216,6 +216,7 @@ usbd_get_string_desc(struct usbd_device *dev, int sindex, int langid,
 	if (err)
 		return err;
 
+	DPRINTF("expected %jd, got %jd", sdesc->bLength, actlen, 0, 0);
 	if (actlen != sdesc->bLength) {
 		DPRINTF("expected %jd, got %jd", sdesc->bLength, actlen, 0, 0);
 	}

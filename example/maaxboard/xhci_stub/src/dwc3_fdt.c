@@ -91,21 +91,6 @@ static int	dwc3_fdt_match(device_t, cfdata_t, void *);
 // 	dwc3_fdt_match, dwc3_fdt_attach, NULL,
 // 	xhci_activate, NULL, xhci_childdet);
 
-#define	bus_space_read_1(t, h, o)	({                              \
-	void *_GET_ADDR;												\
-    _GET_ADDR = (void*)(h + o);									    \
-	(*(volatile uint8_t *)(_GET_ADDR));								\
-})
-#define	bus_space_read_2(t, h, o)	({                              \
-	void *_GET_ADDR;												\
-    _GET_ADDR = (void*)(h + o);									    \
-	(*(volatile uint16_t *)(_GET_ADDR));							\
-})
-#define	bus_space_read_4(t, h, o)	({ 								\
-	void *_GET_ADDR;												\
-    _GET_ADDR = (void*)(h + o);									    \
-	(*(volatile uint32_t *)(_GET_ADDR));							\
-})
 uint32_t read_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size){
     uint32_t busval = (bus_space_read_4(tag, bsh, size));
     printf("DWC3: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);

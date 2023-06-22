@@ -15,8 +15,6 @@ uintptr_t virt_base;
 uintptr_t dma_limit;
 uintptr_t allocated_dma;
 
-#define DMA_DEBUG
-
 #ifdef DMA_DEBUG
 #define dma_print(...) printf(__VA_ARGS__)
 #else

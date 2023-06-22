@@ -59,7 +59,12 @@ __KERNEL_RCSID(0, "$NetBSD: usbdi.c,v 1.247 2022/09/13 10:32:58 riastradh Exp $"
 #include <dev/usb/usb_quirks.h>
 #include <dev/usb/usb_sdt.h>
 #include <dev/usb/usbhist.h>
+#include <pipe_methods.h>
 
+extern uintptr_t xhci_root_intr_pointer;
+extern uintptr_t xhci_root_intr_pointer_other;
+extern struct usbd_bus_methods *xhci_bus_methods_ptr;
+extern bool pipe_thread;
 
 #define mutex_enter(d) 0
 #define mutex_init(d, f, i) 0
@@ -471,6 +476,11 @@ usbd_transfer(struct usbd_xfer *xfer)
 		}
 		if (err)
 			break;
+		// struct pipe_method_rpc *pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
+		// pmr->pipe = pipe;
+		// pmr->xfer = xfer;
+		// pmr->method_ptr = TRANSFER;
+		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
 		err = pipe->up_methods->upm_transfer(xfer);
 	} while (0);
 	// SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
@@ -520,6 +530,9 @@ usbd_transfer(struct usbd_xfer *xfer)
 		    (uintptr_t)xfer, 0, 0, 0);
 
 		err = 0;
+
+		usb_delay_ms(0, 100); //sel4 assume complete. NOT GOOD BTW
+		// err = 1;
 		// if ((flags & USBD_SYNCHRONOUS_SIG) != 0) {
 		// 	err = cv_wait_sig(&xfer->ux_cv, pipe->up_dev->ud_bus->ub_lock);
 		// } else {
@@ -528,6 +541,11 @@ usbd_transfer(struct usbd_xfer *xfer)
 		if (err) {
 			if (!xfer->ux_done) {
 				// SDT_PROBE1(usb, device, xfer, abort,  xfer);
+				// struct pipe_method_rpc *pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
+				// pmr->pipe = pipe;
+				// pmr->xfer = xfer;
+				// pmr->method_ptr = ABORT;
+				// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
 				pipe->up_methods->upm_abort(xfer);
 			}
 			break;
@@ -562,9 +580,10 @@ usbd_alloc_buffer(struct usbd_xfer *xfer, uint32_t size)
 	KASSERT(size != 0);
 
 	xfer->ux_bufsize = 0;
-#if NUSB_DMA > 0
+// #if NUSB_DMA > 0
 	struct usbd_bus *bus = xfer->ux_bus;
 
+	// printf("does this bus use dma? %d\n", bus->ub_usedma);
 	if (bus->ub_usedma) {
 		usb_dma_t *dmap = &xfer->ux_dmabuf;
 
@@ -578,7 +597,7 @@ usbd_alloc_buffer(struct usbd_xfer *xfer, uint32_t size)
 
 		return xfer->ux_buf;
 	}
-#endif
+// #endif
 	KASSERT(xfer->ux_bus->ub_usedma == false);
 	xfer->ux_buf = kmem_alloc(size, KM_SLEEP);
 	xfer->ux_bufsize = size;
@@ -634,7 +653,7 @@ usbd_alloc_xfer(struct usbd_device *dev, unsigned int nframes)
 
 	// ASSERT_SLEEPABLE();
 
-	xfer = dev->ud_bus->ub_methods->ubm_allocx(dev->ud_bus, nframes);
+	xfer = xhci_bus_methods_ptr->ubm_allocx(dev->ud_bus, nframes);
 	if (xfer == NULL)
 		goto out;
 	xfer->ux_bus = dev->ud_bus;
@@ -669,7 +688,7 @@ usbd_free_xfer(struct usbd_xfer *xfer)
 	mutex_exit(xfer->ux_bus->ub_lock);
 
 	cv_destroy(&xfer->ux_cv);
-	xfer->ux_bus->ub_methods->ubm_freex(xfer->ux_bus, xfer);
+	xhci_bus_methods_ptr->ubm_freex(xfer->ux_bus, xfer);
 }
 
 int
@@ -697,13 +716,13 @@ usbd_create_xfer(struct usbd_pipe *pipe, size_t len, unsigned int flags,
 	}
 
 	// if (xfer->ux_methods) { // added this check because it crashes otherwise
-	if (xfer->ux_methods->upm_init) {
-		int err = xfer->ux_methods->upm_init(xfer);
-		if (err) {
-			usbd_free_xfer(xfer);
-			return err;
-		}
-	}
+	/* if (xfer->ux_methods->upm_init) { */
+	/* 	int err = xfer->ux_methods->upm_init(xfer); */
+	/* 	if (err) { */
+	/* 		usbd_free_xfer(xfer); */
+	/* 		return err; */
+	/* 	} */
+	/* } */
 	// }
 
 	*xp = xfer;
@@ -717,10 +736,10 @@ usbd_destroy_xfer(struct usbd_xfer *xfer)
 {
 
 	// SDT_PROBE1(usb, device, xfer, destroy,  xfer);
-	if (xfer->ux_methods) { //added to avoid crash
-		if (xfer->ux_methods->upm_fini)
-			xfer->ux_methods->upm_fini(xfer);
-	}
+	/* if (xfer->ux_methods) { //added to avoid crash */
+	/* 	if (xfer->ux_methods->upm_fini) */
+	/* 		xfer->ux_methods->upm_fini(xfer); */
+	/* } */
 
 	usbd_free_xfer(xfer);
 }
@@ -918,7 +937,12 @@ usbd_clear_endpoint_toggle(struct usbd_pipe *pipe)
 {
 
 	// SDT_PROBE1(usb, device, pipe, clear__endpoint__toggle,  pipe);
-	pipe->up_methods->upm_cleartoggle(pipe);
+	// struct pipe_method_rpc *pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
+	// pmr->pipe = pipe;
+	// pmr->xfer = xfer;
+	// sel4cp_ppcall(CLEARTOGGLE, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+	aprint_debug("cleartoggle is a noop, so ignored\n");
+	// pipe->up_methods->upm_cleartoggle(pipe);
 }
 
 usbd_status
@@ -1207,7 +1231,27 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 	USBHIST_LOG(usbdebug, "xfer %#jx doing done %#jx", (uintptr_t)xfer,
 	    (uintptr_t)pipe->up_methods->upm_done, 0, 0);
 	// SDT_PROBE2(usb, device, xfer, done,  xfer, xfer->ux_status);
-	pipe->up_methods->upm_done(xfer);
+	// context switch (shouldn't be necessary)
+    // if (!pipe_thread) {
+	// 	USBHIST_LOG(usbdebug, "xfer %#jx doing done %#jx in pipe handler", (uintptr_t)xfer,
+	// 		(uintptr_t)pipe->up_methods->upm_done, 0, 0);
+    //     struct pipe_method_rpc *pmr;
+    //     pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
+    //     pmr->pipe = pipe;
+    //     pmr->xfer = xfer;
+    //     pmr->method_ptr = DONE;
+    //     sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+	// 	// kmem_free(pmr, 0);
+    // } else {
+	// 	USBHIST_LOG(usbdebug, "xfer %#jx doing done %#jx", (uintptr_t)xfer,
+	// 		(uintptr_t)pipe->up_methods->upm_done, 0, 0);
+    //     pipe->up_methods->upm_done(xfer);
+    // }
+    if (pipe->up_methods == xhci_root_intr_pointer_other) {
+        /* printf("switch context\n"); */
+        pipe->up_methods = xhci_root_intr_pointer;
+    }
+    pipe->up_methods->upm_done(xfer);
 	// aprint_debug("should have gone to xhci_done\n");
 
 	if (xfer->ux_length != 0 && xfer->ux_buffer != xfer->ux_buf) {
@@ -1232,7 +1276,9 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 				KERNEL_LOCK(1, curlwp);
 		}
 
-		xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
+		// xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
+		printf("WARNING: hard coded uhub_intr\n");
+		uhub_intr(xfer, xfer->ux_priv, xfer->ux_status);
 
 		if (!polling) {
 			if (!(pipe->up_flags & USBD_MPSAFE))
@@ -1288,6 +1334,11 @@ usbd_start_next(struct usbd_pipe *pipe)
 		pipe->up_running = 0;
 	} else {
 		// SDT_PROBE2(usb, device, pipe, start,  pipe, xfer);
+		// struct pipe_method_rpc *pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
+		// pmr->pipe = pipe;
+		// pmr->xfer = xfer;
+		// pmr->method_ptr = START;
+		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
 		err = pipe->up_methods->upm_start(xfer);
 
 		if (err != USBD_IN_PROGRESS) {
@@ -1344,15 +1395,11 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 		return USBD_NOMEM;
 	}
 
-	// printf("created xfer\n");
 	usbd_setup_default_xfer(xfer, dev, 0, timeout, req, data,
 	    UGETW(req->wLength), flags, NULL);
-	// printf("setup default_xfer OK\n");
 	KASSERT(xfer->ux_pipe == dev->ud_pipe0);
-	// printf("about to sync_transfer\n");
 	err = usbd_sync_transfer(xfer);
-	// printf("sync_transfer ok\n");
-#if defined(USB_DEBUG) || defined(DIAGNOSTIC)
+// #if defined(USB_DEBUG) || defined(DIAGNOSTIC)
 	if (xfer->ux_actlen > xfer->ux_length) {
 		USBHIST_LOG(usbdebug, "overrun addr = %jd type = 0x%02jx",
 		    dev->ud_addr, xfer->ux_request.bmRequestType, 0, 0);
@@ -1365,7 +1412,7 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 		    UGETW(xfer->ux_request.wLength),
 		    xfer->ux_length, xfer->ux_actlen, 0);
 	}
-#endif
+// #endif
 	if (actlen != NULL)
 		*actlen = xfer->ux_actlen;
 
@@ -1377,7 +1424,7 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 	if (err) {
 		USBHIST_LOG(usbdebug, "returning err = %jd", err, 0, 0, 0);
 	}
-	// printf("do request len OK\n");
+	/* printf("do request len OK\n"); */
 	return err;
 }
 
@@ -1401,7 +1448,7 @@ usbd_get_quirks(struct usbd_device *dev)
 void
 usbd_dopoll(struct usbd_interface *iface)
 {
-	iface->ui_dev->ud_bus->ub_methods->ubm_dopoll(iface->ui_dev->ud_bus);
+	xhci_bus_methods_ptr->ubm_dopoll(iface->ui_dev->ud_bus);
 }
 
 /*
@@ -1418,7 +1465,7 @@ usbd_set_polling(struct usbd_device *dev, int on)
 
 	/* Kick the host controller when switching modes */
 	mutex_enter(dev->ud_bus->ub_lock);
-	dev->ud_bus->ub_methods->ubm_softint(dev->ud_bus);
+	xhci_bus_methods_ptr->ubm_softint(dev->ud_bus);
 	mutex_exit(dev->ud_bus->ub_lock);
 }
 
@@ -1487,7 +1534,6 @@ usbd_get_string0(struct usbd_device *dev, int si, char *buf, int unicode)
 	int size;
 
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-	// printf("usbd_get_string0 called\n");
 
 	buf[0] = '\0';
 	if (si == 0)
@@ -1568,8 +1614,10 @@ usbd_xfer_trycomplete(struct usbd_xfer *xfer)
 	 * If software has completed it, either by synchronous abort or
 	 * by timeout, too late.
 	 */
-	if (xfer->ux_status != USBD_IN_PROGRESS)
+	if (xfer->ux_status != USBD_IN_PROGRESS) {
+		printf("trycomplete returning false, xfer addr = %p, xfer_ux_status = %d\n", xfer, xfer->ux_status);
 		return false;
+	}
 
 	/*
 	 * We are completing the xfer.  Cancel the timeout if we can,
@@ -1577,6 +1625,7 @@ usbd_xfer_trycomplete(struct usbd_xfer *xfer)
 	 * for why we need not wait for the callout or task here.
 	 */
 	usbd_xfer_cancel_timeout_async(xfer);
+	printf("trycomplete returning true\n");
 
 	/* Success!  Note: Caller must set xfer->ux_status afterwar.  */
 	return true;
@@ -1628,7 +1677,7 @@ usbd_xfer_abort(struct usbd_xfer *xfer)
 	 * the xfer.
 	 */
 	xfer->ux_status = USBD_CANCELLED;
-	bus->ub_methods->ubm_abortx(xfer);
+	xhci_bus_methods_ptr->ubm_abortx(xfer);
 	usb_transfer_complete(xfer);
 }
 
@@ -1880,31 +1929,36 @@ usbd_xfer_probe_timeout(struct usbd_xfer *xfer)
 void
 usbd_xfer_schedule_timeout(struct usbd_xfer *xfer)
 {
-	// struct usbd_bus *bus = xfer->ux_bus;
+	struct usbd_bus *bus = xfer->ux_bus;
 
-	// USBHIST_FUNC();
-	// USBHIST_CALLARGS(usbdebug, "xfer %#jx timeout %jdms"
-	//     " set %jd reset %jd",
-	//     (uintptr_t)xfer, xfer->ux_timeout,
-	//     xfer->ux_timeout_set, xfer->ux_timeout_reset);
+	USBHIST_FUNC();
+	USBHIST_CALLARGS(usbdebug, "xfer %#jx timeout %jdms"
+	    " set %jd reset %jd",
+	    (uintptr_t)xfer, xfer->ux_timeout,
+	    xfer->ux_timeout_set, xfer->ux_timeout_reset);
 
-	// KASSERT(bus->ub_usepolling || mutex_owned(bus->ub_lock));
+	KASSERT(bus->ub_usepolling || mutex_owned(bus->ub_lock));
 
-	// if (xfer->ux_timeout_set) {
-	// 	/*
-	// 	 * Callout or task has fired from a prior completed
-	// 	 * xfer but has not yet noticed that the xfer is done.
-	// 	 * Ask it to reschedule itself to ux_timeout.
-	// 	 */
-	// 	xfer->ux_timeout_reset = true;
-	// } else if (xfer->ux_timeout && !bus->ub_usepolling) {
-	// 	/* Callout is not scheduled.  Schedule it.  */
-	// 	KASSERT(!callout_pending(&xfer->ux_callout));
-	// 	callout_schedule(&xfer->ux_callout, mstohz(xfer->ux_timeout));
-	// 	xfer->ux_timeout_set = true;
-	// }
+	if (xfer->ux_timeout_set) {
+		/*
+		 * Callout or task has fired from a prior completed
+		 * xfer but has not yet noticed that the xfer is done.
+		 * Ask it to reschedule itself to ux_timeout.
+		 */
+		xfer->ux_timeout_reset = true;
+	} else if (xfer->ux_timeout && !bus->ub_usepolling) {
+		/* Callout is not scheduled.  Schedule it.  */
+		KASSERT(!callout_pending(&xfer->ux_callout));
+		printf("should timout for %d ms\n", xfer->ux_timeout);
+		// callout_schedule(&xfer->ux_callout, mstohz(xfer->ux_timeout));
+		// printf("now hanging...\n");
+		// while (1) {
 
-	// KASSERT(bus->ub_usepolling || mutex_owned(bus->ub_lock));
+		// }
+		xfer->ux_timeout_set = true;
+	}
+
+	KASSERT(bus->ub_usepolling || mutex_owned(bus->ub_lock));
 }
 
 /*

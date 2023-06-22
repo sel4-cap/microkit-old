@@ -66,6 +66,8 @@ __KERNEL_RCSID(0, "$NetBSD: usb_subr.c,v 1.277 2022/04/06 22:01:45 mlelstv Exp $
 
 #define delay(us) ps_udelay(us)
 
+
+extern struct usbd_bus_methods *xhci_bus_methods_ptr;
 // #include "locators.h"
 
 #define	DPRINTF(FMT,A,B,C,D)	USBHIST_LOG(usbdebug,FMT,A,B,C,D)
@@ -102,7 +104,7 @@ Static const char * const usbd_error_strs[] = {
 	"XXX",
 };
 
-// DEV_VERBOSE_DEFINE(usb);
+DEV_VERBOSE_DEFINE(usb);
 
 const char *
 usbd_errstr(usbd_status err)
@@ -157,11 +159,12 @@ usbd_get_device_strings(struct usbd_device *ud)
 
 	//TODO: make this work loooool
 	usbd_get_device_string(ud, udd->iManufacturer, &ud->ud_vendor);
-	// printf("got imanufacturer %s\n", ud->ud_vendor);
+	/* printf("got imanufacturer %s\n", ud->ud_vendor); */
 	usbd_get_device_string(ud, udd->iProduct, &ud->ud_product);
-	// printf("got iproduct %s\n", ud->ud_product);
+	// ud->ud_product = "xHCI root hub\0";
+	printf("got iproduct %s\n", ud->ud_product);
 	usbd_get_device_string(ud, udd->iSerialNumber, &ud->ud_serial);
-	// printf("got iserialnumber %s\n", ud->ud_serial);
+	/* printf("got iserialnumber %s\n", ud->ud_serial); */
 }
 
 
@@ -191,12 +194,10 @@ usbd_devinfo_vp(struct usbd_device *dev, char *v, size_t vl, char *p,
 	 	}
 	}
 	if (v[0] == '\0')
-        aprint_debug("find vendor (not impl)\n");
-	 	// usb_findvendor(v, vl, UGETW(udd->idVendor));
+	 	usb_findvendor(v, vl, UGETW(udd->idVendor));
 	if (p[0] == '\0')
-        aprint_debug("find product (not impl\n)");
-	 	/* usb_findproduct(p, pl, UGETW(udd->idVendor), */
-	 	/*     UGETW(udd->idProduct)); */
+	 	usb_findproduct(p, pl, UGETW(udd->idVendor),
+	 	     UGETW(udd->idProduct));
 }
 
 int
@@ -946,8 +947,6 @@ usbd_setup_pipe_flags(struct usbd_device *dev, struct usbd_interface *iface,
 	USBHIST_FUNC();
 	USBHIST_CALLARGS(usbdebug, "dev=%#jx addr=%jd iface=%#jx ep=%#jx",
 	    (uintptr_t)dev, dev->ud_addr, (uintptr_t)iface, (uintptr_t)ep);
-	// printf("usbd_setup_pipe_flags: dev=%x addr=%d iface=%x ep=%x\n",
-	//     (uintptr_t)dev, dev->ud_addr, (uintptr_t)iface, (uintptr_t)ep);
 	struct usbd_pipe *p = NULL;
 	bool ep_acquired = false;
 	usbd_status err;
@@ -975,7 +974,7 @@ usbd_setup_pipe_flags(struct usbd_device *dev, struct usbd_interface *iface,
 	cv_init(&p->up_callingcv, "usbpipecb");
 	p->up_abortlwp = NULL;
 
-	err = dev->ud_bus->ub_methods->ubm_open(p);
+	err = xhci_bus_methods_ptr->ubm_open(p);
 	if (err) {
 		DPRINTF("endpoint=%#jx failed, error=%jd",
 		    (uintptr_t)ep->ue_edesc->bEndpointAddress, err, 0, 0);
@@ -1000,7 +999,6 @@ out:	if (p) {
 	}
 	if (ep_acquired)
 		usbd_endpoint_release(dev, ep);
-	// printf("usbd_setup_pipe_flags OK\n");
 	return err;
 }
 
@@ -1277,7 +1275,6 @@ usbd_probe_and_attach(device_t parent, struct usbd_device *dev,
 {
 	USBHIST_FUNC();
 	USBHIST_CALLARGS(usbdebug, "trying device specific drivers", 0, 0, 0, 0);
-	// printf("trying device specific drivers (won't find any yet)\n");
 	usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	int confi, nifaces;
 	usbd_status err;
@@ -1416,8 +1413,8 @@ usbd_new_device(device_t parent, struct usbd_bus *bus, int depth, int speed,
 
 	KASSERT(usb_in_event_thread(parent));
 
-	if (bus->ub_methods->ubm_newdev != NULL)
-		return (bus->ub_methods->ubm_newdev)(parent, bus, depth, speed,
+	if (xhci_bus_methods_ptr->ubm_newdev != NULL)
+		return (xhci_bus_methods_ptr->ubm_newdev)(parent, bus, depth, speed,
 		    port, up);
 
 	printf("reached here SHOULDN'T HAPPEN\n");

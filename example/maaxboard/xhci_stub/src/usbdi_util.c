@@ -171,8 +171,10 @@ usbd_get_initial_ddesc(struct usbd_device *dev, usb_device_descriptor_t *desc)
 		&actlen, USBD_DEFAULT_TIMEOUT);
 	if (res)
 		return res;
-	if (actlen < 8)
+	if (actlen < 8) {
+		aprint_debug("SHORT XFER %d\n", actlen);
 		return USBD_SHORT_XFER;
+	}
 	memcpy(desc, buf, 8);
 	return USBD_NORMAL_COMPLETION;
 }
@@ -214,6 +216,7 @@ usbd_get_string_desc(struct usbd_device *dev, int sindex, int langid,
 	if (err)
 		return err;
 
+	DPRINTF("expected %jd, got %jd", sdesc->bLength, actlen, 0, 0);
 	if (actlen != sdesc->bLength) {
 		DPRINTF("expected %jd, got %jd", sdesc->bLength, actlen, 0, 0);
 	}

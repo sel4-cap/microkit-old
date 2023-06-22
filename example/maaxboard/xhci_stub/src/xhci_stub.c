@@ -29,6 +29,7 @@
 #include <evbarm/types.h>
 #include <sel4_bus_funcs.h>
 
+#include <lib/libkern/libkern.h>
 #include <dev/fdt/fdtvar.h>
 #define BUS_DEBUG 0
 #define __AARCH64__
@@ -36,6 +37,10 @@
 bool int_once = false;
 struct xhci_softc *glob_xhci_sc	= NULL;
 struct usb_softc *glob_usb_sc 	= NULL;
+uintptr_t xhci_root_intr_pointer;
+struct usbd_bus_methods *xhci_bus_methods_ptr;
+uintptr_t xhci_root_intr_pointer_other;
+bool pipe_thread;
 
 // struct usb_softc {
 // 	struct usbd_bus *sc_bus;	/* USB controller */
@@ -59,6 +64,7 @@ struct imx8mq_usbphy_softc {
 uintptr_t xhci_base;
 uintptr_t xhci_phy_base;
 uintptr_t heap_base;
+uintptr_t pipe_heap_base;
 uintptr_t dma_base;
 uintptr_t dma_cp_paddr;
 uintptr_t dma_cp_vaddr = 0x54000000;
@@ -106,6 +112,7 @@ init(void) {
         printf("Attempted bus_space_read_4: %p\n", response);
     }
 
+    pipe_thread = false;
     // init
     printf("hello, starting stack bashing:)\n");
     ta_limit = heap_base + heap_size;
@@ -113,6 +120,12 @@ init(void) {
     printf("XHCI_STUB: dmapaddr = %p\n", dma_cp_paddr);
     bool error = ta_init((void*)heap_base, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
     printf("Init malloc: %d\n", error);
+    xhci_root_intr_pointer = get_root_intr_methods();
+    xhci_bus_methods_ptr = get_bus_methods();
+    sel4cp_msginfo addr = sel4cp_ppcall(1, seL4_MessageInfo_new((uint64_t) xhci_root_intr_pointer,1,0,0));
+    xhci_root_intr_pointer_other = sel4cp_msginfo_get_label(addr);
+    /* memcpy(&xhci_root_intr_pointer, get_root_intr_methods(), sizeof(struct usbd_pipe_methods)); */
+    /* printf("xhci_stub received root_intr ptr %p\n", xhci_root_intr_pointer); */
 
     initialise_and_start_timer(timer_base);
 
@@ -130,6 +143,7 @@ init(void) {
     struct xhci_softc *sc_xhci = kmem_alloc(sizeof(struct xhci_softc), 0);
     glob_xhci_sc = sc_xhci;
     sel4cp_ppcall(0, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
+    sel4cp_ppcall(2, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
     sc_xhci->sc_ioh=0x38200000;
 	bus_space_tag_t iot = kmem_alloc(sizeof(bus_space_tag_t), 0);
     sc_xhci->sc_iot=iot;
@@ -144,7 +158,7 @@ init(void) {
     device_t self = kmem_alloc(sizeof(device_t), 0);
     *sc_bus = glob_xhci_sc->sc_bus;
     sc_bus->ub_methods = glob_xhci_sc->sc_bus.ub_methods;
-    printf("does sc_bus have newdev? %d\n", (sc_bus->ub_methods->ubm_newdev != NULL));
+    printf("does sc_bus have newdev? %d\n", (xhci_bus_methods_ptr->ubm_newdev != NULL));
     // sc_bus->ub_revision = USBREV_3_0;
     self->dv_unit = 1;
     self->dv_private = usb_sc;
@@ -163,16 +177,27 @@ init(void) {
 void
 notified(sel4cp_channel ch)
 {
-    // switch(ch) {
-    //     case 6:
-    //         printf("!!xhci interrupt!!\n");
-    //         if (glob_xhci_sc != NULL) {
-    //             xhci_intr(glob_xhci_sc);
-    //         } else {
-    //             printf("FATAL: sc not defined");
-    //         }
-    //         sel4cp_irq_ack(ch);
-    //         printf("end of ch\n");
-    //         break;
-    // }
+    switch (ch) {
+        case 7:
+            printf("handling soft intr\n");
+            xhci_softintr(&glob_xhci_sc->sc_bus);
+            break;
+        default:
+            printf("xhci_stub: unexpected channel notified\n");
+            break;
+    }
+}
+
+sel4cp_msginfo
+protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
+    switch (ch) {
+        case 1:
+            // return addr of root_intr_methods
+            printf("got root_intr pointer\n");
+            xhci_root_intr_pointer = (uintptr_t) sel4cp_msginfo_get_label(msginfo);
+            break;
+        default:
+            printf("xhci_stub received protected unexpected channel\n");
+    }
+    return seL4_MessageInfo_new(0,0,0,0);
 }

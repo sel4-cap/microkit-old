@@ -32,7 +32,13 @@
 #ifndef	_AARCH64_TYPES_H_
 #define _AARCH64_TYPES_H_
 
+#include <sys/common_int_types.h>
+
+typedef __uint64_t register_t;
+
 #ifdef __aarch64__
+
+
 
 #ifdef _KERNEL_OPT
 #include "opt_pmap.h"

@@ -69,6 +69,7 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <dev/usb/usbdevs.h>
 #include <dev/usb/usb_quirks.h>
 #include <dev/usb/uhidev.h>
+#include <dev/usb/ukbd.h>
 #include <dev/usb/ukbdvar.h>
 #include <dev/hid/hid.h>
 
@@ -401,7 +402,7 @@ static const struct ukbd_type {
 	((const struct ukbd_type *)usb_lookup(ukbd_devs, v, p))
 
 static int ukbd_match(device_t, cfdata_t, void *);
-static void ukbd_attach(device_t, device_t, void *);
+//static void ukbd_attach(device_t, device_t, void *);
 static int ukbd_detach(device_t, int);
 static int ukbd_activate(device_t, enum devact);
 static void ukbd_childdet(device_t, device_t);

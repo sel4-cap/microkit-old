@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "usbdi.h": "c",
+        "ukbd.h": "c",
+        "timer.h": "c",
+        "kmem.h": "c",
+        "usb_quirks.h": "c",
+        "hid.h": "c",
+        "stdbool.h": "c",
+        "if.h": "c"
+    }
+}

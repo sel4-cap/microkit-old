@@ -103,7 +103,7 @@ int
 imx8mq_usbphy_enable(device_t dev, void *priv, bool enable)
 {
 	struct imx8mq_usbphy_softc * const sc = device_private(dev);
-	struct fdtbus_regulator *reg;
+	// struct fdtbus_regulator *reg;
 	uint32_t val;
 	// int error;
 

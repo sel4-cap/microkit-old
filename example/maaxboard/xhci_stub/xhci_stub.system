@@ -95,6 +95,14 @@
         <end pd="software_interrupt" id="2"/>
         <end pd="xhci_stub" id="2"/>
     </channel>
+    <channel>
+        <end pd="software_interrupt" id="3"/>
+        <end pd="xhci_stub" id="3"/>
+    </channel>
+    <channel>
+        <end pd="software_interrupt" id="5"/>
+        <end pd="xhci_stub" id="5"/>
+    </channel>
 
     <!-- softintr -->
     <channel>

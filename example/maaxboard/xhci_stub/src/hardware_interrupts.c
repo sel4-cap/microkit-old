@@ -42,6 +42,8 @@ struct xhci_softc *glob_xhci_sc	= NULL;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
 uintptr_t xhci_root_intr_pointer;
 uintptr_t xhci_root_intr_pointer_other;
+uintptr_t device_ctrl_pointer;
+uintptr_t device_ctrl_pointer_other;
 bool pipe_thread;
 
 void

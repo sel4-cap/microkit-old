@@ -63,6 +63,8 @@ __KERNEL_RCSID(0, "$NetBSD: usbdi.c,v 1.247 2022/09/13 10:32:58 riastradh Exp $"
 
 extern uintptr_t xhci_root_intr_pointer;
 extern uintptr_t xhci_root_intr_pointer_other;
+extern uintptr_t device_ctrl_pointer;
+extern uintptr_t device_ctrl_pointer_other;
 extern struct usbd_bus_methods *xhci_bus_methods_ptr;
 extern bool pipe_thread;
 
@@ -481,6 +483,13 @@ usbd_transfer(struct usbd_xfer *xfer)
 		// pmr->xfer = xfer;
 		// pmr->method_ptr = TRANSFER;
 		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+		if (pipe->up_methods == xhci_root_intr_pointer_other) {
+            printf("switch context root intr (upm_transfer)\n");
+            pipe->up_methods = xhci_root_intr_pointer;
+        } else if (pipe->up_methods == device_ctrl_pointer_other) {
+            printf("should probs switch context device (upm_transfer)\n");
+            pipe->up_methods = device_ctrl_pointer;
+        }
 		err = pipe->up_methods->upm_transfer(xfer);
 	} while (0);
 	// SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
@@ -1247,10 +1256,13 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 	// 		(uintptr_t)pipe->up_methods->upm_done, 0, 0);
     //     pipe->up_methods->upm_done(xfer);
     // }
-    if (pipe->up_methods == xhci_root_intr_pointer_other) {
-        /* printf("switch context\n"); */
-        pipe->up_methods = xhci_root_intr_pointer;
-    }
+	if (pipe->up_methods == xhci_root_intr_pointer_other) {
+		printf("switch context root intr (upm_transfer)\n");
+		pipe->up_methods = xhci_root_intr_pointer;
+	} else if (pipe->up_methods == device_ctrl_pointer_other) {
+		printf("should probs switch context device (upm_transfer)\n");
+		pipe->up_methods = device_ctrl_pointer;
+	}
     pipe->up_methods->upm_done(xfer);
 	// aprint_debug("should have gone to xhci_done\n");
 

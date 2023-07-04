@@ -289,6 +289,11 @@ static const struct usbd_pipe_methods xhci_device_ctrl_methods = {
 	.upm_done = xhci_device_ctrl_done,
 };
 
+
+uintptr_t get_device_methods() {
+	return &xhci_device_ctrl_methods;
+}
+
 static const struct usbd_pipe_methods xhci_device_isoc_methods = {
 	.upm_transfer = xhci_device_isoc_transfer,
 	.upm_abort = xhci_device_isoc_abort,

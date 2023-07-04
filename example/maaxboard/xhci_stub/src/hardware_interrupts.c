@@ -60,7 +60,7 @@ void
 notified(sel4cp_channel ch) {
     switch (ch) {
         case 6:
-            printf("!!xhci hard interrupt!!\n");
+            // printf("!!xhci hard interrupt!!\n");
             if (glob_xhci_sc != NULL) {
                 xhci_intr(glob_xhci_sc);
             } else {

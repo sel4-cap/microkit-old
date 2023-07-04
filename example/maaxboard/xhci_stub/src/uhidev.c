@@ -142,7 +142,7 @@ static int uhidev_maxrepid(void *, int);
 static int uhidevprint(void *, const char *);
 
 static int uhidev_match(device_t, cfdata_t, void *);
-static void uhidev_attach(device_t, device_t, void *);
+// static void uhidev_attach(device_t, device_t, void *);
 static void uhidev_childdet(device_t, device_t);
 static int uhidev_detach(device_t, int);
 
@@ -168,10 +168,10 @@ uhidev_match(device_t parent, cfdata_t match, void *aux)
 	return UMATCH_IFACECLASS_GENERIC;
 }
 
-static void
+void
 uhidev_attach(device_t parent, device_t self, void *aux)
 {
-	struct uhidev_softc *sc = device_private(self);
+	struct uhidev_softc *sc = kmem_alloc(sizeof(struct uhidev_softc), 0);
 	struct usbif_attach_arg *uiaa = aux;
 	struct usbd_interface *iface = uiaa->uiaa_iface;
 	usb_interface_descriptor_t *id;
@@ -201,16 +201,20 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 	sc->sc_refcnt = 0;
 	sc->sc_writereportid = -1;
 	sc->sc_stopreportid = -1;
+	
+	printf("gothere\n");
 
 	id = usbd_get_interface_descriptor(iface);
+
+	printf("got here 2\n");
 
 	devinfop = usbd_devinfo_alloc(uiaa->uiaa_device, 0);
 	aprint_normal_dev(self, "%s, iclass %d/%d\n",
 	       devinfop, id->bInterfaceClass, id->bInterfaceSubClass);
 	usbd_devinfo_free(devinfop);
 
-	if (!pmf_device_register(self, NULL, NULL))
-		aprint_error_dev(self, "couldn't establish power handler\n");
+	// if (!pmf_device_register(self, NULL, NULL))
+	// 	aprint_error_dev(self, "couldn't establish power handler\n");
 
 	if (uiaa->uiaa_vendor == USB_VENDOR_WACOM) {
 		if (uiaa->uiaa_product == USB_PRODUCT_WACOM_XD0912U) {
@@ -218,7 +222,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 		 * Wacom Intuos2 (XD-0912-U) requires longer idle time to
 		 * initialize the device with 0x0202.
 		 */
-			DELAY(500000);
+			// DELAY(500000);
 		}
 	}
 	(void)usbd_set_idle(iface, 0, 0);

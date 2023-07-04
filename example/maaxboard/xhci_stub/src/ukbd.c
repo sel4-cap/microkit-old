@@ -71,6 +71,7 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <dev/usb/usbdevs.h>
 #include <dev/usb/usb_quirks.h>
 #include <dev/usb/uhidev.h>
+#include <dev/usb/ukbd.h>
 #include <dev/usb/ukbdvar.h>
 #include <dev/hid/hid.h>
 

@@ -267,9 +267,9 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 
 // #if defined(_NETBSD_SOURCE)
 // /* Major, minor numbers, dev_t's. */
-// typedef int32_t __devmajor_t, __devminor_t;
-// #define devmajor_t __devmajor_t
-// #define devminor_t __devminor_t
+ typedef int32_t __devmajor_t, __devminor_t;
+ #define devmajor_t __devmajor_t
+ #define devminor_t __devminor_t
 // #define NODEVMAJOR (-1)
 // #define	major(x)	((devmajor_t)(((uint32_t)(x) & 0x000fff00) >>  8))
 // #define	minor(x)	((devminor_t)((((uint32_t)(x) & 0xfff00000) >> 12) | \
@@ -332,7 +332,7 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 
 // typedef struct kauth_cred *kauth_cred_t;
 
-// typedef int pri_t;
+ typedef int pri_t;
 
 // #endif
 

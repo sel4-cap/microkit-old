@@ -69,6 +69,9 @@ notified(sel4cp_channel ch) {
             // printf("end of ch\n");
             sel4cp_irq_ack(ch);
             break;
+            while (1) {
+                
+            }
     }
     printf("finished hardware int\n");
     // printf("Hanging to prevent io spam\n");

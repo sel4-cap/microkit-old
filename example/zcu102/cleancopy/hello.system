@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2021, Breakaway Consulting Pty. Ltd.
+
+ SPDX-License-Identifier: BSD-2-Clause
+-->
+
+<!--
+ This file describes the PDs for a simple producer/ consumer application.
+'hello' act as the producer and sends numbers to the server
+'server' holds a queue, by being in a seperate PD mutual exclusion is ensured without using a mutex
+'consumer' queries the server to retreive the numbers added to the queue.
+The are connections between all components as 'hello' and 'consumer' use notidfications to synchronise
+-->
+
+<system>
+
+    <protection_domain name="hello" priority="20"> 
+        <program_image path="hello.elf" />
+    </protection_domain>
+
+    <protection_domain name="server" priority="254" pp="true" passive="true">
+        <program_image path="server.elf" />
+    </protection_domain>
+
+    <protection_domain name="consumer" priority="100" period="200" budget="160">
+        <program_image path="consumer.elf" />
+    </protection_domain>
+
+    <channel>
+        <end pd="server" id="0" />
+        <end pd="hello" id="0" />
+    </channel>
+
+    <channel>
+        <end pd="consumer" id="1" />
+        <end pd="server" id="1" />
+    </channel>
+
+    <channel>
+        <end pd="consumer" id="2" />
+        <end pd="hello" id="2" />
+    </channel>
+
+</system>

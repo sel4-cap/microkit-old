@@ -49,7 +49,7 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/callout.h>
-#include <sys/kernel.h>
+// #include <sys/kernel.h>
 #include <sys/device.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
@@ -58,7 +58,9 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <sys/vnode.h>
 #include <sys/poll.h>
 #include <sys/intr.h>
+#include <sys/kmem.h>
 #include <timer.h>
+#include <printf.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -80,9 +82,10 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 
 //uintptr_t timer_base;
 
+#define UKBD_DEBUG
 #ifdef UKBD_DEBUG
-#define DPRINTF(x)	if (ukbddebug) printf x
-#define DPRINTFN(n,x)	if (ukbddebug>(n)) printf x
+#define DPRINTF(x) printf x
+#define DPRINTFN(n,x) printf x
 int	ukbddebug = 0;
 #else
 #define DPRINTF(x)
@@ -307,32 +310,32 @@ struct ukbd_softc {
 };
 
 #ifdef UKBD_DEBUG
-#define UKBDTRACESIZE 64
-struct ukbdtraceinfo {
-	int unit;
-	struct timeval tv;
-	struct ukbd_data ud;
-};
-struct ukbdtraceinfo ukbdtracedata[UKBDTRACESIZE];
-int ukbdtraceindex = 0;
-int ukbdtrace = 0;
-void ukbdtracedump(void);
-void
-ukbdtracedump(void)
-{
-	size_t i, j;
-	for (i = 0; i < UKBDTRACESIZE; i++) {
-		struct ukbdtraceinfo *p =
-		    &ukbdtracedata[(i+ukbdtraceindex)%UKBDTRACESIZE];
-		printf("%"PRIu64".%06"PRIu64":", p->tv.tv_sec,
-		    (uint64_t)p->tv.tv_usec);
-		for (j = 0; j < MAXKEYS; j++) {
-			if (isset(p->ud.keys, j))
-				printf(" %zu", j);
-		}
-		printf(".\n");
-	}
-}
+// #define UKBDTRACESIZE 64
+// struct ukbdtraceinfo {
+// 	int unit;
+// 	struct timeval tv;
+// 	struct ukbd_data ud;
+// };
+// struct ukbdtraceinfo ukbdtracedata[UKBDTRACESIZE];
+// int ukbdtraceindex = 0;
+// int ukbdtrace = 0;
+// void ukbdtracedump(void);
+// void
+// ukbdtracedump(void)
+// {
+// 	size_t i, j;
+// 	for (i = 0; i < UKBDTRACESIZE; i++) {
+// 		struct ukbdtraceinfo *p =
+// 		    &ukbdtracedata[(i+ukbdtraceindex)%UKBDTRACESIZE];
+// 		printf("%"PRIu64".%06"PRIu64":", p->tv.tv_sec,
+// 		    (uint64_t)p->tv.tv_usec);
+// 		for (j = 0; j < MAXKEYS; j++) {
+// 			if (isset(p->ud.keys, j))
+// 				printf(" %zu", j);
+// 		}
+// 		printf(".\n");
+// 	}
+// }
 #endif
 
 #define	UKBDUNIT(dev)	(minor(dev))
@@ -372,18 +375,18 @@ const struct wskbd_accessops ukbd_accessops = {
 	ukbd_ioctl,
 };
 
-//extern const struct wscons_keydesc hidkbd_keydesctab[];
+extern const struct wscons_keydesc hidkbd_keydesctab[];
 
-//const struct wskbd_mapdata ukbd_keymapdata = {
-	//hidkbd_keydesctab,
-//#if defined(UKBD_LAYOUT)
-	//UKBD_LAYOUT,
-//#elif defined(PCKBD_LAYOUT)
-	//PCKBD_LAYOUT,
-//#else
-	//KB_US,
-//#endif
-//};
+const struct wskbd_mapdata ukbd_keymapdata = {
+	hidkbd_keydesctab,
+#if defined(UKBD_LAYOUT)
+	UKBD_LAYOUT,
+#elif defined(PCKBD_LAYOUT)
+	PCKBD_LAYOUT,
+#else
+	KB_US,
+#endif
+};
 
 static const struct ukbd_type {
 	struct usb_devno	dev;
@@ -402,7 +405,6 @@ static const struct ukbd_type {
 	((const struct ukbd_type *)usb_lookup(ukbd_devs, v, p))
 
 static int ukbd_match(device_t, cfdata_t, void *);
-//static void ukbd_attach(device_t, device_t, void *);
 static int ukbd_detach(device_t, int);
 static int ukbd_activate(device_t, enum devact);
 static void ukbd_childdet(device_t, device_t);
@@ -430,26 +432,34 @@ ukbd_match(device_t parent, cfdata_t match, void *aux)
 void
 ukbd_attach(device_t parent, device_t self, void *aux)
 {
-	struct ukbd_softc *sc = device_private(self);
+	// self->dv_private = kmem_alloc(sizeof(struct ukbd_softc), 0);
+	struct ukbd_softc *sc = kmem_alloc(sizeof(struct ukbd_softc), 0);
+	printf("Reached UKBD attached\n");
 	struct uhidev_attach_arg *uha = aux;
 	uint32_t qflags;
 	const char *parseerr;
 	struct wskbddev_attach_args a;
 	const struct ukbd_type *ukt;
 
+	printf("1\n");
 	sc->sc_dev = self;
+	printf("2\n");
 	sc->sc_hdev = uha->parent;
+	printf("3\n");
 	sc->sc_udev = uha->uiaa->uiaa_device;
+	printf("4\n");
 	sc->sc_iface = uha->uiaa->uiaa_iface;
+	printf("5\n");
 	sc->sc_report_id = uha->reportid;
+	printf("6\n");
 	sc->sc_flags = 0;
 
-	aprint_naive("\n");
+	aprint_naive("Finished sc initial\n");
 
-	if (!pmf_device_register(self, NULL, NULL)) {
-		aprint_normal("\n");
-		aprint_error_dev(self, "couldn't establish power handler\n");
-	}
+	// if (!pmf_device_register(self, NULL, NULL)) {
+	// 	aprint_normal("\n");
+	// 	aprint_error_dev(self, "couldn't establish power handler\n");
+	// }
 
 	parseerr = ukbd_parse_desc(sc);
 	if (parseerr != NULL) {
@@ -498,12 +508,12 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	if (sc->sc_console_keyboard) {
 		DPRINTF(("%s: console keyboard sc=%p\n", __func__, sc));
 		//wskbd_cnattach(&ukbd_consops, sc, &ukbd_keymapdata);
-		ukbd_enable(sc, 1);
+		// ukbd_enable(sc, 1);
 	}
 
 	a.console = sc->sc_console_keyboard;
 
-	//a.keymap = &ukbd_keymapdata;
+	a.keymap = &ukbd_keymapdata;
 
 	a.accessops = &ukbd_accessops;
 	a.accesscookie = sc;
@@ -512,20 +522,20 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	callout_init(&sc->sc_rawrepeat_ch, 0);
 #endif
 
-	callout_init(&sc->sc_delay, 0);
+	// callout_init(&sc->sc_delay, 0);
 
 	sc->sc_data_w = 0;
 	sc->sc_data_r = 0;
 
 	usb_init_task(&sc->sc_ledtask, ukbd_set_leds_task, sc, 0);
-	callout_init(&sc->sc_ledreset, 0);
+	// callout_init(&sc->sc_ledreset, 0);
 
 	/* Flash the leds; no real purpose, just shows we're alive. */
 	ukbd_set_leds(sc, WSKBD_LED_SCROLL | WSKBD_LED_NUM | WSKBD_LED_CAPS
 			| WSKBD_LED_COMPOSE);
 	sc->sc_leds_set = 0;	/* not explicitly set by wskbd yet */
-	callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
-	    sc);
+	// callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
+	    // sc);
 
 	// sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
 
@@ -800,25 +810,25 @@ ukbd_decode(struct ukbd_softc *sc, struct ukbd_data *ud)
 	 * Keep a trace of the last events.  Using printf changes the
 	 * timing, so this can be useful sometimes.
 	 */
-	if (ukbdtrace) {
-		struct ukbdtraceinfo *p = &ukbdtracedata[ukbdtraceindex];
-		p->unit = device_unit(sc->sc_dev);
-		microtime(&p->tv);
-		p->ud = *ud;
-		if (++ukbdtraceindex >= UKBDTRACESIZE)
-			ukbdtraceindex = 0;
-	}
-	if (ukbddebug > 5) {
-		struct timeval tv;
-		microtime(&tv);
-		DPRINTF((" at %"PRIu64".%06"PRIu64":", tv.tv_sec,
-		    (uint64_t)tv.tv_usec));
-		for (size_t k = 0; k < MAXKEYS; k++) {
-			if (isset(ud->keys, k))
-				DPRINTF((" %zu", k));
-		}
-		DPRINTF((".\n"));
-	}
+	// if (ukbdtrace) {
+	// 	struct ukbdtraceinfo *p = &ukbdtracedata[ukbdtraceindex];
+	// 	p->unit = device_unit(sc->sc_dev);
+	// 	microtime(&p->tv);
+	// 	p->ud = *ud;
+	// 	if (++ukbdtraceindex >= UKBDTRACESIZE)
+	// 		ukbdtraceindex = 0;
+	// }
+	// if (ukbddebug > 5) {
+	// 	struct timeval tv;
+	// 	microtime(&tv);
+	// 	DPRINTF((" at %"PRIu64".%06"PRIu64":", tv.tv_sec,
+	// 	    (uint64_t)tv.tv_usec));
+	// 	for (size_t k = 0; k < MAXKEYS; k++) {
+	// 		if (isset(ud->keys, k))
+	// 			DPRINTF((" %zu", k));
+	// 	}
+	// 	DPRINTF((".\n"));
+	// }
 #endif
 
 	if (isset(ud->keys, KEY_ERROR)) {

@@ -1134,7 +1134,7 @@ usbd_attachwholedevice(device_t parent, struct usbd_device *dev, int port,
 	// struct usb_attach_arg uaa;
 	// usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	// device_t dv;
-	// int dlocs[USBDEVIFCF_NLOCS];
+	// // int dlocs[USBDEVIFCF_NLOCS];
 
 	// KASSERT(usb_in_event_thread(parent));
 
@@ -1172,101 +1172,105 @@ usbd_attachwholedevice(device_t parent, struct usbd_device *dev, int port,
 	// 	usbd_properties(dv, dev);
 	// }
 	// config_pending_decr(parent);
-	// return USBD_NORMAL_COMPLETION;
+	return USBD_NORMAL_COMPLETION;
 }
 
 static usbd_status
 usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
     int port, const int *locators)
 {
-	// USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-	// struct usbif_attach_arg uiaa;
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+	struct usbif_attach_arg uiaa;
 	// int ilocs[USBIFIFCF_NLOCS];
-	// usb_device_descriptor_t *dd = &dev->ud_ddesc;
-	// int nifaces;
-	// struct usbd_interface **ifaces;
-	// int i, j, loc;
-	// device_t dv;
+	usb_device_descriptor_t *dd = &dev->ud_ddesc;
+	int nifaces;
+	struct usbd_interface **ifaces;
+	int i, j, loc;
+	device_t dv;
 
-	// KASSERT(usb_in_event_thread(parent));
+	KASSERT(usb_in_event_thread(parent));
 
-	// nifaces = dev->ud_cdesc->bNumInterface;
-	// ifaces = kmem_zalloc(nifaces * sizeof(*ifaces), KM_SLEEP);
-	// for (i = 0; i < nifaces; i++) {
-	// 	if (!dev->ud_subdevs[i]) {
-	// 		ifaces[i] = &dev->ud_ifaces[i];
-	// 	}
-	// 	DPRINTF("interface %jd %#jx", i, (uintptr_t)ifaces[i], 0, 0);
-	// }
+	nifaces = dev->ud_cdesc->bNumInterface;
+	ifaces = kmem_zalloc(nifaces * sizeof(*ifaces), KM_SLEEP);
+	for (i = 0; i < nifaces; i++) {
+		if (!dev->ud_subdevs[i]) {
+			ifaces[i] = &dev->ud_ifaces[i];
+		}
+		DPRINTF("interface %jd %#jx", i, (uintptr_t)ifaces[i], 0, 0);
+	}
 
 
-	// uiaa.uiaa_device = dev;
-	// uiaa.uiaa_port = port;
-	// uiaa.uiaa_vendor = UGETW(dd->idVendor);
-	// uiaa.uiaa_product = UGETW(dd->idProduct);
-	// uiaa.uiaa_release = UGETW(dd->bcdDevice);
-	// uiaa.uiaa_configno = dev->ud_cdesc->bConfigurationValue;
-	// uiaa.uiaa_ifaces = ifaces;
-	// uiaa.uiaa_nifaces = nifaces;
+	uiaa.uiaa_device = dev;
+	uiaa.uiaa_port = port;
+	uiaa.uiaa_vendor = UGETW(dd->idVendor);
+	uiaa.uiaa_product = UGETW(dd->idProduct);
+	uiaa.uiaa_release = UGETW(dd->bcdDevice);
+	uiaa.uiaa_configno = dev->ud_cdesc->bConfigurationValue;
+	uiaa.uiaa_ifaces = ifaces;
+	uiaa.uiaa_nifaces = nifaces;
 	// ilocs[USBIFIFCF_PORT] = uiaa.uiaa_port;
 	// ilocs[USBIFIFCF_VENDOR] = uiaa.uiaa_vendor;
 	// ilocs[USBIFIFCF_PRODUCT] = uiaa.uiaa_product;
 	// ilocs[USBIFIFCF_RELEASE] = uiaa.uiaa_release;
 	// ilocs[USBIFIFCF_CONFIGURATION] = uiaa.uiaa_configno;
 
-	// for (i = 0; i < nifaces; i++) {
-	// 	if (!ifaces[i]) {
-	// 		DPRINTF("interface %jd claimed", i, 0, 0, 0);
-	// 		continue; /* interface already claimed */
-	// 	}
-	// 	uiaa.uiaa_iface = ifaces[i];
-	// 	uiaa.uiaa_class = ifaces[i]->ui_idesc->bInterfaceClass;
-	// 	uiaa.uiaa_subclass = ifaces[i]->ui_idesc->bInterfaceSubClass;
-	// 	uiaa.uiaa_proto = ifaces[i]->ui_idesc->bInterfaceProtocol;
-	// 	uiaa.uiaa_ifaceno = ifaces[i]->ui_idesc->bInterfaceNumber;
+	for (i = 0; i < nifaces; i++) {
+		if (!ifaces[i]) {
+			DPRINTF("interface %jd claimed", i, 0, 0, 0);
+			continue; /* interface already claimed */
+		}
+		uiaa.uiaa_iface = ifaces[i];
+		uiaa.uiaa_class = ifaces[i]->ui_idesc->bInterfaceClass;
+		uiaa.uiaa_subclass = ifaces[i]->ui_idesc->bInterfaceSubClass;
+		uiaa.uiaa_proto = ifaces[i]->ui_idesc->bInterfaceProtocol;
+		uiaa.uiaa_ifaceno = ifaces[i]->ui_idesc->bInterfaceNumber;
 
-	// 	DPRINTF("searching for interface %jd...", i, 0, 0, 0);
-	// 	DPRINTF("class %jx subclass %jx proto %jx ifaceno %jd",
-	// 	    uiaa.uiaa_class, uiaa.uiaa_subclass, uiaa.uiaa_proto,
-	// 	    uiaa.uiaa_ifaceno);
-	// 	ilocs[USBIFIFCF_INTERFACE] = uiaa.uiaa_ifaceno;
-	// 	if (locators != NULL) {
-	// 		loc = locators[USBIFIFCF_CONFIGURATION];
-	// 		if (loc != USBIFIFCF_CONFIGURATION_DEFAULT &&
-	// 		    loc != uiaa.uiaa_configno)
-	// 			continue;
-	// 		loc = locators[USBIFIFCF_INTERFACE];
-	// 		if (loc != USBIFIFCF_INTERFACE_DEFAULT &&
-	// 		    loc != uiaa.uiaa_ifaceno)
-	// 			continue;
-	// 	}
-	// 	KERNEL_LOCK(1, curlwp);
-	// 	dv = config_found(parent, &uiaa, usbd_ifprint,
-	// 			  CFARGS(.submatch = config_stdsubmatch,
-	// 				 .iattr = "usbifif",
-	// 				 .locators = ilocs));
-	// 	KERNEL_UNLOCK_ONE(curlwp);
-	// 	if (!dv)
-	// 		continue;
+		DPRINTF("searching for interface %jd...", i, 0, 0, 0);
+		DPRINTF("class %jx subclass %jx proto %jx ifaceno %jd",
+		    uiaa.uiaa_class, uiaa.uiaa_subclass, uiaa.uiaa_proto,
+		    uiaa.uiaa_ifaceno);
+		// ilocs[USBIFIFCF_INTERFACE] = uiaa.uiaa_ifaceno;
+		// if (locators != NULL) {
+		// 	loc = locators[USBIFIFCF_CONFIGURATION];
+		// 	if (loc != USBIFIFCF_CONFIGURATION_DEFAULT &&
+		// 	    loc != uiaa.uiaa_configno)
+		// 		continue;
+		// 	loc = locators[USBIFIFCF_INTERFACE];
+		// 	if (loc != USBIFIFCF_INTERFACE_DEFAULT &&
+		// 	    loc != uiaa.uiaa_ifaceno)
+		// 		continue;
+		// }
+		// KERNEL_LOCK(1, curlwp);
+		// dv = config_found(parent, &uiaa, usbd_ifprint,
+		// 		  CFARGS(.submatch = config_stdsubmatch,
+		// 			 .iattr = "usbifif",
+		// 			 .locators = ilocs));
+		
+		device_t self = kmem_alloc(sizeof(device_t), 0);
+		// self->sc_dev = kmem_alloc(sizeof(ukbd_softc), 0);
+		uhidev_attach(parent, self, &uiaa);
+		// KERNEL_UNLOCK_ONE(curlwp);
+		// if (!dv)
+		// 	continue;
 
-	// 	usbd_properties(dv, dev);
+		usbd_properties(dv, dev);
 
-	// 	/* claim */
-	// 	ifaces[i] = NULL;
-	// 	/* account for ifaces claimed by the driver behind our back */
-	// 	for (j = 0; j < nifaces; j++) {
+		/* claim */
+		ifaces[i] = NULL;
+		/* account for ifaces claimed by the driver behind our back */
+		for (j = 0; j < nifaces; j++) {
 
-	// 		if (!ifaces[j] && !dev->ud_subdevs[j]) {
-	// 			DPRINTF("interface %jd claimed behind our back",
-	// 			    j, 0, 0, 0);
-	// 			dev->ud_subdevs[j] = dv;
-	// 			dev->ud_nifaces_claimed++;
-	// 		}
-	// 	}
-	// }
+			if (!ifaces[j] && !dev->ud_subdevs[j]) {
+				DPRINTF("interface %jd claimed behind our back",
+				    j, 0, 0, 0);
+				dev->ud_subdevs[j] = dv;
+				dev->ud_nifaces_claimed++;
+			}
+		}
+	}
 
-	// kmem_free(ifaces, nifaces * sizeof(*ifaces));
-	// return USBD_NORMAL_COMPLETION;
+	kmem_free(ifaces, nifaces * sizeof(*ifaces));
+	return USBD_NORMAL_COMPLETION;
 }
 
 usbd_status

@@ -341,12 +341,12 @@ struct usbd_pipe_methods *get_up_methods(int method_ptr) {
 
 uint32_t xhci_read_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size){
     uint32_t busval = bus_space_read_4(tag, bsh, size);
-    printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
+    // printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
     return busval;
 }
 
 void xhci_write_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size, uint32_t val){
-    printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
+    // printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
     bus_space_write_4(tag, bsh, size, val);
 }
 
@@ -3310,7 +3310,7 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 	/*     (sc->sc_suspender != NULL && sc->sc_suspender != curlwp)) */
 	/* 	cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock); */
 
-	usb_delay_ms(0, 100); // added
+	usb_delay_ms(0, 30); // added
 	/*
 	 * If enqueue pointer points at last of ring, it's Link TRB,
 	 * command TRB will be stored in 0th TRB.
@@ -3337,7 +3337,7 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 	/* 	} */
 	/* } */
 
-	usb_delay_ms(0, 100); // added
+	usb_delay_ms(0, 30); // added
 
 	trb->trb_0 = sc->sc_result_trb.trb_0;
 	trb->trb_2 = sc->sc_result_trb.trb_2;
@@ -4436,7 +4436,7 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 
 	KASSERT(polling || mutex_owned(&sc->sc_lock));
 
-    usb_delay_ms(0, 100); //added
+    usb_delay_ms(0, 30); //added
 
 	/* we rely on the bottom bits for extra info */
 	KASSERTMSG(((uintptr_t)xfer & 0x3) == 0x0, "xfer %zx",
@@ -4465,7 +4465,7 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
         printf("trying to get DMAADDR of %p\n", dma);
 		parameter = DMAADDR(dma, 0);
         printf("param addr = %p\n", parameter);
-        usb_delay_ms(0, 100); //added
+        usb_delay_ms(0, 30); //added
 		KASSERTMSG(len <= 0x10000, "len %d", len);
 		status = XHCI_TRB_2_IRQ_SET(0) |
 		    XHCI_TRB_2_TDSZ_SET(0) |

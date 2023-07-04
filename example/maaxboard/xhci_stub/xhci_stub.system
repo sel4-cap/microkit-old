@@ -34,7 +34,7 @@
         <program_image path="pipe_handler.elf" />
     </protection_domain>
 
-    <protection_domain name="hardware_interrupt" pp="true" priority="253">
+    <protection_domain name="hardware_interrupt" pp="true" priority="200">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
         <map mr="pipe_heap_mem" vaddr="0x56000000" perms="rw" cached="false" setvar_vaddr="pipe_heap_base"/>
@@ -46,7 +46,7 @@
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
     </protection_domain>
 
-    <protection_domain name="software_interrupt" pp="true" priority="200">
+    <protection_domain name="software_interrupt" pp="true" priority="253">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
         <map mr="pipe_heap_mem" vaddr="0x56000000" perms="rw" cached="false" setvar_vaddr="pipe_heap_base"/>
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>

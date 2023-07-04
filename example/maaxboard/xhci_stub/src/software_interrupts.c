@@ -44,12 +44,15 @@ struct xhci_softc *glob_xhci_sc	= NULL;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
 uintptr_t xhci_root_intr_pointer;
 uintptr_t xhci_root_intr_pointer_other;
+uintptr_t device_ctrl_pointer;
+uintptr_t device_ctrl_pointer_other;
 
 void
 init(void) {
     printf("SOFTWARE: dmapaddr = %p\n", dma_cp_paddr);
     xhci_bus_methods_ptr = get_bus_methods();
     xhci_root_intr_pointer = get_root_intr_methods();
+    device_ctrl_pointer = get_device_methods();
     printf("root_intr_ptr = %p\n", xhci_root_intr_pointer);
     pipe_thread = false;
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
@@ -81,6 +84,10 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
         case 2:
             glob_xhci_sc = (struct xhci_softc *) sel4cp_msginfo_get_label(msginfo);
             break;
+        case 3:
+            device_ctrl_pointer_other = sel4cp_msginfo_get_label(msginfo);
+            printf("sending device_ctrl_pointer: %p\n", device_ctrl_pointer);
+            return seL4_MessageInfo_new((uint64_t) device_ctrl_pointer, 1, 0, 0);
         default:
             printf("softintr unexpected channel %d\n", ch);
     }

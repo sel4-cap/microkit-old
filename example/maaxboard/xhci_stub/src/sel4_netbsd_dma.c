@@ -187,7 +187,7 @@ int sel4_dma_map_load(bus_dmamap_t dmam, void* buf, bus_size_t s) {
 }
 
 int sel4_dma_map_create_new(bus_dmamap_t *dmap, bus_size_t s, bus_size_t mxs) {
-    (*dmap) = ta_alloc(sizeof(**dmap));
+    (*dmap) = kmem_zalloc(sizeof(**dmap));
 	(*dmap)->dm_maxsegsz = mxs;
 	(*dmap)->dm_mapsize = s;
 	(*dmap)->dm_nsegs = 1;

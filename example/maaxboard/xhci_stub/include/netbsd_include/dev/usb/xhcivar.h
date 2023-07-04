@@ -173,6 +173,7 @@ void	xhci_childdet(device_t, device_t);
 uintptr_t 	get_root_intr_methods();
 struct usbd_pipe_methods 	*get_up_methods(int);
 struct usbd_bus_methods 	*get_bus_methods();
+struct usbd_pipe_methods 	*get_device_methods();
 void xhci_softintr(void *);
 // bool	xhci_suspend(device_t, const pmf_qual_t *);
 // bool	xhci_resume(device_t, const pmf_qual_t *);

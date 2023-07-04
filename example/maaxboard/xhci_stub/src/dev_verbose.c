@@ -30,6 +30,7 @@ __KERNEL_RCSID(0, "$NetBSD: dev_verbose.c,v 1.4 2021/06/29 21:03:36 pgoyette Exp
 #ifdef _KERNEL
 #include <sys/systm.h>
 #else
+#include <sys/systm.h>
 // #include <stdio.h>
 #include <printf.h>
 // #include <util.h>

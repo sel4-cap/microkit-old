@@ -73,6 +73,7 @@ __KERNEL_RCSID(0, "$NetBSD: xhci.c,v 1.175 2022/10/11 11:01:17 msaitoh Exp $");
 #include <pipe_methods.h>
 
 extern uintptr_t xhci_root_intr_pointer;
+extern uintptr_t device_ctrl_pointer;
 
 // DEVELOPMENT {{{
 
@@ -320,6 +321,10 @@ struct usbd_bus_methods *get_bus_methods() {
 	return &xhci_bus_methods;
 }
 
+struct usbd_pipe_methods *get_device_methods() {
+	return &xhci_device_ctrl_methods;
+}
+
 struct usbd_pipe_methods *get_up_methods(int method_ptr) {
 	switch (method_ptr) {
 		case ROOTHUB_CTRL:
@@ -341,12 +346,12 @@ struct usbd_pipe_methods *get_up_methods(int method_ptr) {
 
 uint32_t xhci_read_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size){
     uint32_t busval = bus_space_read_4(tag, bsh, size);
-    printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
+    // printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
     return busval;
 }
 
 void xhci_write_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size, uint32_t val){
-    printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
+    // printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
     bus_space_write_4(tag, bsh, size, val);
 }
 
@@ -1760,7 +1765,7 @@ xhci_intr(void *v)
 	struct xhci_softc * const sc = v;
 	int ret = 0;
 
-	XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	/* XHCIHIST_FUNC(); XHCIHIST_CALLED(); */
 
 	if (sc == NULL)
 		return 0;
@@ -1806,10 +1811,10 @@ xhci_intr1(struct xhci_softc * const sc)
 	uint32_t usbsts;
 	uint32_t iman;
 
-	XHCIHIST_FUNC();
+	/* XHCIHIST_FUNC(); */
 
 	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
-	XHCIHIST_CALLARGS("USBSTS 0x%08jx", usbsts, 0, 0, 0);
+	/* XHCIHIST_CALLARGS("USBSTS 0x%08jx", usbsts, 0, 0, 0); */
 	if ((usbsts & (XHCI_STS_HSE | XHCI_STS_EINT | XHCI_STS_PCD |
 	    XHCI_STS_HCE)) == 0) {
 		DPRINTFN(16, "ignored intr not for %jd",
@@ -1825,21 +1830,21 @@ xhci_intr1(struct xhci_softc * const sc)
 	xhci_op_write_4(sc, XHCI_USBSTS, usbsts & XHCI_STS_RSVDP0);
 
 #ifdef XHCI_DEBUG
-	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
-	DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0);
+	/* usbsts = xhci_op_read_4(sc, XHCI_USBSTS); */
+	/* DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0); */
 #endif
 
 	iman = xhci_rt_read_4(sc, XHCI_IMAN(0));
-	DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0);
+	/* DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0); */
 	iman |= XHCI_IMAN_INTR_PEND;
 	xhci_rt_write_4(sc, XHCI_IMAN(0), iman);
 
-// #ifdef XHCI_DEBUG
-	iman = xhci_rt_read_4(sc, XHCI_IMAN(0));
-	DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0);
-	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
-	DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0);
-// #endif
+#ifdef XHCI_DEBUG
+	/* iman = xhci_rt_read_4(sc, XHCI_IMAN(0)); */
+	/* DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0); */
+	/* usbsts = xhci_op_read_4(sc, XHCI_USBSTS); */
+	/* DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0); */
+#endif
 
 	return 1;
 }
@@ -2109,10 +2114,10 @@ xhci_open(struct usbd_pipe *pipe)
 		// pipe->up_methods = kmem_alloc(sizeof(struct usbd_pipe_methods), 0) //added
 		switch (ed->bEndpointAddress) {
 		case USB_CONTROL_ENDPOINT:
-			// pmi->pipe = pipe;
-			// pmi->method_ptr = ROOTHUB_CTRL;
-			// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
-			pipe->up_methods = &roothub_ctrl_methods;
+			pmi->pipe = pipe;
+			pmi->method_ptr = ROOTHUB_CTRL;
+			sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
+			// pipe->up_methods = &roothub_ctrl_methods;
 			break;
 		case UE_DIR_IN | USBROOTHUB_INTR_ENDPT:
 			/*
@@ -2120,10 +2125,10 @@ xhci_open(struct usbd_pipe *pipe)
 				hardware_interrupt PD, need the memory address of the
 				structure in there instead of the one in xhci_stub PD.
 			*/ 
-			pipe->up_methods = xhci_root_intr_pointer;
-			// pmi->pipe = pipe;
-			// pmi->method_ptr = XHCI_ROOT_INTR;
-			// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
+			// pipe->up_methods = xhci_root_intr_pointer;
+			pmi->pipe = pipe;
+			pmi->method_ptr = XHCI_ROOT_INTR;
+			sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
 			// pipe->up_methods = &xhci_root_intr_methods;
 			break;
 		default:
@@ -2140,16 +2145,17 @@ xhci_open(struct usbd_pipe *pipe)
 
 	switch (xfertype) {
 	case UE_CONTROL:
-		// pmi->pipe = pipe;
-		// pmi->method_ptr = XHCI_DEVICE_CTRL;
-		// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
-		pipe->up_methods = &xhci_device_ctrl_methods;
+		pmi->pipe = pipe;
+		pmi->method_ptr = XHCI_DEVICE_CTRL;
+		sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
+		// pipe->up_methods = &xhci_device_ctrl_methods;
+		// pipe->up_methods = &device_ctrl_pointer;
 		break;
 	case UE_ISOCHRONOUS:
-		// pmi->pipe = pipe;
-		// pmi->method_ptr = XHCI_DEVICE_ISOC;
-		// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
-		pipe->up_methods = &xhci_device_isoc_methods;
+		pmi->pipe = pipe;
+		pmi->method_ptr = XHCI_DEVICE_ISOC;
+		sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
+		// pipe->up_methods = &xhci_device_isoc_methods;
 		pipe->up_serialise = false;
 		xpipe->xp_isoc_next = -1;
 		break;
@@ -2160,10 +2166,10 @@ xhci_open(struct usbd_pipe *pipe)
 		// pipe->up_methods = &xhci_device_bulk_methods;
 		break;
 	case UE_INTERRUPT:
-		// pmi->pipe = pipe;
-		// pmi->method_ptr = XHCI_DEVICE_INTR;
-		// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
-		pipe->up_methods = &xhci_device_intr_methods;
+		pmi->pipe = pipe;
+		pmi->method_ptr = XHCI_DEVICE_INTR;
+		sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
+		// pipe->up_methods = &xhci_device_intr_methods;
 		break;
 	default:
 		return USBD_IOERROR;
@@ -2443,8 +2449,6 @@ xhci_rhpsc(struct xhci_softc * const sc, u_int ctlrport)
 
 	DPRINTFN(4, "xhci%jd: bus %jd bp %ju xfer %#jx status change",
 	    device_unit(sc->sc_dev), bn, rhp, (uintptr_t)xfer);
-	struct usbd_pipe_methods *test = &xhci_root_intr_methods;
-	DPRINTF("xhci_root_intr_done = %p, memaddr = %p", test->upm_done, &xhci_root_intr_methods, 0, 0);
 
 	if (xfer == NULL)
 		return;
@@ -2792,7 +2796,8 @@ xhci_allocx(struct usbd_bus *bus, unsigned int nframes)
 	const size_t trbsz = sizeof(*xx->xx_trb) * ntrbs;
 
 	// xx = pool_cache_get(sc->sc_xferpool, PR_WAITOK);
-	xx = kmem_alloc(sizeof(*xx), KM_SLEEP); //! this probably needs to change
+	xx = kmem_zalloc(sizeof(struct xhci_xfer), KM_SLEEP); //! this probably needs to change
+	printf("allocated xx at addr %p", xx);
 	if (xx != NULL) {
 		memset(xx, 0, sizeof(*xx));
 		if (ntrbs > 0) {
@@ -3310,7 +3315,7 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 	/*     (sc->sc_suspender != NULL && sc->sc_suspender != curlwp)) */
 	/* 	cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock); */
 
-	usb_delay_ms(0, 100); // added
+	usb_delay_ms(0, 50); // added
 	/*
 	 * If enqueue pointer points at last of ring, it's Link TRB,
 	 * command TRB will be stored in 0th TRB.
@@ -3337,7 +3342,7 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 	/* 	} */
 	/* } */
 
-	usb_delay_ms(0, 100); // added
+	usb_delay_ms(0, 50); // added
 
 	trb->trb_0 = sc->sc_result_trb.trb_0;
 	trb->trb_2 = sc->sc_result_trb.trb_2;
@@ -4436,7 +4441,7 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 
 	KASSERT(polling || mutex_owned(&sc->sc_lock));
 
-    usb_delay_ms(0, 100); //added
+    usb_delay_ms(0, 30); //added
 
 	/* we rely on the bottom bits for extra info */
 	KASSERTMSG(((uintptr_t)xfer & 0x3) == 0x0, "xfer %zx",
@@ -4456,16 +4461,12 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 	     (isread ? XHCI_TRB_3_TRT_IN : XHCI_TRB_3_TRT_OUT)) |
 	    XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_SETUP_STAGE) |
 	    XHCI_TRB_3_IDT_BIT;
-    printf("trying put trb\n");
 	xhci_xfer_put_trb(xx, i++, parameter, status, control);
 
-    printf("put the trb, len %d\n", len);
 	if (len != 0) {
 		/* data phase */
-        printf("trying to get DMAADDR of %p\n", dma);
 		parameter = DMAADDR(dma, 0);
-        printf("param addr = %p\n", parameter);
-        usb_delay_ms(0, 100); //added
+        // usb_delay_ms(0, 50); //added
 		KASSERTMSG(len <= 0x10000, "len %d", len);
 		status = XHCI_TRB_2_IRQ_SET(0) |
 		    XHCI_TRB_2_TDSZ_SET(0) |
@@ -4474,14 +4475,12 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 		    XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_DATA_STAGE) |
 		    (isread ? XHCI_TRB_3_ISP_BIT : 0) |
 		    XHCI_TRB_3_IOC_BIT;
-        printf("trying to put trb again\n");
 		xhci_xfer_put_trb(xx, i++, parameter, status, control);
 
 		usb_syncmem(dma, 0, len,
 		    isread ? BUS_DMASYNC_PREREAD : BUS_DMASYNC_PREWRITE);
 	}
 
-    printf("all g post len\n");
 	parameter = 0;
 	status = XHCI_TRB_2_IRQ_SET(0);
 	/* the status stage has inverted direction */
@@ -4500,7 +4499,7 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 
 out:	if (xfer->ux_status == USBD_NOT_STARTED) {
 		xfer->ux_status = USBD_IN_PROGRESS;
-		printf("set xfer status to IN PROG (xfer addr = %p)\n", xfer);
+		// printf("set xfer status to IN PROG (xfer addr = %p)\n", xfer);
 		usbd_xfer_schedule_timeout(xfer);
 	} else {
 		/*
@@ -4521,9 +4520,12 @@ xhci_device_ctrl_done(struct usbd_xfer *xfer)
 	int len = UGETW(req->wLength);
 	int rd = req->bmRequestType & UT_READ;
 
-	if (len)
+	printf("len: %d\n", len);
+	if (len) {
+		printf("syncing...\n");
 		usb_syncmem(&xfer->ux_dmabuf, 0, len,
 		    rd ? BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE);
+	}
 }
 
 static void

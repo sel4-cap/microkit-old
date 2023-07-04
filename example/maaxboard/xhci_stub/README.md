@@ -24,6 +24,15 @@
     - Headers for things like heap size and heap base
 - NOTE: with the new "cached" option for memory, could be possible to implement xfer_pool and give it some of the cached memory. Food for thought
 
+## Bugs/strange things/important changelog
+- `xhci_setup_route` should include path of root hub, but doesn't. No issues because of this yet, but something to look at in the future if breakages happen
+- `xfer->ux_callback()` commented out and replaced with `uhub_intr()`. Will likely become a problem in the future, but right now it works.
+- Setting MaxBrate of device in `xhci_new_device` returns 0, overwriting correct value returned by `get_initial_ddesc()` if device speed is not ss. Fixed by checking if 0 is returned and if so using the ddesc value.
+- `bus_methods` replaced with pointer to `xhci_bus_methods` because this is an xhci driver, so assume that it's always going to use an xhci bus.
+- `cv_waitsig()` replaced with `usbd_delay_ms(0, 100)` to delay 100ms instead of waiting for cv to change.
+- `xfer->ux_status` set to `USBD_IN_PROGRESS` before doing anything else (different to netbsd which schedules a callout).
+- Callouts not set, meaning timeout will never happen (netbsd waits 5s)
+
 ## External sources
 - Tiny alloc: https://github.com/thi-ng/tinyalloc/tree/master
     - License: apache

@@ -106,6 +106,8 @@ usbd_get_config_desc(struct usbd_device *dev, int confidx,
 		    confidx, d->bLength, d->bDescriptorType, 0);
 		return USBD_INVAL;
 	}
+	DPRINTFN(1, "confidx=%jd, good desc len=%jd type=%jd",
+		confidx, d->bLength, d->bDescriptorType, 0);
 	return USBD_NORMAL_COMPLETION;
 }
 

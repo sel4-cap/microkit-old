@@ -504,11 +504,11 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 			ukbd_is_console = 0;
 		}
 	}
-
+	ukbd_enable(sc, 1);
 	if (sc->sc_console_keyboard) {
 		DPRINTF(("%s: console keyboard sc=%p\n", __func__, sc));
 		//wskbd_cnattach(&ukbd_consops, sc, &ukbd_keymapdata);
-		// ukbd_enable(sc, 1);
+		// ;
 	}
 
 	a.console = sc->sc_console_keyboard;
@@ -536,6 +536,9 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	sc->sc_leds_set = 0;	/* not explicitly set by wskbd yet */
 	// callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
 	    // sc);
+	usbd_delay_ms(0, 400);
+
+
 
 	// sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
 
@@ -947,6 +950,7 @@ ukbd_set_leds(void *v, int leds)
 		return;
 
 	sc->sc_leds = leds;
+	ukbd_set_leds_task(sc);
 	//usb_add_task(udev, &sc->sc_ledtask, USB_TASKQ_DRIVER);
 }
 

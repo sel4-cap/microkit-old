@@ -65,8 +65,8 @@ init(void) {
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);
     pipe_thread = true;
-    int ta_limit = pipe_heap_base + heap_size;
-    bool error = ta_init((void*)pipe_heap_base, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
+    // int ta_limit = pipe_heap_base + heap_size;
+    // bool error = ta_init((void*)pipe_heap_base, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
     printf("Pipe_handler up and running\n");
 }
 

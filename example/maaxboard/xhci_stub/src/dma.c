@@ -9,6 +9,7 @@
 #include <printf.h>
 #include <wrapper.h>
 #include <tinyalloc.h>
+#include <sys/kmem.h>
 
 uintptr_t phys_base;
 uintptr_t virt_base;
@@ -30,7 +31,7 @@ void sel4_dma_init(uintptr_t pbase, uintptr_t vbase, uintptr_t limit) {
 }
 
 int sel4_dma_map_create(bus_dmamap_t *dmap, bus_size_t s, bus_size_t mxs) {
-    (*dmap) = ta_alloc(sizeof(**dmap));
+    (*dmap) = kmem_zalloc(sizeof(**dmap), 0);
 	(*dmap)->dm_maxsegsz = mxs;
 	(*dmap)->dm_mapsize = s;
 	(*dmap)->dm_nsegs = 1;

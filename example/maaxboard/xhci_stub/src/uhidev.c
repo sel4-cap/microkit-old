@@ -421,6 +421,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 			//dev = config_found(self, &uha, uhidevprint,
 			    //CFARGS(.submatch = config_stdsubmatch,
 				 //  .locators = locs));
+			printf("SHOULD PROBABLY CALL UKBD ATTACH\n");
 			sc->sc_subdevs[repid].sc_dev = dev;
 			if (dev == NULL)
 				continue;

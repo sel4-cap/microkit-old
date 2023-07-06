@@ -1256,15 +1256,15 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 	// 		(uintptr_t)pipe->up_methods->upm_done, 0, 0);
     //     pipe->up_methods->upm_done(xfer);
     // }
-	if (pipe->up_methods == xhci_root_intr_pointer_other) {
-		printf("switch context root intr (upm_transfer)\n");
-		pipe->up_methods = xhci_root_intr_pointer;
-	} else if (pipe->up_methods == device_ctrl_pointer_other) {
-		printf("should probs switch context device (upm_transfer)\n");
+    if (pipe->up_methods == xhci_root_intr_pointer_other) {
+        printf("switch context root intr\n");
+        pipe->up_methods = xhci_root_intr_pointer;
+    } else if (pipe->up_methods == device_ctrl_pointer_other) {
+        printf("should probs switch context device\n");
 		pipe->up_methods = device_ctrl_pointer;
 	}
     pipe->up_methods->upm_done(xfer);
-	// aprint_debug("should have gone to xhci_done\n");
+	aprint_debug("should have gone to done\n");
 
 	if (xfer->ux_length != 0 && xfer->ux_buffer != xfer->ux_buf) {
 		KDASSERTMSG(xfer->ux_actlen <= xfer->ux_length,
@@ -1350,7 +1350,7 @@ usbd_start_next(struct usbd_pipe *pipe)
 		// pmr->pipe = pipe;
 		// pmr->xfer = xfer;
 		// pmr->method_ptr = START;
-		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+		// err = sel4cp_msginfo_get_label(sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0)));
 		err = pipe->up_methods->upm_start(xfer);
 
 		if (err != USBD_IN_PROGRESS) {
@@ -1406,7 +1406,6 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 		    // dev, req, /*actlen*/0, flags, timeout, data, USBD_NOMEM);
 		return USBD_NOMEM;
 	}
-
 	usbd_setup_default_xfer(xfer, dev, 0, timeout, req, data,
 	    UGETW(req->wLength), flags, NULL);
 	KASSERT(xfer->ux_pipe == dev->ud_pipe0);

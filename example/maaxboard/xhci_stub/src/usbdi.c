@@ -463,7 +463,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 		return USBD_CANCELLED;
 	}
 
-    printf("here 1\n");
 	/* xfer is not valid after the transfer method unless synchronous */
 	// SDT_PROBE2(usb, device, pipe, transfer__start,  pipe, xfer);
 	do {
@@ -484,6 +483,7 @@ usbd_transfer(struct usbd_xfer *xfer)
 		// pmr->xfer = xfer;
 		// pmr->method_ptr = TRANSFER;
 		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+		printf("here 1\n");
 		if (pipe->up_methods == xhci_root_intr_pointer_other) {
             printf("switch context root intr (upm_transfer)\n");
             pipe->up_methods = xhci_root_intr_pointer;
@@ -492,6 +492,7 @@ usbd_transfer(struct usbd_xfer *xfer)
             pipe->up_methods = device_ctrl_pointer;
         }
 		err = pipe->up_methods->upm_transfer(xfer);
+		printf("here 2\n");
 	} while (0);
 	// SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
 

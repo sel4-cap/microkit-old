@@ -2159,10 +2159,10 @@ xhci_open(struct usbd_pipe *pipe)
 		xpipe->xp_isoc_next = -1;
 		break;
 	case UE_BULK:
-		pmi->pipe = pipe;
-		pmi->method_ptr = XHCI_DEVICE_BULK;
-		sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
-		// pipe->up_methods = &xhci_device_bulk_methods;
+		// pmi->pipe = pipe;
+		// pmi->method_ptr = XHCI_DEVICE_BULK;
+		// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
+		pipe->up_methods = &xhci_device_bulk_methods;
 		break;
 	case UE_INTERRUPT:
 		// pmi->pipe = pipe;
@@ -3077,6 +3077,7 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 		return USBD_NORMAL_COMPLETION;
 	}
 
+	// needs to do this probe and attach via software interrupt
 	err = usbd_probe_and_attach(parent, dev, port, dev->ud_addr);
  bad:
 	if (err != USBD_NORMAL_COMPLETION) {

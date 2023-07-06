@@ -71,6 +71,7 @@ uintptr_t dma_cp_paddr;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t ta_limit;
 uintptr_t timer_base;
+uintptr_t software_heap;
 
 // TODO: put these in a header file so can change it in a single place for a platform
 uint64_t heap_size = 0x2000000;
@@ -146,9 +147,9 @@ init(void) {
 
     struct xhci_softc *sc_xhci = kmem_alloc(sizeof(struct xhci_softc), 0);
     glob_xhci_sc = sc_xhci;
+    sc_xhci->sc_ioh=0x38200000;
     sel4cp_ppcall(0, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
     sel4cp_ppcall(2, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
-    sc_xhci->sc_ioh=0x38200000;
 	bus_space_tag_t iot = kmem_alloc(sizeof(bus_space_tag_t), 0);
     sc_xhci->sc_iot=iot;
 
@@ -172,6 +173,8 @@ init(void) {
     // printf("Attempted bus_space_read_4: %08x\n", response);
 	usb_sc->sc_bus->ub_needsexplore = 1;
     usb_discover(usb_sc);
+    /* void *aux = aux_xhci; */
+    /* ukbd_attach(self, parent, aux); */
 }
 
 

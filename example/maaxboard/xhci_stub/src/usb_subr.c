@@ -1249,7 +1249,7 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 		// 			 .locators = ilocs));
 		
 		device_t self = kmem_alloc(sizeof(device_t), 0);
-		self->sc_dev = kmem_alloc(sizeof(ukbd_softc), 0);
+		// self->sc_dev = kmem_alloc(sizeof(uhidev_s), 0);
 		// printf("SHUOLD TRY TO DO UHIDEV ATTACH\n");
 		uhidev_attach(parent, self, &uiaa);
 		// KERNEL_UNLOCK_ONE(curlwp);

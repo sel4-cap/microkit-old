@@ -1,5 +1,6 @@
 {
     "files.associations": {
+<<<<<<< Updated upstream
         "usbdi.h": "c",
         "ukbd.h": "c",
         "timer.h": "c",
@@ -9,6 +10,10 @@
         "stdbool.h": "c",
         "if.h": "c",
         "*.pl": "prolog",
+=======
+        "*.pl": "prolog",
+        "usbdi.h": "c",
+>>>>>>> Stashed changes
         "dev_verbose.h": "c",
         "device.h": "c",
         "usbdi_util.h": "c",

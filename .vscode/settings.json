@@ -7,6 +7,8 @@
         "usb_quirks.h": "c",
         "hid.h": "c",
         "stdbool.h": "c",
-        "if.h": "c"
+        "if.h": "c",
+        "ioctl.h": "c",
+        "wskbd.h": "c"
     }
 }

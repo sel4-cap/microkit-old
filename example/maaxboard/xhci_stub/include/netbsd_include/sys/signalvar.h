@@ -58,10 +58,11 @@ typedef TAILQ_HEAD(ksiginfoq, ksiginfo) ksiginfoq_t;
  */
 struct sigacts {
 	struct sigact_sigdesc {
-		struct sigaction sd_sigact;
+		//struct sigaction sd_sigact;
 		const void	*sd_tramp;
 		int		sd_vers;
-	} sa_sigdesc[NSIG];		/* disposition of signals */
+	} //sa_sigdesc[NSIG]
+	;		/* disposition of signals */
 
 	int		sa_refcnt;	/* reference count */
 	kmutex_t	sa_mutex;	/* lock on sa_refcnt */
@@ -103,10 +104,10 @@ struct sigctx {
 static __inline void
 sigaction_copy(struct sigaction *dst, const struct sigaction *src)
 {
-	memset(dst, 0, sizeof(*dst));
-	dst->_sa_u._sa_handler = src->_sa_u._sa_handler;
-	memcpy(&dst->sa_mask, &src->sa_mask, sizeof(dst->sa_mask));
-	dst->sa_flags = src->sa_flags;
+	//memset(dst, 0, sizeof(*dst));
+	//dst->_sa_u._sa_handler = src->_sa_u._sa_handler;
+	//memcpy(&dst->sa_mask, &src->sa_mask, sizeof(dst->sa_mask));
+	//dst->sa_flags = src->sa_flags;
 }
 
 /*

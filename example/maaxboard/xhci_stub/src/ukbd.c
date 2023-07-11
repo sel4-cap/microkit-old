@@ -79,6 +79,7 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <dev/wscons/wskbdvar.h>
 #include <dev/wscons/wsksymdef.h>
 #include <dev/wscons/wsksymvar.h>
+#include <sys/wskbd.h>
 
 //uintptr_t timer_base;
 
@@ -529,15 +530,24 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	// callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
 	    // sc);
 	usbd_delay_ms(0, 400);
+	ukbd_delayed_leds_off(&sc);
 
+    //wskbd_attach - do header file definition 
+	//parent is ukbd ukbd_softc
+	//self allocate seL4_NotEnoughMemory
+	//aux set up just pass pointer from ukbd
 
+	device_t wskbd_self = kmem_alloc(sizeof(struct ukbd_softc), 0);
 
-	// sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
+	//sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
+	wskbd_attach(wskbd_self, self, aux);
 
 	sc->sc_attached = true;
 
 	return;
 }
+
+
 
 int
 ukbd_enable(void *v, int on)
@@ -1106,7 +1116,7 @@ ukbd_set_leds_task(void *v)
 		res |= 1 << sc->sc_numloc.pos;
 	if ((leds & WSKBD_LED_CAPS) && sc->sc_capsloc.size == 1)
 		res |= 1 << sc->sc_capsloc.pos;
-
+	printf("Set led task");
 	uhidev_set_report(sc->sc_hdev, UHID_OUTPUT_REPORT, &res, 1);
 }
 

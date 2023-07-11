@@ -569,7 +569,7 @@ usb_create_event_thread(device_t self)
 //  * called from any context and the task will be executed in a process
 //  * context ASAP.
 //  */
-// void
+ //void
 // usb_add_task(struct usbd_device *dev, struct usb_task *task, int queue)
 // {
 // 	struct usb_taskq *taskq;

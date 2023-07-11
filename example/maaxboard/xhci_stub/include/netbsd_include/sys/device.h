@@ -466,6 +466,8 @@ struct pdevinit {
 /* This allows us to wildcard a device unit. */
 #define	DVUNIT_ANY	-1
 
+#define	CFARGS_NONE		NULL	/* no cfargs to pass */
+
 #if defined(_KERNEL) || defined(_KMEMUSER) || defined(_STANDALONE)
 /*
  * Arguments passed to config_search() and config_found().
@@ -507,6 +509,8 @@ struct cfargs {
 void * device_private(device_t);
 const char* device_xname(device_t dev);
 int device_unit(device_t dev);
+
+device_t config_found(device_t, void *, cfprint_t, const struct cfargs *);
 
 #ifdef _KERNEL
 

@@ -284,19 +284,18 @@ usb_allocmem(bus_dma_tag_t tag, size_t size, size_t align, u_int flags,
 
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
 
-	// ASSERT_SLEEPABLE();
+	ASSERT_SLEEPABLE();
 
 	// initialises the mutex for usb memory
-	// RUN_ONCE(&init_control, usb_mem_init);
+	RUN_ONCE(&init_control, usb_mem_init);
 
 	u_int dmaflags = (flags & USBMALLOC_COHERENT) ? USB_DMA_COHERENT : 0;
 
 	/* If the request is large then just use a full block. */
 	if (size > USB_MEM_SMALL || align > USB_MEM_SMALL) {
 		DPRINTFN(1, "large alloc %jd", size, 0, 0, 0);
-		// aprint_debug("Large alloc %d\n", size);
 		size = (size + USB_MEM_BLOCK - 1) & ~(USB_MEM_BLOCK - 1);
-		// mutex_enter(&usb_blk_lock);
+		mutex_enter(&usb_blk_lock);
 		err = usb_block_allocmem(tag, size, align, flags,
 		    &p->udma_block);
 		if (!err) {
@@ -306,11 +305,11 @@ usb_allocmem(bus_dma_tag_t tag, size_t size, size_t align, u_int flags,
 			p->udma_block->flags = USB_DMA_FULLBLOCK | dmaflags;
 			p->udma_offs = 0;
 		}
-		// mutex_exit(&usb_blk_lock);
+		mutex_exit(&usb_blk_lock);
 		return err;
 	}
 
-	// mutex_enter(&usb_blk_lock);
+	mutex_enter(&usb_blk_lock);
 	/* Check for free fragments. */
 	LIST_FOREACH(f, &usb_frag_freelist, ufd_next) {
 		// KDASSERTMSG(usb_valid_block_p(f->ufd_block, &usb_blk_fraglist),
@@ -326,7 +325,7 @@ usb_allocmem(bus_dma_tag_t tag, size_t size, size_t align, u_int flags,
 		err = usb_block_allocmem(tag, USB_MEM_BLOCK, USB_MEM_SMALL,
 		    flags, &b);
 		if (err) {
-			// mutex_exit(&usb_blk_lock);
+			mutex_exit(&usb_blk_lock);
 			return err;
 		}
 #ifdef DEBUG

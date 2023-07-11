@@ -40,11 +40,11 @@ uintptr_t dma_cp_paddr;
 uintptr_t timer_base;
 
 struct xhci_softc *glob_xhci_sc	= NULL;
-uintptr_t xhci_root_intr_pointer;
+struct usbd_pipe_methods *xhci_root_intr_pointer;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
-uintptr_t xhci_root_intr_pointer_other;
-uintptr_t device_ctrl_pointer;
-uintptr_t device_ctrl_pointer_other;
+struct usbd_pipe_methods *xhci_root_intr_pointer_other;
+struct usbd_pipe_methods *device_ctrl_pointer;
+struct usbd_pipe_methods *device_ctrl_pointer_other;
 
 uint64_t heap_size = 0x2000000;
 int ta_blocks = 256;
@@ -52,12 +52,12 @@ int ta_thresh = 16;
 int ta_align = 64;
 bool pipe_thread;
 
-uintptr_t xhci_root_intr_pointer;
-uintptr_t xhci_root_intr_pointer_other;
-uintptr_t device_ctrl_pointer;
-uintptr_t device_ctrl_pointer_other;
-uintptr_t device_intr_pointer;
-uintptr_t device_intr_pointer_other;
+struct usbd_pipe_methods *xhci_root_intr_pointer;
+struct usbd_pipe_methods *xhci_root_intr_pointer_other;
+struct usbd_pipe_methods *device_ctrl_pointer;
+struct usbd_pipe_methods *device_ctrl_pointer_other;
+struct usbd_pipe_methods *device_intr_pointer;
+struct usbd_pipe_methods *device_intr_pointer_other;
 
 void
 init(void) {
@@ -71,7 +71,6 @@ init(void) {
     device_ctrl_pointer = 0;
     device_ctrl_pointer_other = 0;
     pipe_thread = true;
-    int ta_limit = pipe_heap_base + heap_size;
     printf("Pipe_handler up and running\n");
 }
 

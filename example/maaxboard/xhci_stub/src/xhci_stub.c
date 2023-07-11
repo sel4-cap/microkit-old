@@ -38,12 +38,12 @@ bool int_once = false;
 struct xhci_softc *glob_xhci_sc	= NULL;
 struct usb_softc *glob_usb_sc 	= NULL;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
-uintptr_t xhci_root_intr_pointer;
-uintptr_t xhci_root_intr_pointer_other;
-uintptr_t device_ctrl_pointer;
-uintptr_t device_ctrl_pointer_other;
-uintptr_t device_intr_pointer;
-uintptr_t device_intr_pointer_other;
+struct usbd_pipe_methods *xhci_root_intr_pointer;
+struct usbd_pipe_methods *xhci_root_intr_pointer_other;
+struct usbd_pipe_methods *device_ctrl_pointer;
+struct usbd_pipe_methods *device_ctrl_pointer_other;
+struct usbd_pipe_methods *device_intr_pointer;
+struct usbd_pipe_methods *device_intr_pointer_other;
 bool pipe_thread;
 
 // struct usb_softc {
@@ -124,13 +124,13 @@ init(void) {
     xhci_bus_methods_ptr = get_bus_methods();
     device_ctrl_pointer = get_device_methods();
     sel4cp_msginfo addr = sel4cp_ppcall(1, seL4_MessageInfo_new((uint64_t) xhci_root_intr_pointer,1,0,0));
-    xhci_root_intr_pointer_other = sel4cp_msginfo_get_label(addr);
+    xhci_root_intr_pointer_other = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(addr);
     device_ctrl_pointer = get_device_methods();
     addr = sel4cp_ppcall(3, seL4_MessageInfo_new((uint64_t) device_ctrl_pointer,1,0,0));
-    device_ctrl_pointer_other = sel4cp_msginfo_get_label(addr);
+    device_ctrl_pointer_other = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(addr);
     device_intr_pointer = get_device_intr_methods();
     addr = sel4cp_ppcall(4, seL4_MessageInfo_new((uint64_t) device_intr_pointer,1,0,0));
-    device_intr_pointer_other = sel4cp_msginfo_get_label(addr);
+    device_intr_pointer_other = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(addr);
     /* memcpy(&xhci_root_intr_pointer, get_root_intr_methods(), sizeof(struct usbd_pipe_methods)); */
     /* printf("xhci_stub received root_intr ptr %p\n", xhci_root_intr_pointer); */
 
@@ -202,7 +202,7 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
         case 1:
             // return addr of root_intr_methods
             printf("got root_intr pointer\n");
-            xhci_root_intr_pointer = (uintptr_t) sel4cp_msginfo_get_label(msginfo);
+            xhci_root_intr_pointer = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(msginfo);
             break;
         default:
             printf("xhci_stub received protected unexpected channel\n");

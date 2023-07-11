@@ -96,8 +96,7 @@ xhci_intr1(struct xhci_softc * const sc)
 	/* XHCIHIST_CALLARGS("USBSTS 0x%08jx", usbsts, 0, 0, 0); */
 	if ((usbsts & (XHCI_STS_HSE | XHCI_STS_EINT | XHCI_STS_PCD |
 	    XHCI_STS_HCE)) == 0) {
-		printf(16, "ignored intr not for this device",
-		    0, 0, 0, 0);
+		printf("ignored intr not for this device\n");
 
 		return 0;
 	}
@@ -129,6 +128,7 @@ xhci_intr1(struct xhci_softc * const sc)
 	return 1;
 }
 
+int
 xhci_intr(void *v)
 {
 	struct xhci_softc * const sc = v;
@@ -139,8 +139,9 @@ xhci_intr(void *v)
 
 	mutex_spin_enter(&sc->sc_intr_lock);
 
-    if (sc->sc_dying)
+    if (sc->sc_dying) {
         goto done;
+	}
 
 	ret = xhci_intr1(sc);
 	if (ret) {

@@ -254,7 +254,7 @@ static void xhci_device_bulk_abort(struct usbd_xfer *);
 static void xhci_device_bulk_close(struct usbd_pipe *);
 static void xhci_device_bulk_done(struct usbd_xfer *);
 
-static const struct usbd_bus_methods xhci_bus_methods = {
+static struct usbd_bus_methods xhci_bus_methods = {
 	.ubm_open = xhci_open,
 	.ubm_softint = xhci_softintr,
 	.ubm_dopoll = xhci_poll,
@@ -267,7 +267,7 @@ static const struct usbd_bus_methods xhci_bus_methods = {
 	.ubm_rhctrl = xhci_roothub_ctrl,
 };
 
-static const struct usbd_pipe_methods xhci_root_intr_methods = {
+static struct usbd_pipe_methods xhci_root_intr_methods = {
 	.upm_transfer = xhci_root_intr_transfer,
 	.upm_start = xhci_root_intr_start,
 	.upm_abort = xhci_root_intr_abort,
@@ -276,12 +276,12 @@ static const struct usbd_pipe_methods xhci_root_intr_methods = {
 	.upm_done = xhci_root_intr_done,
 };
 
-uintptr_t get_root_intr_methods() {
+struct usbd_pipe_methods *get_root_intr_methods() {
 	return &xhci_root_intr_methods;
 }
 
 
-static const struct usbd_pipe_methods xhci_device_ctrl_methods = {
+static struct usbd_pipe_methods xhci_device_ctrl_methods = {
 	.upm_transfer = xhci_device_ctrl_transfer,
 	.upm_start = xhci_device_ctrl_start,
 	.upm_abort = xhci_device_ctrl_abort,
@@ -291,12 +291,12 @@ static const struct usbd_pipe_methods xhci_device_ctrl_methods = {
 };
 
 
-uintptr_t get_device_methods() {
+struct usbd_pipe_methods *get_device_methods() {
 	return &xhci_device_ctrl_methods;
 }
 
 
-static const struct usbd_pipe_methods xhci_device_isoc_methods = {
+static struct usbd_pipe_methods xhci_device_isoc_methods = {
 	.upm_transfer = xhci_device_isoc_transfer,
 	.upm_abort = xhci_device_isoc_abort,
 	.upm_close = xhci_device_isoc_close,
@@ -304,7 +304,7 @@ static const struct usbd_pipe_methods xhci_device_isoc_methods = {
 	.upm_done = xhci_device_isoc_done,
 };
 
-static const struct usbd_pipe_methods xhci_device_bulk_methods = {
+static struct usbd_pipe_methods xhci_device_bulk_methods = {
 	.upm_transfer = xhci_device_bulk_transfer,
 	.upm_start = xhci_device_bulk_start,
 	.upm_abort = xhci_device_bulk_abort,
@@ -313,7 +313,7 @@ static const struct usbd_pipe_methods xhci_device_bulk_methods = {
 	.upm_done = xhci_device_bulk_done,
 };
 
-static const struct usbd_pipe_methods xhci_device_intr_methods = {
+static struct usbd_pipe_methods xhci_device_intr_methods = {
 	.upm_transfer = xhci_device_intr_transfer,
 	.upm_start = xhci_device_intr_start,
 	.upm_abort = xhci_device_intr_abort,
@@ -322,7 +322,7 @@ static const struct usbd_pipe_methods xhci_device_intr_methods = {
 	.upm_done = xhci_device_intr_done,
 };
 
-uintptr_t get_device_intr_methods() {
+struct usbd_pipe_methods *get_device_intr_methods() {
 	return &xhci_device_intr_methods;
 }
 
@@ -776,7 +776,7 @@ xhci_activate(device_t self, enum devact act)
 // 	 */
 // 	mutex_enter(&sc->sc_lock);
 // 	KASSERT(sc->sc_suspender == NULL);
-// 	sc->sc_suspender = curlwp;
+// 	// sc->sc_suspender = curlwp;
 // 	while (sc->sc_command_addr != 0)
 // 		cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock);
 // 	mutex_exit(&sc->sc_lock);
@@ -974,7 +974,7 @@ xhci_activate(device_t self, enum devact act)
 // 		 * If suspend failed, resume command issuance.
 // 		 */
 // 		mutex_enter(&sc->sc_lock);
-// 		KASSERT(sc->sc_suspender == curlwp);
+// 		// KASSERT(sc->sc_suspender == curlwp);
 // 		sc->sc_suspender = NULL;
 // 		cv_broadcast(&sc->sc_cmdbusy_cv);
 // 		mutex_exit(&sc->sc_lock);
@@ -2129,7 +2129,7 @@ xhci_open(struct usbd_pipe *pipe)
 				hardware_interrupt PD, need the memory address of the
 				structure in there instead of the one in xhci_stub PD.
 			*/ 
-			pipe->up_methods = xhci_root_intr_pointer;
+			pipe->up_methods = (struct usbd_pipe_methods*) xhci_root_intr_pointer;
 			// pmi->pipe = pipe;
 			// pmi->method_ptr = XHCI_ROOT_INTR;
 			// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
@@ -3319,7 +3319,7 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 	/*     (sc->sc_suspender != NULL && sc->sc_suspender != curlwp)) */
 	/* 	cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock); */
 
-	usb_delay_ms(0, 50); // added
+	// usb_delay_ms(0, 50); // added
 	/*
 	 * If enqueue pointer points at last of ring, it's Link TRB,
 	 * command TRB will be stored in 0th TRB.
@@ -3346,7 +3346,7 @@ xhci_do_command_locked(struct xhci_softc * const sc,
 	/* 	} */
 	/* } */
 
-	usb_delay_ms(0, 50); // added
+	usb_delay_ms(0, USBD_TIMEOUT); // added for cv_timedwait
 
 	trb->trb_0 = sc->sc_result_trb.trb_0;
 	trb->trb_2 = sc->sc_result_trb.trb_2;
@@ -4445,7 +4445,7 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 
 	KASSERT(polling || mutex_owned(&sc->sc_lock));
 
-    usb_delay_ms(0, 30); //added
+    // usb_delay_ms(0, 30); //added
 
 	/* we rely on the bottom bits for extra info */
 	KASSERTMSG(((uintptr_t)xfer & 0x3) == 0x0, "xfer %zx",
@@ -4470,7 +4470,6 @@ xhci_device_ctrl_start(struct usbd_xfer *xfer)
 	if (len != 0) {
 		/* data phase */
 		parameter = DMAADDR(dma, 0);
-        // usb_delay_ms(0, 50); //added
 		KASSERTMSG(len <= 0x10000, "len %d", len);
 		status = XHCI_TRB_2_IRQ_SET(0) |
 		    XHCI_TRB_2_TDSZ_SET(0) |

@@ -158,6 +158,8 @@ pmf_qual_descend_ok(const pmf_qual_t *pq)
 	return pq->pq_actlvl == DEVACT_LEVEL_FULL;
 }
 
+#else
+#define		pmf_device_deregister(...) 0;
 #endif /* !_KERNEL */
 
 #endif /* !_SYS_PMF_H */

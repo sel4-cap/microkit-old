@@ -53,7 +53,7 @@ __KERNEL_RCSID(0, "$NetBSD: usb.c,v 1.200 2022/03/13 11:28:52 riastradh Exp $");
 #include <sys/device.h>
 // #include <sys/kthread.h>
 #include <sys/proc.h>
-// #include <sys/conf.h>
+#include <sys/conf.h>
 // #include <sys/fcntl.h>
 // #include <poll.h>
 #include <sys/select.h>
@@ -67,7 +67,7 @@ __KERNEL_RCSID(0, "$NetBSD: usb.c,v 1.200 2022/03/13 11:28:52 riastradh Exp $");
 // #include <sys/atomic.h>
 // #include <sys/sysctl.h>
 // #include <sys/compat_stub.h>
-// #include <sys/sdt.h>
+#include <sys/sdt.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
@@ -167,46 +167,46 @@ static struct usb_taskq usb_taskq[USB_NUM_TASKQS];
 #define	__dtrace_used	__unused
 #endif
 
-// SDT_PROVIDER_DEFINE(usb);
+SDT_PROVIDER_DEFINE(usb);
 
-// SDT_PROBE_DEFINE3(usb, kernel, task, add,
-//     "struct usbd_device *"/*dev*/, "struct usb_task *"/*task*/, "int"/*q*/);
-// SDT_PROBE_DEFINE2(usb, kernel, task, rem__start,
-//     "struct usbd_device *"/*dev*/, "struct usb_task *"/*task*/);
-// SDT_PROBE_DEFINE3(usb, kernel, task, rem__done,
-//     "struct usbd_device *"/*dev*/,
-//     "struct usb_task *"/*task*/,
-//     "bool"/*removed*/);
-// SDT_PROBE_DEFINE4(usb, kernel, task, rem__wait__start,
-//     "struct usbd_device *"/*dev*/,
-//     "struct usb_task *"/*task*/,
-//     "int"/*queue*/,
-//     "kmutex_t *"/*interlock*/);
-// SDT_PROBE_DEFINE5(usb, kernel, task, rem__wait__done,
-//     "struct usbd_device *"/*dev*/,
-//     "struct usb_task *"/*task*/,
-//     "int"/*queue*/,
-//     "kmutex_t *"/*interlock*/,
-//     "bool"/*done*/);
+SDT_PROBE_DEFINE3(usb, kernel, task, add,
+    "struct usbd_device *"/*dev*/, "struct usb_task *"/*task*/, "int"/*q*/);
+SDT_PROBE_DEFINE2(usb, kernel, task, rem__start,
+    "struct usbd_device *"/*dev*/, "struct usb_task *"/*task*/);
+SDT_PROBE_DEFINE3(usb, kernel, task, rem__done,
+    "struct usbd_device *"/*dev*/,
+    "struct usb_task *"/*task*/,
+    "bool"/*removed*/);
+SDT_PROBE_DEFINE4(usb, kernel, task, rem__wait__start,
+    "struct usbd_device *"/*dev*/,
+    "struct usb_task *"/*task*/,
+    "int"/*queue*/,
+    "kmutex_t *"/*interlock*/);
+SDT_PROBE_DEFINE5(usb, kernel, task, rem__wait__done,
+    "struct usbd_device *"/*dev*/,
+    "struct usb_task *"/*task*/,
+    "int"/*queue*/,
+    "kmutex_t *"/*interlock*/,
+    "bool"/*done*/);
 
-// SDT_PROBE_DEFINE1(usb, kernel, task, start,  "struct usb_task *"/*task*/);
-// SDT_PROBE_DEFINE1(usb, kernel, task, done,  "struct usb_task *"/*task*/);
+SDT_PROBE_DEFINE1(usb, kernel, task, start,  "struct usb_task *"/*task*/);
+SDT_PROBE_DEFINE1(usb, kernel, task, done,  "struct usb_task *"/*task*/);
 
-// SDT_PROBE_DEFINE1(usb, kernel, bus, needs__explore,
-//     "struct usbd_bus *"/*bus*/);
-// SDT_PROBE_DEFINE1(usb, kernel, bus, needs__reattach,
-//     "struct usbd_bus *"/*bus*/);
-// SDT_PROBE_DEFINE1(usb, kernel, bus, discover__start,
-//     "struct usbd_bus *"/*bus*/);
-// SDT_PROBE_DEFINE1(usb, kernel, bus, discover__done,
-//     "struct usbd_bus *"/*bus*/);
-// SDT_PROBE_DEFINE1(usb, kernel, bus, explore__start,
-//     "struct usbd_bus *"/*bus*/);
-// SDT_PROBE_DEFINE1(usb, kernel, bus, explore__done,
-//     "struct usbd_bus *"/*bus*/);
+SDT_PROBE_DEFINE1(usb, kernel, bus, needs__explore,
+    "struct usbd_bus *"/*bus*/);
+SDT_PROBE_DEFINE1(usb, kernel, bus, needs__reattach,
+    "struct usbd_bus *"/*bus*/);
+SDT_PROBE_DEFINE1(usb, kernel, bus, discover__start,
+    "struct usbd_bus *"/*bus*/);
+SDT_PROBE_DEFINE1(usb, kernel, bus, discover__done,
+    "struct usbd_bus *"/*bus*/);
+SDT_PROBE_DEFINE1(usb, kernel, bus, explore__start,
+    "struct usbd_bus *"/*bus*/);
+SDT_PROBE_DEFINE1(usb, kernel, bus, explore__done,
+    "struct usbd_bus *"/*bus*/);
 
-// SDT_PROBE_DEFINE1(usb, kernel, event, add,  "struct usb_event *"/*uep*/);
-// SDT_PROBE_DEFINE1(usb, kernel, event, drop,  "struct usb_event *"/*uep*/);
+SDT_PROBE_DEFINE1(usb, kernel, event, add,  "struct usb_event *"/*uep*/);
+SDT_PROBE_DEFINE1(usb, kernel, event, drop,  "struct usb_event *"/*uep*/);
 
 // dev_type_open(usbopen);
 // dev_type_close(usbclose);

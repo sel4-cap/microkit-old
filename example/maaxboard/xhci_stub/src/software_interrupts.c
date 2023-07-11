@@ -40,6 +40,7 @@ uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t dma_cp_paddr;
 uintptr_t timer_base;
 uint64_t heap_size = 0x2000000;
+uintptr_t software_heap;
 int ta_blocks = 256;
 int ta_thresh = 16;
 int ta_align = 64;
@@ -49,15 +50,12 @@ bool pipe_thread;
 
 struct xhci_softc *glob_xhci_sc	= NULL;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
-uintptr_t xhci_root_intr_pointer;
-uintptr_t device_ctrl_pointer;
-uintptr_t device_ctrl_pointer_other;
-uintptr_t xhci_root_intr_pointer_other;
-uintptr_t device_ctrl_pointer;
-uintptr_t device_ctrl_pointer_other;
-uintptr_t device_intr_pointer;
-uintptr_t device_intr_pointer_other;
-uintptr_t software_heap;
+struct usbd_pipe_methods *xhci_root_intr_pointer;
+struct usbd_pipe_methods *xhci_root_intr_pointer_other;
+struct usbd_pipe_methods *device_ctrl_pointer;
+struct usbd_pipe_methods *device_ctrl_pointer_other;
+struct usbd_pipe_methods *device_intr_pointer;
+struct usbd_pipe_methods *device_intr_pointer_other;
 
 void
 init(void) {
@@ -93,7 +91,7 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
     struct set_cfg *cfg;
     switch (ch) {
         case 1:
-            xhci_root_intr_pointer_other = sel4cp_msginfo_get_label(msginfo);
+            xhci_root_intr_pointer_other = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(msginfo);
             printf("sending xhci_root_intr_pointer: %p\n", xhci_root_intr_pointer);
             return seL4_MessageInfo_new((uint64_t) xhci_root_intr_pointer, 1, 0, 0);
             break;
@@ -101,11 +99,11 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
             glob_xhci_sc = (struct xhci_softc *) sel4cp_msginfo_get_label(msginfo);
             break;
         case 3:
-            device_ctrl_pointer_other = sel4cp_msginfo_get_label(msginfo);
+            device_ctrl_pointer_other = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(msginfo);
             printf("sending device_ctrl_pointer: %p\n", device_ctrl_pointer);
             return seL4_MessageInfo_new((uint64_t) device_ctrl_pointer, 1, 0, 0);
         case 4:
-            device_intr_pointer_other = sel4cp_msginfo_get_label(msginfo);
+            device_intr_pointer_other = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(msginfo);
             printf("sending device_intr_pointer: %p\n", device_intr_pointer);
             return seL4_MessageInfo_new((uint64_t) device_intr_pointer, 1, 0, 0);
         case 5:

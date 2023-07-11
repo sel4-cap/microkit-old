@@ -70,23 +70,6 @@ __KERNEL_RCSID(0, "$NetBSD: usbroothub.c,v 1.15 2022/03/13 11:28:52 riastradh Ex
 #include <dev/usb/usbroothub.h>
 #include <dev/usb/usbhist.h>
 
-// #define mutex_enter(d) 0
-// #define mutex_init(d, f, i) 0
-// #define mutex_owned(d) 0
-// #define mutex_exit(d) 0
-// #define mutex_destroy(d) 0
-// #define mutex_spin_enter(d) 0
-// #define mutex_spin_exit(d) 0
-
-// #define cv_init(cv, cmd) 0
-// #define cv_destroy(cv) 0
-// #define cv_wait(cv, cmd) 0
-// #define cv_wait_sig(cv, cmd) 0
-// #define cv_signal(cv) 0
-// #define cv_broadcast(cv) 0
-
-// #define panic(s) 0
-
 /* helper functions for USB root hub emulation */
 
 extern struct usbd_bus_methods *xhci_bus_methods_ptr;
@@ -98,7 +81,7 @@ static void		roothub_ctrl_close(struct usbd_pipe *);
 static void		roothub_ctrl_done(struct usbd_xfer *);
 static void		roothub_noop(struct usbd_pipe *pipe);
 
-const struct usbd_pipe_methods roothub_ctrl_methods = {
+struct usbd_pipe_methods roothub_ctrl_methods = {
 	.upm_transfer =	roothub_ctrl_transfer,
 	.upm_start =	roothub_ctrl_start,
 	.upm_abort =	roothub_ctrl_abort,

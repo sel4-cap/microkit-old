@@ -44,6 +44,14 @@ int ta_blocks = 256;
 int ta_thresh = 16;
 int ta_align = 64;
 uintptr_t ta_limit;
+uintptr_t hw_ring_buffer_vaddr;
+uintptr_t hw_ring_buffer_paddr;
+uintptr_t rx_cookies;
+uintptr_t tx_cookies;
+uintptr_t rx_free;
+uintptr_t rx_used;
+uintptr_t tx_free;
+uintptr_t tx_used;
 
 bool pipe_thread;
 

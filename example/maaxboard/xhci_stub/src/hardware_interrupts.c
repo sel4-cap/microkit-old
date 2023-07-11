@@ -144,7 +144,6 @@ xhci_intr(void *v)
 
 	ret = xhci_intr1(sc);
 	if (ret) {
-		printf("scheduling soft interrupt\n");
 		sel4cp_notify(7); 
 	}
 done:
@@ -176,7 +175,6 @@ notified(sel4cp_channel ch) {
             sel4cp_irq_ack(ch);
             break;
     }
-    printf("finished hardware int\n");
     // printf("Hanging to prevent io spam\n");
     // while(1) {
 

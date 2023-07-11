@@ -136,8 +136,6 @@ int	uhidevdebug = 0;
 #define DPRINTFN(n,x)
 #endif
 
-static void uhidev_intr(struct usbd_xfer *, void *, usbd_status);
-
 static int uhidev_maxrepid(void *, int);
 static int uhidevprint(void *, const char *);
 
@@ -202,11 +200,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 	sc->sc_writereportid = -1;
 	sc->sc_stopreportid = -1;
 	
-	printf("gothere\n");
-
 	id = usbd_get_interface_descriptor(iface);
-
-	printf("got here 2\n");
 
 	devinfop = usbd_devinfo_alloc(uiaa->uiaa_device, 0);
 	aprint_normal_dev(self, "%s, iclass %d/%d\n",
@@ -425,7 +419,6 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 			//dev = config_found(self, &uha, uhidevprint,
 			    //CFARGS(.submatch = config_stdsubmatch,
 				 //  .locators = locs));
-			printf("CALL UKBD ATTACH:\n");
 			device_t self_ukbd = kmem_alloc(sizeof(device_t), 0);
 			ukbd_attach(self_ukbd, self, &uha);
 			sc->sc_subdevs[repid].sc_dev = dev;
@@ -541,7 +534,7 @@ uhidev_detach(device_t self, int flags)
 	return rv;
 }
 
-static void
+void
 uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 {
 	struct uhidev_softc *sc = addr;
@@ -600,7 +593,8 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 		return;
 	}
 	//rnd_add_uint32(&scd->sc_rndsource, (uintptr_t)(sc->sc_ibuf));
-	scd->sc_intr(scd->sc_cookie, p, cc);
+    ukbd_intr(scd->sc_cookie, p, cc);
+	/* scd->sc_intr(scd->sc_cookie, p, cc); */
 }
 
 void

@@ -172,6 +172,7 @@ int	xhci_activate(device_t, enum devact);
 void	xhci_childdet(device_t, device_t);
 uintptr_t 	get_root_intr_methods();
 uintptr_t 	get_device_methods();
+uintptr_t 	get_device_intr_methods();
 struct usbd_pipe_methods 	*get_up_methods(int);
 struct usbd_bus_methods 	*get_bus_methods();
 void xhci_softintr(void *);

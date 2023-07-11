@@ -56,13 +56,15 @@ uintptr_t xhci_root_intr_pointer;
 uintptr_t xhci_root_intr_pointer_other;
 uintptr_t device_ctrl_pointer;
 uintptr_t device_ctrl_pointer_other;
+uintptr_t device_intr_pointer;
+uintptr_t device_intr_pointer_other;
 
 void
 init(void) {
     printf("PIPE_HANDLER: dmapaddr = %p\n", dma_cp_paddr);
     /* xhci_root_intr_pointer = get_root_intr_methods(); */
     /* printf("root_intr_ptr = %p\n", xhci_root_intr_pointer); */
-    xhci_root_intr_pointer = xhci_root_intr_pointer_other = device_ctrl_pointer = device_ctrl_pointer_other = 0;
+    xhci_root_intr_pointer = xhci_root_intr_pointer_other = device_ctrl_pointer = device_ctrl_pointer_other = device_intr_pointer = device_intr_pointer_other = 0;
     xhci_bus_methods_ptr = get_bus_methods();
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);

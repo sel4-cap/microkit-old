@@ -42,16 +42,122 @@ struct xhci_softc *glob_xhci_sc	= NULL;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
 uintptr_t xhci_root_intr_pointer;
 uintptr_t xhci_root_intr_pointer_other;
+uintptr_t device_ctrl_pointer;
+uintptr_t device_ctrl_pointer_other;
 bool pipe_thread;
+
+uint32_t xhci_read_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size){
+    uint32_t busval = bus_space_read_4(tag, bsh, size);
+    // printf("xhci: Read4: Handle: %lx, Offset: %lx. Result: %08x\n", bsh, size, busval);
+    return busval;
+}
+
+void xhci_write_print_4(bus_space_tag_t tag, bus_space_handle_t bsh, bus_size_t size, uint32_t val){
+    // printf("xhci: Wrte4: Handle: %lx, Offset: %lx.  Value: %08x\n", bsh, size, val);
+    bus_space_write_4(tag, bsh, size, val);
+}
+
+static inline uint32_t
+xhci_op_read_4(const struct xhci_softc * const sc, bus_size_t offset)
+{
+	return xhci_read_print_4(sc->sc_iot, sc->sc_obh, offset);
+}
+
+static inline void
+xhci_op_write_4(const struct xhci_softc * const sc, bus_size_t offset,
+    uint32_t value)
+{
+	xhci_write_print_4(sc->sc_iot, sc->sc_obh, offset, value);
+}
+
+
+static inline uint32_t
+xhci_rt_read_4(const struct xhci_softc * const sc, bus_size_t offset)
+{
+	return xhci_read_print_4(sc->sc_iot, sc->sc_rbh, offset);
+}
+
+static inline void
+xhci_rt_write_4(const struct xhci_softc * const sc, bus_size_t offset,
+    uint32_t value)
+{
+	xhci_write_print_4(sc->sc_iot, sc->sc_rbh, offset, value);
+}
+
+int
+xhci_intr1(struct xhci_softc * const sc)
+{
+	uint32_t usbsts;
+	uint32_t iman;
+
+	/* XHCIHIST_FUNC(); */
+
+	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
+	/* XHCIHIST_CALLARGS("USBSTS 0x%08jx", usbsts, 0, 0, 0); */
+	if ((usbsts & (XHCI_STS_HSE | XHCI_STS_EINT | XHCI_STS_PCD |
+	    XHCI_STS_HCE)) == 0) {
+		printf(16, "ignored intr not for this device",
+		    0, 0, 0, 0);
+
+		return 0;
+	}
+
+	/*
+	 * Clear EINT and other transient flags, to not misenterpret
+	 * next shared interrupt. Also, to avoid race, EINT must be cleared
+	 * before XHCI_IMAN_INTR_PEND is cleared.
+	 */
+	xhci_op_write_4(sc, XHCI_USBSTS, usbsts & XHCI_STS_RSVDP0);
+
+#ifdef XHCI_DEBUG
+	/* usbsts = xhci_op_read_4(sc, XHCI_USBSTS); */
+	/* DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0); */
+#endif
+
+	iman = xhci_rt_read_4(sc, XHCI_IMAN(0));
+	/* DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0); */
+	iman |= XHCI_IMAN_INTR_PEND;
+	xhci_rt_write_4(sc, XHCI_IMAN(0), iman);
+
+#ifdef XHCI_DEBUG
+	/* iman = xhci_rt_read_4(sc, XHCI_IMAN(0)); */
+	/* DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0); */
+	/* usbsts = xhci_op_read_4(sc, XHCI_USBSTS); */
+	/* DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0); */
+#endif
+
+	return 1;
+}
+
+xhci_intr(void *v)
+{
+	struct xhci_softc * const sc = v;
+	int ret = 0;
+
+	if (sc == NULL)
+		return 0;
+
+	mutex_spin_enter(&sc->sc_intr_lock);
+
+    if (sc->sc_dying)
+        goto done;
+
+	ret = xhci_intr1(sc);
+	if (ret) {
+		printf("scheduling soft interrupt\n");
+		sel4cp_notify(7); 
+	}
+done:
+	mutex_spin_exit(&sc->sc_intr_lock);
+	return ret;
+}
+
 
 void
 init(void) {
-    printf("HARDWARE: dmapaddr = %p\n", dma_cp_paddr);
-    pipe_thread = false;
-    xhci_bus_methods_ptr = get_bus_methods();
-    xhci_root_intr_pointer = get_root_intr_methods();
+    device_ctrl_pointer = 0;
+    device_ctrl_pointer_other = 0;
     printf("root_intr_ptr = %p\n", xhci_root_intr_pointer);
-    sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);
     printf("Hardware up and running\n");
 }

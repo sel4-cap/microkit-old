@@ -57,5 +57,6 @@ struct usbd_quirks {
 
 extern const struct usbd_quirks usbd_no_quirk;
 
+uintptr_t get_quirks();
 usbd_status usbd_get_desc_fake(struct usbd_device *, int, int, int, void *);
 const struct usbd_quirks *usbd_find_quirk(usb_device_descriptor_t *);

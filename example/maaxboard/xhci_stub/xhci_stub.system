@@ -6,14 +6,16 @@
 -->
 <system>
     <memory_region name="heap_mem" size="0x200000"/>
+    <memory_region name="software_mem" size="0x200000"/>
     <memory_region name="pipe_heap_mem" size="0x200000"/>
     <memory_region name="dma_pool" size="0x2000000"/>
     <memory_region name="xhci_mem" size="0x10_000" phys_addr="0x38200000"/>
     <memory_region name="timer_mem" size="0x20_000" phys_addr="0x306c0000"/>
     <memory_region name="xhci_phys_mem" size="0x1000" phys_addr="0x382f0000"/> <!--won't let me specify the correct size or base address, but this encompasses the phy-->
-    <memory_region name="keyboard_mem" size="0x1000" phys_addr="0x403d0000"/>
+    <memory_region name="keyboard_mem" size="0x10000"/>
 
     <protection_domain name="xhci_stub" pp="true" priority="100">
+        <map mr="software_mem" vaddr="0x58000000" perms="rw" cached="false" setvar_vaddr="software_heap"/>
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
         <map mr="pipe_heap_mem" vaddr="0x56000000" perms="rw" cached="false" setvar_vaddr="pipe_heap_base"/>
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
@@ -25,9 +27,13 @@
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
     </protection_domain>
 
+    <protection_domain name="mem_handler" pp="true" priority="252">
+        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
+        <program_image path="mem_handler.elf" />
+    </protection_domain>
+
     <protection_domain name="pipe_handler" pp="true" priority="250">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
-        <map mr="pipe_heap_mem" vaddr="0x56000000" perms="rw" cached="false" setvar_vaddr="pipe_heap_base"/>
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
         <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
@@ -35,11 +41,9 @@
         <program_image path="pipe_handler.elf" />
     </protection_domain>
 
-    <protection_domain name="hardware_interrupt" pp="true" priority="200">
-        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
-        <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
-        <map mr="pipe_heap_mem" vaddr="0x56000000" perms="rw" cached="false" setvar_vaddr="pipe_heap_base"/>
+    <protection_domain name="hardware_interrupt" pp="true" priority="253">
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
+        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
         <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
         <irq irq="73" id="6"/> <!--usb irq offset by 32 (not sure why)-->
         <program_image path="hardware.elf" />
@@ -47,8 +51,9 @@
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
     </protection_domain>
 
-    <protection_domain name="software_interrupt" pp="true" priority="253">
+    <protection_domain name="software_interrupt" pp="true" priority="230">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
+        <map mr="software_mem" vaddr="0x58000000" perms="rw" cached="false" setvar_vaddr="software_heap"/>
         <map mr="pipe_heap_mem" vaddr="0x56000000" perms="rw" cached="false" setvar_vaddr="pipe_heap_base"/>
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
@@ -109,6 +114,53 @@
         <end pd="kbd_logger" id="16"/>
     </channel>
 
+    <!-- mem handler methods -->
+    <channel>
+        <end pd="mem_handler" id="0"/>
+        <end pd="xhci_stub" id="30"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="1"/>
+        <end pd="xhci_stub" id="31"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="2"/>
+        <end pd="xhci_stub" id="32"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="10"/>
+        <end pd="software_interrupt" id="30"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="11"/>
+        <end pd="software_interrupt" id="31"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="12"/>
+        <end pd="software_interrupt" id="32"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="20"/>
+        <end pd="pipe_handler" id="30"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="21"/>
+        <end pd="pipe_handler" id="31"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="22"/>
+        <end pd="pipe_handler" id="32"/>
+    </channel>
+    <channel>
+        <end pd="kbd_logger" id="13"/>
+        <end pd="simulated_kbd" id="14"/>
+    </channel>
+    <channel>
+        <end pd="simulated_kbd" id="15"/>
+        <end pd="kbd_logger" id="16"/>
+    </channel>
+
+
     <!--bus method handlers-->
 
     <!--share xhci_sc with hardware interrupt-->
@@ -125,6 +177,14 @@
     <channel>
         <end pd="software_interrupt" id="2"/>
         <end pd="xhci_stub" id="2"/>
+    </channel>
+    <channel>
+        <end pd="software_interrupt" id="3"/>
+        <end pd="xhci_stub" id="3"/>
+    </channel>
+    <channel>
+        <end pd="software_interrupt" id="5"/>
+        <end pd="xhci_stub" id="5"/>
     </channel>
 
     <!-- softintr -->

@@ -718,6 +718,11 @@ int	device_call_generic(device_t, const struct device_call_generic *);
 #define	device_call(dev, call)						\
 	device_call_generic((dev), &(call)->generic)
 
+#else
+#define config_found(...) 0
+#define config_detach_children(...) 0
+#define config_match(...) 0
+#define config_detach(...) 0
 #endif /* _KERNEL */
 
 #endif /* !_SYS_DEVICE_H_ */

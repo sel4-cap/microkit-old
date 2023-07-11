@@ -31,6 +31,6 @@
 
 #include <sys/sdt.h>
 
-// SDT_PROVIDER_DECLARE(usb);
+SDT_PROVIDER_DECLARE(usb);
 
 #endif	/* _USB_SDT_H_ */

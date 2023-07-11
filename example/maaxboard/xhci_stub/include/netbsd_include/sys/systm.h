@@ -23,3 +23,5 @@
 #define KERNEL_LOCK(count, lwp) 0
 #define KERNEL_UNLOCK_ONE(lwp) 0
 #define KERNEL_LOCKED_P() 0
+
+#define ASSERT_SLEEPABLE() 0

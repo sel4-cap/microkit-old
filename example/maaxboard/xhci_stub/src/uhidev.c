@@ -43,6 +43,7 @@ __KERNEL_RCSID(0, "$NetBSD: uhidev.c,v 1.94 2022/11/04 19:46:55 jmcneill Exp $")
 
 #include <sys/param.h>
 #include <sys/types.h>
+#include <sys/condvar.h>
 
 #include <sys/atomic.h>
 #include <sys/conf.h>
@@ -55,6 +56,7 @@ __KERNEL_RCSID(0, "$NetBSD: uhidev.c,v 1.94 2022/11/04 19:46:55 jmcneill Exp $")
 //#include <sys/signalvar.h>
 #include <sys/systm.h>
 #include <sys/xcall.h>
+#include <sys/condvar.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -102,7 +104,7 @@ struct uhidev_softc {
 	} *sc_subdevs;
 
 	kmutex_t sc_lock;
-	//kcondvar_t sc_cv;
+	kcondvar_t sc_cv;
 
 	/* Read/written under sc_lock.  */
 	struct lwp *sc_writelock;
@@ -421,7 +423,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 				 //  .locators = locs));
 			device_t self_ukbd = kmem_alloc(sizeof(device_t), 0);
 			ukbd_attach(self_ukbd, self, &uha);
-			sc->sc_subdevs[repid].sc_dev = dev;
+			sc->sc_subdevs[repid].sc_dev = self;
 			if (dev == NULL)
 				continue;
 			/*
@@ -616,7 +618,7 @@ uhidev_config_enter(struct uhidev_softc *sc)
 	for (;;) {
 		if (sc->sc_configlock == NULL)
 			break;
-		//error = cv_wait_sig(&sc->sc_cv, &sc->sc_lock);
+		error = cv_wait_sig(&sc->sc_cv, &sc->sc_lock);
 		if (error)
 			return error;
 	}

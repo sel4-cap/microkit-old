@@ -1040,7 +1040,7 @@ ukbd_decode(struct ukbd_softc *sc, struct ukbd_data *ud)
 	// test output: should probably send this to a separate PD
 	for (i = 0; i < nkeys; i++) {
 		key = ibuf[i];
-		int index;
+		int index = 0;
         int up = key&RELEASE ? WSCONS_EVENT_KEY_UP : WSCONS_EVENT_KEY_DOWN;
         if (up == WSCONS_EVENT_KEY_DOWN) {
             for (int i = 0; i < 274; i++) {

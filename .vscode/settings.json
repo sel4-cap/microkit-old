@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.pl": "prolog",
         "usbdi.h": "c",
         "ukbd.h": "c",
         "timer.h": "c",
@@ -7,6 +8,9 @@
         "usb_quirks.h": "c",
         "hid.h": "c",
         "stdbool.h": "c",
-        "if.h": "c"
+        "if.h": "c",
+        "usb_sdt.h": "c",
+        "sdt.h": "c",
+        "callout.h": "c"
     }
 }

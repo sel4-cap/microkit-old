@@ -412,7 +412,7 @@ Static const struct usbd_quirk_entry {
 };
 
 uintptr_t get_quirks() {
-	return &usbd_no_quirk;
+	return (uintptr_t) &usbd_no_quirk;
 }
 
 const struct usbd_quirks usbd_no_quirk = { 0 };

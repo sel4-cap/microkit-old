@@ -65,8 +65,6 @@ __KERNEL_RCSID(0, "$NetBSD: usb_subr.c,v 1.277 2022/04/06 22:01:45 mlelstv Exp $
 #include <dev/usb/usbhist.h>
 #include <config_methods.h>
 
-#define delay(us) ps_udelay(us)
-
 
 extern struct usbd_bus_methods *xhci_bus_methods_ptr;
 // #include "locators.h"
@@ -1209,11 +1207,13 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 	uiaa.uiaa_configno = dev->ud_cdesc->bConfigurationValue;
 	uiaa.uiaa_ifaces = ifaces;
 	uiaa.uiaa_nifaces = nifaces;
-	// ilocs[USBIFIFCF_PORT] = uiaa.uiaa_port;
-	// ilocs[USBIFIFCF_VENDOR] = uiaa.uiaa_vendor;
-	// ilocs[USBIFIFCF_PRODUCT] = uiaa.uiaa_product;
-	// ilocs[USBIFIFCF_RELEASE] = uiaa.uiaa_release;
-	// ilocs[USBIFIFCF_CONFIGURATION] = uiaa.uiaa_configno;
+	#ifndef SEL4
+	ilocs[USBIFIFCF_PORT] = uiaa.uiaa_port;
+	ilocs[USBIFIFCF_VENDOR] = uiaa.uiaa_vendor;
+	ilocs[USBIFIFCF_PRODUCT] = uiaa.uiaa_product;
+	ilocs[USBIFIFCF_RELEASE] = uiaa.uiaa_release;
+	ilocs[USBIFIFCF_CONFIGURATION] = uiaa.uiaa_configno;
+	#endif
 
 	for (i = 0; i < nifaces; i++) {
 		if (!ifaces[i]) {
@@ -1230,24 +1230,27 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 		DPRINTF("class %jx subclass %jx proto %jx ifaceno %jd",
 		    uiaa.uiaa_class, uiaa.uiaa_subclass, uiaa.uiaa_proto,
 		    uiaa.uiaa_ifaceno);
-		// ilocs[USBIFIFCF_INTERFACE] = uiaa.uiaa_ifaceno;
-		// if (locators != NULL) {
-		// 	loc = locators[USBIFIFCF_CONFIGURATION];
-		// 	if (loc != USBIFIFCF_CONFIGURATION_DEFAULT &&
-		// 	    loc != uiaa.uiaa_configno)
-		// 		continue;
-		// 	loc = locators[USBIFIFCF_INTERFACE];
-		// 	if (loc != USBIFIFCF_INTERFACE_DEFAULT &&
-		// 	    loc != uiaa.uiaa_ifaceno)
-		// 		continue;
-		// }
-		// KERNEL_LOCK(1, curlwp);
-		// dv = config_found(parent, &uiaa, usbd_ifprint,
-		// 		  CFARGS(.submatch = config_stdsubmatch,
-		// 			 .iattr = "usbifif",
-		// 			 .locators = ilocs));
+		#ifndef SEL4
+		ilocs[USBIFIFCF_INTERFACE] = uiaa.uiaa_ifaceno;
+		if (locators != NULL) {
+			loc = locators[USBIFIFCF_CONFIGURATION];
+			if (loc != USBIFIFCF_CONFIGURATION_DEFAULT &&
+			    loc != uiaa.uiaa_configno)
+				continue;
+			loc = locators[USBIFIFCF_INTERFACE];
+			if (loc != USBIFIFCF_INTERFACE_DEFAULT &&
+			    loc != uiaa.uiaa_ifaceno)
+				continue;
+		}
+		KERNEL_LOCK(1, curlwp);
+		dv = config_found(parent, &uiaa, usbd_ifprint,
+				  CFARGS(.submatch = config_stdsubmatch,
+					 .iattr = "usbifif",
+					 .locators = ilocs));
+		#endif
 		
 		device_t self = kmem_alloc(sizeof(device_t), 0);
+		dv = self;
 		// self->sc_dev = kmem_alloc(sizeof(uhidev_s), 0);
 		uhidev_attach(parent, self, &uiaa);
 		// KERNEL_UNLOCK_ONE(curlwp);
@@ -1327,7 +1330,6 @@ usbd_probe_and_attach(device_t parent, struct usbd_device *dev,
 	}
 	/* No interfaces were attached in any of the configurations. */
 
-    usbd_delay_ms(0,1000);
     if (dd->bNumConfigurations > 1) /* don't change if only 1 config */ {
 		/* usbd_set_config_index(dev, 0, 0); */
 		struct set_cfg *cfg = kmem_alloc(sizeof(struct set_cfg), 0);

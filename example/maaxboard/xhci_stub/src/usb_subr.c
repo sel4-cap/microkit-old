@@ -158,12 +158,11 @@ usbd_get_device_strings(struct usbd_device *ud)
 	// printf("getting device strings\n");
 	usb_device_descriptor_t *udd = &ud->ud_ddesc;
 
-	//TODO: make this work loooool
 	usbd_get_device_string(ud, udd->iManufacturer, &ud->ud_vendor);
 	/* printf("got imanufacturer %s\n", ud->ud_vendor); */
 	usbd_get_device_string(ud, udd->iProduct, &ud->ud_product);
 	// ud->ud_product = "xHCI root hub\0";
-	printf("got iproduct %s\n", ud->ud_product);
+	aprint_verbose("got iproduct %s\n", ud->ud_product);
 	usbd_get_device_string(ud, udd->iSerialNumber, &ud->ud_serial);
 	/* printf("got iserialnumber %s\n", ud->ud_serial); */
 }
@@ -1250,7 +1249,6 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 		
 		device_t self = kmem_alloc(sizeof(device_t), 0);
 		// self->sc_dev = kmem_alloc(sizeof(uhidev_s), 0);
-		// printf("SHUOLD TRY TO DO UHIDEV ATTACH\n");
 		uhidev_attach(parent, self, &uiaa);
 		// KERNEL_UNLOCK_ONE(curlwp);
 		// if (!dv)
@@ -1296,13 +1294,8 @@ usbd_probe_and_attach(device_t parent, struct usbd_device *dev,
 
 	DPRINTF("looping over %jd configurations", dd->bNumConfigurations,
 	    0, 0, 0);
-    usbd_delay_ms(0,1000);
 	for (confi = 0; confi < dd->bNumConfigurations; confi++) {
-		DPRINTFN(1, "trying config idx=%jd", confi, 0, 0, 0);
-        usbd_delay_ms(0,1000);
 		// need to set config via software interrupt
-        printf("ud_quirks pre call = %x\n", dev->ud_quirks);
-        printf("uq_flags pre call = %x\n", dev->ud_quirks->uq_flags);
 		struct set_cfg *cfg = kmem_alloc(sizeof(struct set_cfg), 0);
 		cfg->dev = dev;
 		cfg->confi = confi;

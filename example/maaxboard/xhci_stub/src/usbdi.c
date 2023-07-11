@@ -65,6 +65,8 @@ extern uintptr_t xhci_root_intr_pointer;
 extern uintptr_t xhci_root_intr_pointer_other;
 extern uintptr_t device_ctrl_pointer;
 extern uintptr_t device_ctrl_pointer_other;
+extern uintptr_t device_intr_pointer;
+extern uintptr_t device_intr_pointer_other;
 extern struct usbd_bus_methods *xhci_bus_methods_ptr;
 extern bool pipe_thread;
 
@@ -483,16 +485,14 @@ usbd_transfer(struct usbd_xfer *xfer)
 		// pmr->xfer = xfer;
 		// pmr->method_ptr = TRANSFER;
 		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
-		printf("here 1\n");
 		if (pipe->up_methods == xhci_root_intr_pointer_other) {
-            printf("switch context root intr (upm_transfer)\n");
+            aprint_verbose("switch context root intr (upm_transfer)\n");
             pipe->up_methods = xhci_root_intr_pointer;
         } else if (pipe->up_methods == device_ctrl_pointer_other) {
-            printf("should probs switch context device (upm_transfer)\n");
+            aprint_verbose("should probs switch context device (upm_transfer)\n");
             pipe->up_methods = device_ctrl_pointer;
         }
 		err = pipe->up_methods->upm_transfer(xfer);
-		printf("here 2\n");
 	} while (0);
 	// SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
 
@@ -1258,14 +1258,16 @@ usb_transfer_complete(struct usbd_xfer *xfer)
     //     pipe->up_methods->upm_done(xfer);
     // }
     if (pipe->up_methods == xhci_root_intr_pointer_other) {
-        printf("switch context root intr\n");
+        aprint_verbose("switch context root intr\n");
         pipe->up_methods = xhci_root_intr_pointer;
     } else if (pipe->up_methods == device_ctrl_pointer_other) {
-        printf("should probs switch context device\n");
+        aprint_verbose("switch context device\n");
 		pipe->up_methods = device_ctrl_pointer;
+	} else if (pipe->up_methods == device_intr_pointer_other) {
+		aprint_verbose("switch context device intr\n");
+		pipe->up_methods = device_intr_pointer;
 	}
     pipe->up_methods->upm_done(xfer);
-	aprint_debug("should have gone to done\n");
 
 	if (xfer->ux_length != 0 && xfer->ux_buffer != xfer->ux_buf) {
 		KDASSERTMSG(xfer->ux_actlen <= xfer->ux_length,
@@ -1290,8 +1292,13 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 		}
 
 		// xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
-		printf("WARNING: hard coded uhub_intr\n");
-		uhub_intr(xfer, xfer->ux_priv, xfer->ux_status);
+		if (pipe->up_methods == device_intr_pointer) {
+			/* printf("WARNING: hard coded uhidev_intr\n"); */
+			uhidev_intr(xfer, xfer->ux_priv, xfer->ux_status);
+		} else {
+			printf("WARNING: hard coded uhub_intr\n");
+			uhub_intr(xfer, xfer->ux_priv, xfer->ux_status);
+		}
 
 		if (!polling) {
 			if (!(pipe->up_flags & USBD_MPSAFE))
@@ -1626,7 +1633,6 @@ usbd_xfer_trycomplete(struct usbd_xfer *xfer)
 	 * by timeout, too late.
 	 */
 	if (xfer->ux_status != USBD_IN_PROGRESS) {
-		printf("trycomplete returning false, xfer addr = %p, xfer_ux_status = %d\n", xfer, xfer->ux_status);
 		return false;
 	}
 
@@ -1636,7 +1642,6 @@ usbd_xfer_trycomplete(struct usbd_xfer *xfer)
 	 * for why we need not wait for the callout or task here.
 	 */
 	usbd_xfer_cancel_timeout_async(xfer);
-	printf("trycomplete returning true\n");
 
 	/* Success!  Note: Caller must set xfer->ux_status afterwar.  */
 	return true;
@@ -1960,7 +1965,7 @@ usbd_xfer_schedule_timeout(struct usbd_xfer *xfer)
 	} else if (xfer->ux_timeout && !bus->ub_usepolling) {
 		/* Callout is not scheduled.  Schedule it.  */
 		KASSERT(!callout_pending(&xfer->ux_callout));
-		printf("should timout for %d ms\n", xfer->ux_timeout);
+		aprint_verbose("should timeout for %d ms\n", xfer->ux_timeout);
 		// callout_schedule(&xfer->ux_callout, mstohz(xfer->ux_timeout));
 		// printf("now hanging...\n");
 		// while (1) {

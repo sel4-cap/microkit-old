@@ -161,6 +161,10 @@
         <end pd="xhci_stub" id="3"/>
     </channel>
     <channel>
+        <end pd="software_interrupt" id="4"/>
+        <end pd="xhci_stub" id="4"/>
+    </channel>
+    <channel>
         <end pd="software_interrupt" id="5"/>
         <end pd="xhci_stub" id="5"/>
     </channel>

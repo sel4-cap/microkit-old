@@ -42,6 +42,8 @@ uintptr_t xhci_root_intr_pointer;
 uintptr_t xhci_root_intr_pointer_other;
 uintptr_t device_ctrl_pointer;
 uintptr_t device_ctrl_pointer_other;
+uintptr_t device_intr_pointer;
+uintptr_t device_intr_pointer_other;
 bool pipe_thread;
 
 // struct usb_softc {
@@ -126,6 +128,9 @@ init(void) {
     device_ctrl_pointer = get_device_methods();
     addr = sel4cp_ppcall(3, seL4_MessageInfo_new((uint64_t) device_ctrl_pointer,1,0,0));
     device_ctrl_pointer_other = sel4cp_msginfo_get_label(addr);
+    device_intr_pointer = get_device_intr_methods();
+    addr = sel4cp_ppcall(4, seL4_MessageInfo_new((uint64_t) device_intr_pointer,1,0,0));
+    device_intr_pointer_other = sel4cp_msginfo_get_label(addr);
     /* memcpy(&xhci_root_intr_pointer, get_root_intr_methods(), sizeof(struct usbd_pipe_methods)); */
     /* printf("xhci_stub received root_intr ptr %p\n", xhci_root_intr_pointer); */
 
@@ -172,6 +177,7 @@ init(void) {
     usb_discover(usb_sc);
     /* void *aux = aux_xhci; */
     /* ukbd_attach(self, parent, aux); */
+    printf("ready for keyboard press\n");
 }
 
 

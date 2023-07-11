@@ -295,6 +295,7 @@ uintptr_t get_device_methods() {
 	return &xhci_device_ctrl_methods;
 }
 
+
 static const struct usbd_pipe_methods xhci_device_isoc_methods = {
 	.upm_transfer = xhci_device_isoc_transfer,
 	.upm_abort = xhci_device_isoc_abort,
@@ -321,6 +322,9 @@ static const struct usbd_pipe_methods xhci_device_intr_methods = {
 	.upm_done = xhci_device_intr_done,
 };
 
+uintptr_t get_device_intr_methods() {
+	return &xhci_device_intr_methods;
+}
 
 struct usbd_bus_methods *get_bus_methods() {
 	return &xhci_bus_methods;
@@ -1797,7 +1801,6 @@ xhci_intr(void *v)
 		// else
 		// 	usb_schedsoftintr(&sc->sc_bus2);
 
-		printf("scheduling soft interrupt\n");
 		sel4cp_notify(7); 
 		/* xhci_softintr(&sc->sc_bus); */
 	}
@@ -2797,7 +2800,7 @@ xhci_allocx(struct usbd_bus *bus, unsigned int nframes)
 
 	// xx = pool_cache_get(sc->sc_xferpool, PR_WAITOK);
 	xx = kmem_zalloc(sizeof(struct xhci_xfer), KM_SLEEP); //! this probably needs to change
-	printf("allocated xx at addr %p", xx);
+	/* printf("allocated xx at addr %p", xx); */
 	if (xx != NULL) {
 		memset(xx, 0, sizeof(*xx));
 		if (ntrbs > 0) {
@@ -4521,9 +4524,7 @@ xhci_device_ctrl_done(struct usbd_xfer *xfer)
 	int len = UGETW(req->wLength);
 	int rd = req->bmRequestType & UT_READ;
 
-	printf("len: %d\n", len);
 	if (len) {
-		printf("syncing...\n");
 		usb_syncmem(&xfer->ux_dmabuf, 0, len,
 		    rd ? BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE);
 	}

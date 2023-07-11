@@ -43,6 +43,8 @@ struct xhci_softc *glob_xhci_sc	= NULL;
 uintptr_t xhci_root_intr_pointer;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
 uintptr_t xhci_root_intr_pointer_other;
+uintptr_t device_ctrl_pointer;
+uintptr_t device_ctrl_pointer_other;
 
 uint64_t heap_size = 0x2000000;
 int ta_blocks = 256;
@@ -50,17 +52,24 @@ int ta_thresh = 16;
 int ta_align = 64;
 bool pipe_thread;
 
+uintptr_t xhci_root_intr_pointer;
+uintptr_t xhci_root_intr_pointer_other;
+uintptr_t device_ctrl_pointer;
+uintptr_t device_ctrl_pointer_other;
+
 void
 init(void) {
     printf("PIPE_HANDLER: dmapaddr = %p\n", dma_cp_paddr);
     /* xhci_root_intr_pointer = get_root_intr_methods(); */
     /* printf("root_intr_ptr = %p\n", xhci_root_intr_pointer); */
+    xhci_root_intr_pointer = xhci_root_intr_pointer_other = device_ctrl_pointer = device_ctrl_pointer_other = 0;
     xhci_bus_methods_ptr = get_bus_methods();
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);
+    device_ctrl_pointer = 0;
+    device_ctrl_pointer_other = 0;
     pipe_thread = true;
     int ta_limit = pipe_heap_base + heap_size;
-    bool error = ta_init((void*)pipe_heap_base, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
     printf("Pipe_handler up and running\n");
 }
 
@@ -74,6 +83,7 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
     printf("Inside protected (pipe handler)\n");
     struct pipe_method_rpc *pmr;
     struct pipe_method_init *pmi;
+    seL4_MessageInfo_t return_msg = seL4_MessageInfo_new(0,0,0,0);
     switch (ch) {
         case (PIPE_INIT_CHANNEL):
         case (PIPE_INIT_CHANNEL + 10):
@@ -84,29 +94,27 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
         case (PIPE_METHOD_CHANNEL):
         case (PIPE_METHOD_CHANNEL+10):
             pmr = (struct pipe_method_rpc *) sel4cp_msginfo_get_label(msginfo);
+            usbd_status err = 0;
+            printf("pipe handler xfer = %p\n", pmr->xfer);
             switch (pmr->method_ptr) {
                 case (TRANSFER):
-                    pmr = (struct pipe_method_rpc *) sel4cp_msginfo_get_label(msginfo);
-                    pmr->pipe->up_methods->upm_transfer(pmr->xfer);
+                    err = pmr->pipe->up_methods->upm_transfer(pmr->xfer);
+                    return_msg = seL4_MessageInfo_new(err, 1, 0, 0);
                     break;
                 case (START):
-                    pmr = (struct pipe_method_rpc *) sel4cp_msginfo_get_label(msginfo);
-                    pmr->pipe->up_methods->upm_start(pmr->xfer);
+                    err = pmr->pipe->up_methods->upm_start(pmr->xfer);
+                    return_msg = seL4_MessageInfo_new(err, 1, 0, 0);
                     break;
                 case (ABORT):
-                    pmr = (struct pipe_method_rpc *) sel4cp_msginfo_get_label(msginfo);
                     pmr->pipe->up_methods->upm_abort(pmr->xfer);
                     break;
                 case (CLOSE):
-                    pmr = (struct pipe_method_rpc *) sel4cp_msginfo_get_label(msginfo);
                     pmr->pipe->up_methods->upm_close(pmr->pipe);
                     break;
                 case (CLEARTOGGLE):
-                    pmr = (struct pipe_method_rpc *) sel4cp_msginfo_get_label(msginfo);
                     pmr->pipe->up_methods->upm_cleartoggle(pmr->pipe);
                     break;
                 case (DONE):
-                    pmr = (struct pipe_method_rpc *) sel4cp_msginfo_get_label(msginfo);
                     pmr->pipe->up_methods->upm_done(pmr->xfer);
                     break;
                 default:
@@ -117,5 +125,5 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
             printf("pipe handler proc Unexpected channel %d\n", ch);
     }
     printf("pipe handler ends\n");
-    return seL4_MessageInfo_new(0,0,0,0);
+    return return_msg;
 }

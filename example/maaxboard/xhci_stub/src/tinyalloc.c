@@ -115,7 +115,6 @@ static void compact() {
 #endif
 
 bool ta_init(const void *base, const void *limit, const size_t heap_blocks, const size_t split_thresh, const size_t alignment) {
-    printf("Reached ta_init\n");
     heap = (Heap *)base;
     heap_limit = limit;
     heap_split_thresh = split_thresh;

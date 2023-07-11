@@ -726,10 +726,12 @@ void bus_dmamap_sync(bus_dma_tag_t, bus_dmamap_t, bus_addr_t, bus_size_t, int);
 */
 #define bus_dmamap_sync(t, dmam, o, len, f) \
     void* h = ((void*) dmam->dm_segs->ds_addr);					\
-	if (f == BUS_DMASYNC_POSTREAD || f == BUS_DMASYNC_PREREAD) { \
+	if (f == BUS_DMASYNC_PREREAD || f == BUS_DMASYNC_PREWRITE) { \
+	 	printf("invalidate %p to %p\n", (h+o), h+o+len);\
 		seL4_ARM_VSpace_Invalidate_Data(3, (long)(h+o), (long)(h+o+len)); \
 	} else { \
-		seL4_ARM_VSpace_Clean_Data(3, (long)(h+o), (long)(h+o+len)); \
+	 	printf("clean invalidate %p to %p\n", h+o, h+o+len);\
+		seL4_ARM_VSpace_CleanInvalidate_Data(3, (long)(h+o), (long)(h+o+len)); \
 	}
 	// sel4_dma_flush_range_new(h + o, h + o + len)
 

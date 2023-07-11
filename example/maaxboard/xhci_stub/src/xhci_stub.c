@@ -37,9 +37,11 @@
 bool int_once = false;
 struct xhci_softc *glob_xhci_sc	= NULL;
 struct usb_softc *glob_usb_sc 	= NULL;
-uintptr_t xhci_root_intr_pointer;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
+uintptr_t xhci_root_intr_pointer;
 uintptr_t xhci_root_intr_pointer_other;
+uintptr_t device_ctrl_pointer;
+uintptr_t device_ctrl_pointer_other;
 bool pipe_thread;
 
 // struct usb_softc {
@@ -64,18 +66,19 @@ struct imx8mq_usbphy_softc {
 uintptr_t xhci_base;
 uintptr_t xhci_phy_base;
 uintptr_t heap_base;
+uint64_t heap_size = 0x2000000;
+int ta_blocks = 256;
+int ta_thresh = 16;
+int ta_align = 64;
 uintptr_t pipe_heap_base;
 uintptr_t dma_base;
 uintptr_t dma_cp_paddr;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t ta_limit;
 uintptr_t timer_base;
+uintptr_t software_heap;
 
 // TODO: put these in a header file so can change it in a single place for a platform
-uint64_t heap_size = 0x2000000;
-int ta_blocks = 256;
-int ta_thresh = 16;
-int ta_align = 64;
 
 int phy_setup() {
     printf("setting up phy (imx8)\n");
@@ -114,16 +117,15 @@ init(void) {
 
     pipe_thread = false;
     // init
-    printf("hello, starting stack bashing:)\n");
-    ta_limit = heap_base + heap_size;
-    printf("stack from %p to %p\n", heap_base, ta_limit);
     printf("XHCI_STUB: dmapaddr = %p\n", dma_cp_paddr);
-    bool error = ta_init((void*)heap_base, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
-    printf("Init malloc: %d\n", error);
     xhci_root_intr_pointer = get_root_intr_methods();
     xhci_bus_methods_ptr = get_bus_methods();
+    device_ctrl_pointer = get_device_methods();
     sel4cp_msginfo addr = sel4cp_ppcall(1, seL4_MessageInfo_new((uint64_t) xhci_root_intr_pointer,1,0,0));
     xhci_root_intr_pointer_other = sel4cp_msginfo_get_label(addr);
+    device_ctrl_pointer = get_device_methods();
+    addr = sel4cp_ppcall(3, seL4_MessageInfo_new((uint64_t) device_ctrl_pointer,1,0,0));
+    device_ctrl_pointer_other = sel4cp_msginfo_get_label(addr);
     /* memcpy(&xhci_root_intr_pointer, get_root_intr_methods(), sizeof(struct usbd_pipe_methods)); */
     /* printf("xhci_stub received root_intr ptr %p\n", xhci_root_intr_pointer); */
 
@@ -142,9 +144,9 @@ init(void) {
 
     struct xhci_softc *sc_xhci = kmem_alloc(sizeof(struct xhci_softc), 0);
     glob_xhci_sc = sc_xhci;
+    sc_xhci->sc_ioh=0x38200000;
     sel4cp_ppcall(0, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
     sel4cp_ppcall(2, seL4_MessageInfo_new((uint64_t) sc_xhci,1,0,0));
-    sc_xhci->sc_ioh=0x38200000;
 	bus_space_tag_t iot = kmem_alloc(sizeof(bus_space_tag_t), 0);
     sc_xhci->sc_iot=iot;
 
@@ -168,8 +170,8 @@ init(void) {
     // printf("Attempted bus_space_read_4: %08x\n", response);
 	usb_sc->sc_bus->ub_needsexplore = 1;
     usb_discover(usb_sc);
-    void *aux = aux_xhci;
-    ukbd_attach(self, parent, aux);
+    /* void *aux = aux_xhci; */
+    /* ukbd_attach(self, parent, aux); */
 }
 
 

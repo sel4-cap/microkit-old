@@ -63,6 +63,8 @@ __KERNEL_RCSID(0, "$NetBSD: usbdi.c,v 1.247 2022/09/13 10:32:58 riastradh Exp $"
 
 extern uintptr_t xhci_root_intr_pointer;
 extern uintptr_t xhci_root_intr_pointer_other;
+extern uintptr_t device_ctrl_pointer;
+extern uintptr_t device_ctrl_pointer_other;
 extern struct usbd_bus_methods *xhci_bus_methods_ptr;
 extern bool pipe_thread;
 
@@ -481,7 +483,16 @@ usbd_transfer(struct usbd_xfer *xfer)
 		// pmr->xfer = xfer;
 		// pmr->method_ptr = TRANSFER;
 		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+		printf("here 1\n");
+		if (pipe->up_methods == xhci_root_intr_pointer_other) {
+            printf("switch context root intr (upm_transfer)\n");
+            pipe->up_methods = xhci_root_intr_pointer;
+        } else if (pipe->up_methods == device_ctrl_pointer_other) {
+            printf("should probs switch context device (upm_transfer)\n");
+            pipe->up_methods = device_ctrl_pointer;
+        }
 		err = pipe->up_methods->upm_transfer(xfer);
+		printf("here 2\n");
 	} while (0);
 	// SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
 
@@ -531,7 +542,7 @@ usbd_transfer(struct usbd_xfer *xfer)
 
 		err = 0;
 
-		usb_delay_ms(0, 100); //sel4 assume complete. NOT GOOD BTW
+		usb_delay_ms(0, 500); //sel4 assume complete. NOT GOOD BTW
 		// err = 1;
 		// if ((flags & USBD_SYNCHRONOUS_SIG) != 0) {
 		// 	err = cv_wait_sig(&xfer->ux_cv, pipe->up_dev->ud_bus->ub_lock);
@@ -541,12 +552,12 @@ usbd_transfer(struct usbd_xfer *xfer)
 		if (err) {
 			if (!xfer->ux_done) {
 				// SDT_PROBE1(usb, device, xfer, abort,  xfer);
-				// struct pipe_method_rpc *pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
-				// pmr->pipe = pipe;
-				// pmr->xfer = xfer;
-				// pmr->method_ptr = ABORT;
-				// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
-				pipe->up_methods->upm_abort(xfer);
+				struct pipe_method_rpc *pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
+				pmr->pipe = pipe;
+				pmr->xfer = xfer;
+				pmr->method_ptr = ABORT;
+				sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+				// pipe->up_methods->upm_abort(xfer);
 			}
 			break;
 		}
@@ -653,6 +664,7 @@ usbd_alloc_xfer(struct usbd_device *dev, unsigned int nframes)
 
 	// ASSERT_SLEEPABLE();
 
+	xhci_bus_methods_ptr = get_bus_methods();
 	xfer = xhci_bus_methods_ptr->ubm_allocx(dev->ud_bus, nframes);
 	if (xfer == NULL)
 		goto out;
@@ -1228,8 +1240,6 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 		xfer->ux_status = USBD_SHORT_XFER;
 	}
 
-	USBHIST_LOG(usbdebug, "xfer %#jx doing done %#jx", (uintptr_t)xfer,
-	    (uintptr_t)pipe->up_methods->upm_done, 0, 0);
 	// SDT_PROBE2(usb, device, xfer, done,  xfer, xfer->ux_status);
 	// context switch (shouldn't be necessary)
     // if (!pipe_thread) {
@@ -1248,11 +1258,14 @@ usb_transfer_complete(struct usbd_xfer *xfer)
     //     pipe->up_methods->upm_done(xfer);
     // }
     if (pipe->up_methods == xhci_root_intr_pointer_other) {
-        /* printf("switch context\n"); */
+        printf("switch context root intr\n");
         pipe->up_methods = xhci_root_intr_pointer;
-    }
+    } else if (pipe->up_methods == device_ctrl_pointer_other) {
+        printf("should probs switch context device\n");
+		pipe->up_methods = device_ctrl_pointer;
+	}
     pipe->up_methods->upm_done(xfer);
-	// aprint_debug("should have gone to xhci_done\n");
+	aprint_debug("should have gone to done\n");
 
 	if (xfer->ux_length != 0 && xfer->ux_buffer != xfer->ux_buf) {
 		KDASSERTMSG(xfer->ux_actlen <= xfer->ux_length,
@@ -1306,7 +1319,6 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 	}
 	if (pipe->up_running && pipe->up_serialise)
 		usbd_start_next(pipe);
-	USBHIST_LOG(usbdebug, "done!", 0,0,0,0);
 }
 
 /* Called with USB lock held. */
@@ -1338,7 +1350,7 @@ usbd_start_next(struct usbd_pipe *pipe)
 		// pmr->pipe = pipe;
 		// pmr->xfer = xfer;
 		// pmr->method_ptr = START;
-		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+		// err = sel4cp_msginfo_get_label(sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0)));
 		err = pipe->up_methods->upm_start(xfer);
 
 		if (err != USBD_IN_PROGRESS) {
@@ -1394,7 +1406,6 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 		    // dev, req, /*actlen*/0, flags, timeout, data, USBD_NOMEM);
 		return USBD_NOMEM;
 	}
-
 	usbd_setup_default_xfer(xfer, dev, 0, timeout, req, data,
 	    UGETW(req->wLength), flags, NULL);
 	KASSERT(xfer->ux_pipe == dev->ud_pipe0);

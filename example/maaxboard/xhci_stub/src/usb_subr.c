@@ -63,6 +63,7 @@ __KERNEL_RCSID(0, "$NetBSD: usb_subr.c,v 1.277 2022/04/06 22:01:45 mlelstv Exp $
 #include <dev/usb/usb_quirks.h>
 #include <dev/usb/usb_verbose.h>
 #include <dev/usb/usbhist.h>
+#include <config_methods.h>
 
 #define delay(us) ps_udelay(us)
 
@@ -702,7 +703,8 @@ usbd_set_config_index(struct usbd_device *dev, int index, int msg)
 	USBHIST_FUNC();
 	USBHIST_CALLARGS(usbdebug, "dev=%#jx index=%jd",
 	    (uintptr_t)dev, index, 0, 0);
-	usb_config_descriptor_t cd, *cdp;
+	usb_config_descriptor_t *cd, *cdp;
+	cd = kmem_zalloc(sizeof(usb_config_descriptor_t), KM_SLEEP);
 	usb_bos_descriptor_t *bdp = NULL;
 	usbd_status err;
 	int i, ifcidx, nifc, len, selfpowered, power;
@@ -749,12 +751,12 @@ usbd_set_config_index(struct usbd_device *dev, int index, int msg)
 	}
 
 	/* Get the short descriptor. */
-	err = usbd_get_config_desc(dev, index, &cd);
+	err = usbd_get_config_desc(dev, index, cd);
 	if (err) {
 		DPRINTF("get_config_desc=%jd", err, 0, 0, 0);
 		return err;
 	}
-	len = UGETW(cd.wTotalLength);
+	len = UGETW(cd->wTotalLength);
 	if (len < USB_CONFIG_DESCRIPTOR_SIZE) {
 		DPRINTF("empty short descriptor", 0, 0, 0, 0);
 		return USBD_INVAL;
@@ -777,7 +779,7 @@ usbd_set_config_index(struct usbd_device *dev, int index, int msg)
 		err = USBD_INVAL;
 		goto bad;
 	}
-	if (UGETW(cdp->wTotalLength) != UGETW(cd.wTotalLength)) {
+	if (UGETW(cdp->wTotalLength) != UGETW(cd->wTotalLength)) {
 		DPRINTF("bad len %jd", UGETW(cdp->wTotalLength), 0, 0, 0);
 		err = USBD_INVAL;
 		goto bad;
@@ -1247,7 +1249,8 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 		// 			 .locators = ilocs));
 		
 		device_t self = kmem_alloc(sizeof(device_t), 0);
-		// self->sc_dev = kmem_alloc(sizeof(ukbd_softc), 0);
+		// self->sc_dev = kmem_alloc(sizeof(uhidev_s), 0);
+		// printf("SHUOLD TRY TO DO UHIDEV ATTACH\n");
 		uhidev_attach(parent, self, &uiaa);
 		// KERNEL_UNLOCK_ONE(curlwp);
 		// if (!dv)
@@ -1293,8 +1296,18 @@ usbd_probe_and_attach(device_t parent, struct usbd_device *dev,
 
 	DPRINTF("looping over %jd configurations", dd->bNumConfigurations,
 	    0, 0, 0);
+    usbd_delay_ms(0,1000);
 	for (confi = 0; confi < dd->bNumConfigurations; confi++) {
 		DPRINTFN(1, "trying config idx=%jd", confi, 0, 0, 0);
+        usbd_delay_ms(0,1000);
+		// need to set config via software interrupt
+        printf("ud_quirks pre call = %x\n", dev->ud_quirks);
+        printf("uq_flags pre call = %x\n", dev->ud_quirks->uq_flags);
+		struct set_cfg *cfg = kmem_alloc(sizeof(struct set_cfg), 0);
+		cfg->dev = dev;
+		cfg->confi = confi;
+		cfg->msg = 1;
+		// err = sel4cp_msginfo_get_label(sel4cp_ppcall(5, seL4_MessageInfo_new((uint64_t) cfg, 1, 0, 0)));
 		err = usbd_set_config_index(dev, confi, 1);
 		if (err) {
 			DPRINTF("port %jd, set config at addr %jd failed, "
@@ -1321,8 +1334,15 @@ usbd_probe_and_attach(device_t parent, struct usbd_device *dev,
 	}
 	/* No interfaces were attached in any of the configurations. */
 
-	if (dd->bNumConfigurations > 1) /* don't change if only 1 config */
-		usbd_set_config_index(dev, 0, 0);
+    usbd_delay_ms(0,1000);
+    if (dd->bNumConfigurations > 1) /* don't change if only 1 config */ {
+		/* usbd_set_config_index(dev, 0, 0); */
+		struct set_cfg *cfg = kmem_alloc(sizeof(struct set_cfg), 0);
+		cfg->dev = dev;
+		cfg->confi = 0;
+		cfg->msg = 0;
+		err = sel4cp_msginfo_get_label(sel4cp_ppcall(5, seL4_MessageInfo_new((uint64_t) cfg, 1, 0, 0)));
+    }
 
 	DPRINTF("no interface drivers found", 0, 0, 0, 0);
 

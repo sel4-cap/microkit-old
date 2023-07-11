@@ -577,9 +577,7 @@ roothub_ctrl_start(struct usbd_xfer *xfer)
 	if (!bus->ub_usepolling)
 		mutex_exit(bus->ub_lock);
 
-    printf("tryinng to do bus methods\n");
 	actlen = xhci_bus_methods_ptr->ubm_rhctrl(bus, req, buf, buflen);
-    printf("done bus methods\n");
 
 	if (!bus->ub_usepolling)
 		mutex_enter(bus->ub_lock);

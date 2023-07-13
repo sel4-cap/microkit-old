@@ -1044,6 +1044,7 @@ uhidev_set_report(struct uhidev *scd, int type, void *data, int len)
 		return usbd_set_report(scd->sc_parent->sc_iface, type,
 				       scd->sc_report_id, data, len);
 
+	printf("beat the sc_report_id allegations\n");
 	buf = kmem_alloc(len + 1, KM_SLEEP);
 	buf[0] = scd->sc_report_id;
 	memcpy(buf+1, data, len);

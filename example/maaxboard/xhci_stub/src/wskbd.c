@@ -17,7 +17,7 @@
  *	for the NetBSD Project.
  * 4. The name of the author may not be used to endorse or promote products
  *    derived from this software without specific prior written permission
- *
+	
  * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
@@ -117,6 +117,8 @@ __KERNEL_RCSID(0, "$NetBSD: wskbd.c,v 1.144 2020/12/27 16:09:33 tsutsui Exp $");
 #include <sys/wskbd.h>
 //#include "wsmux.h"
 
+#include <sys/device_impl.h>
+
 #include <sys/param.h>
 #include <sys/conf.h>
 #include <sys/device.h>
@@ -132,13 +134,14 @@ __KERNEL_RCSID(0, "$NetBSD: wskbd.c,v 1.144 2020/12/27 16:09:33 tsutsui Exp $");
 #include <sys/signalvar.h>
 #include <sys/errno.h>
 #include <sys/fcntl.h>
+#include <sys/kmem.h>
 #include <sys/vnode.h>
 //#include <sys/kauth.h>
 
-#include <dev/wscons/wsconsio.h>
-#include <dev/wscons/wskbdvar.h>
-#include <dev/wscons/wsksymdef.h>
-#include <dev/wscons/wsksymvar.h>
+// #include <dev/wscons/wsconsio.h>
+// #include <dev/wscons/wskbdvar.h>
+// #include <dev/wscons/wsksymdef.h>
+// #include <dev/wscons/wsksymvar.h>
 //#include <dev/wscons/wsdisplayvar.h>
 //#include <dev/wscons/wseventvar.h>
 //#include <dev/wscons/wscons_callbacks.h>
@@ -162,64 +165,64 @@ struct cfdriver wskbd_cd = {
 	NULL, "wskbd", DV_TTY
 };
 
-struct wskbd_internal {
-	const struct wskbd_mapdata *t_keymap;
+// struct wskbd_internal {
+// 	const struct wskbd_mapdata *t_keymap;
 
-	const struct wskbd_consops *t_consops;
-	void	*t_consaccesscookie;
+// 	const struct wskbd_consops *t_consops;
+// 	void	*t_consaccesscookie;
 
-	int	t_modifiers;
-	int	t_composelen;		/* remaining entries in t_composebuf */
-	keysym_t t_composebuf[2];
+// 	int	t_modifiers;
+// 	int	t_composelen;		/* remaining entries in t_composebuf */
+// 	keysym_t t_composebuf[2];
 
-	int t_flags;
-#define WSKFL_METAESC 1
+// 	int t_flags;
+// #define WSKFL_METAESC 1
 
-#define MAXKEYSYMSPERKEY 2 /* ESC <key> at max */
-	keysym_t t_symbols[MAXKEYSYMSPERKEY];
+// #define MAXKEYSYMSPERKEY 2 /* ESC <key> at max */
+// 	keysym_t t_symbols[MAXKEYSYMSPERKEY];
 
-	struct wskbd_softc *t_sc;	/* back pointer */
-};
+// 	struct wskbd_softc *t_sc;	/* back pointer */
+// };
 
-struct wskbd_softc {
-	//struct wsevsrc sc_base;
+// struct wskbd_softc {
+// 	struct wsevsrc sc_base;
 
-	struct wskbd_internal *id;
+// 	struct wskbd_internal *id;
 
-	const struct wskbd_accessops *sc_accessops;
-	void *sc_accesscookie;
+// 	const struct wskbd_accessops *sc_accessops;
+// 	void *sc_accesscookie;
 
-	int	sc_ledstate;
+// 	int	sc_ledstate;
 
-	int	sc_isconsole;
+// 	int	sc_isconsole;
 
-	struct wskbd_bell_data sc_bell_data;
-	struct wskbd_keyrepeat_data sc_keyrepeat_data;
-#ifdef WSDISPLAY_SCROLLSUPPORT
-	struct wskbd_scroll_data sc_scroll_data;
-#endif
+// 	struct wskbd_bell_data sc_bell_data;
+// 	struct wskbd_keyrepeat_data sc_keyrepeat_data;
+// #ifdef WSDISPLAY_SCROLLSUPPORT
+// 	struct wskbd_scroll_data sc_scroll_data;
+// #endif
 
-	int	sc_repeating;		/* we've called timeout() */
-	callout_t sc_repeat_ch;
-	u_int	sc_repeat_type;
-	int	sc_repeat_value;
+// 	int	sc_repeating;		/* we've called timeout() */
+// 	callout_t sc_repeat_ch;
+// 	u_int	sc_repeat_type;
+// 	int	sc_repeat_value;
 
-	int	sc_translating;		/* xlate to chars for emulation */
+// 	int	sc_translating;		/* xlate to chars for emulation */
 
-	int	sc_maplen;		/* number of entries in sc_map */
-	struct wscons_keymap *sc_map;	/* current translation map */
-	kbd_t sc_layout; /* current layout */
+// 	int	sc_maplen;		/* number of entries in sc_map */
+// 	struct wscons_keymap *sc_map;	/* current translation map */
+// 	kbd_t sc_layout; /* current layout */
 
-	int		sc_refcnt;
-	u_char		sc_dying;	/* device is being detached */
+// 	int		sc_refcnt;
+// 	u_char		sc_dying;	/* device is being detached */
 
-	wskbd_hotkey_plugin *sc_hotkey;
-	void *sc_hotkeycookie;
+// 	wskbd_hotkey_plugin *sc_hotkey;
+// 	void *sc_hotkeycookie;
 
-	/* optional table to translate scancodes in event mode */
-	int		sc_evtrans_len;
-	keysym_t	*sc_evtrans;
-};
+// 	/* optional table to translate scancodes in event mode */
+// 	int		sc_evtrans_len;
+// 	keysym_t	*sc_evtrans;
+// };
 
 #define MOD_SHIFT_L		(1 << 0)
 #define MOD_SHIFT_R		(1 << 1)
@@ -267,7 +270,7 @@ static int  wskbd_set_display(device_t, struct wsevsrc *);
 #define wskbd_set_display NULL
 #endif
 
-static inline void update_leds(struct wskbd_internal *);
+//static inline void update_leds(struct wskbd_internal *);
 static inline void update_modifier(struct wskbd_internal *, u_int, int, int);
 static int internal_command(struct wskbd_softc *, u_int *, keysym_t, keysym_t);
 static int wskbd_translate(struct wskbd_internal *, u_int, int);
@@ -411,18 +414,22 @@ wskbd_match(device_t parent, cfdata_t match, void *aux)
 void
 wskbd_attach(device_t parent, device_t self, void *aux)
 {
-	struct wskbd_softc *sc = device_private(self);
+	//struct wskbd_softc *sc = device_private(self);
+	struct wskbd_softc *sc = kmem_alloc(sizeof(struct wskbd_softc), 0);
+	self->dv_private = sc;
+	printf("4\n");
 	struct wskbddev_attach_args *ap = aux;
 #if NWSMUX > 0
 	int mux, error;
 #endif
-
- 	//sc->sc_base.me_dv = self;
+	printf("5\n");
+ 	sc->sc_base.me_dv = self;
 	sc->sc_isconsole = ap->console;
 	sc->sc_hotkey = NULL;
 	sc->sc_hotkeycookie = NULL;
 	sc->sc_evtrans_len = 0;
 	sc->sc_evtrans = NULL;
+	printf("6\n");
 
 #if NWSMUX > 0 || NWSDISPLAY > 0
 	sc->sc_base.me_ops = &wskbd_srcops;
@@ -441,39 +448,42 @@ wskbd_attach(device_t parent, device_t self, void *aux)
 		//aprint_normal(" (mux ignored)");
 #endif
 
+	printf("7\n");
 	if (ap->console) {
 		sc->id = &wskbd_console_data;
 	} else {
-		//sc->id = malloc(sizeof(struct wskbd_internal),
-				//M_DEVBUF, M_WAITOK|M_ZERO);
+		sc->id = kmem_alloc(sizeof(struct wskbd_internal),0);
 		sc->id->t_keymap = ap->keymap;
-		wskbd_update_layout(sc->id, ap->keymap->layout);
+		//wskbd_update_layout(sc->id, ap->keymap->layout);
 	}
 
-	//callout_init(&sc->sc_repeat_ch, 0);
-	//callout_setfunc(&sc->sc_repeat_ch, wskbd_repeat, sc);
+	// //callout_init(&sc->sc_repeat_ch, 0);
+	// //callout_setfunc(&sc->sc_repeat_ch, wskbd_repeat, sc);
 
-	sc->id->t_sc = sc;
+	// printf("8\n");
+	// sc->id->t_sc = sc;
 
-	sc->sc_accessops = ap->accessops;
-	sc->sc_accesscookie = ap->accesscookie;
-	sc->sc_repeating = 0;
-	sc->sc_translating = 1;
-	sc->sc_ledstate = -1; /* force update */
+	// sc->sc_accessops = ap->accessops;
+	// sc->sc_accesscookie = ap->accesscookie;
+	// sc->sc_repeating = 0;
+	// sc->sc_translating = 1;
+	// sc->sc_ledstate = -1; /* force update */
 
-	//if (wskbd_load_keymap(sc->id->t_keymap,
-			      //&sc->sc_map, &sc->sc_maplen) != 0)
-		//panic("cannot load keymap");
+	// //if (wskbd_load_keymap(sc->id->t_keymap,
+	// 		      //&sc->sc_map, &sc->sc_maplen) != 0)
+	// 	//panic("cannot load keymap");
 
-	sc->sc_layout = sc->id->t_keymap->layout;
+	// sc->sc_layout = sc->id->t_keymap->layout;
 
-	/* set default bell and key repeat data */
-	//sc->sc_bell_data = wskbd_default_bell_data;
-	sc->sc_keyrepeat_data = wskbd_default_keyrepeat_data;
+	// /* set default bell and key repeat data */
+	// //sc->sc_bell_data = wskbd_default_bell_data;
+	// sc->sc_keyrepeat_data = wskbd_default_keyrepeat_data;
 
 #ifdef WSDISPLAY_SCROLLSUPPORT
 	sc->sc_scroll_data = wskbd_default_scroll_data;
 #endif
+
+	printf("9\n");
 
 	if (ap->console) {
 		KASSERT(wskbd_console_initted);
@@ -1397,7 +1407,7 @@ wskbd_cngetc(dev_t dev)
 
 	for(;;) {
 		if (num-- > 0) {
-			ks = wskbd_console_data.t_symbols[pos++];
+			//ks = wskbd_console_data.t_symbols[pos++];
 			if (KS_GROUP(ks) == KS_GROUP_Plain)
 				return (KS_VALUE(ks));
 		} else {
@@ -1453,21 +1463,30 @@ wskbd_cnbell(dev_t dev, u_int pitch, u_int period, u_int volume)
 			volume);
 }
 
-static inline void
+//static inline void
+void
 update_leds(struct wskbd_internal *id)
 {
+	printf("4\n");
 	int new_state;
 
 	new_state = 0;
+
+	id->t_modifiers = MOD_CAPSLOCK;
+
+	printf("5\n");
 	if (id->t_modifiers & (MOD_SHIFTLOCK | MOD_CAPSLOCK))
 		new_state |= WSKBD_LED_CAPS;
+	printf("6\n");
 	if (id->t_modifiers & MOD_NUMLOCK)
 		new_state |= WSKBD_LED_NUM;
+	printf("7\n");
 	if (id->t_modifiers & MOD_COMPOSE)
 		new_state |= WSKBD_LED_COMPOSE;
+	printf("8\n");
 	if (id->t_modifiers & MOD_HOLDSCREEN)
 		new_state |= WSKBD_LED_SCROLL;
-
+	printf("9\n");
 	if (id->t_sc && new_state != id->t_sc->sc_ledstate) {
 		(*id->t_sc->sc_accessops->set_leds)
 		    (id->t_sc->sc_accesscookie, new_state);
@@ -1840,7 +1859,7 @@ wskbd_translate(struct wskbd_internal *id, u_int type, int value)
 		if (id->t_composelen == 0) {
 			update_modifier(id, 1, 0, MOD_COMPOSE);
 			id->t_composelen = 1;
-			id->t_composebuf[0] = ksym;
+			//id->t_composebuf[0] = ksym;
 		} else
 			res = ksym;
 		break;
@@ -1852,7 +1871,7 @@ wskbd_translate(struct wskbd_internal *id, u_int type, int value)
 	}
 
 	if (id->t_composelen > 0) {
-		id->t_composebuf[2 - id->t_composelen] = res;
+		//id->t_composebuf[2 - id->t_composelen] = res;
 		if (--id->t_composelen == 0) {
 			//res = wskbd_compose_value(id->t_composebuf);
 			update_modifier(id, 0, 0, MOD_COMPOSE);
@@ -1880,15 +1899,15 @@ wskbd_translate(struct wskbd_internal *id, u_int type, int value)
 		}
 		if (MOD_ONESET(id, MOD_ANYMETA)) {
 			if (id->t_flags & WSKFL_METAESC) {
-				id->t_symbols[0] = KS_Escape;
-				id->t_symbols[1] = res;
+				//id->t_symbols[0] = KS_Escape;
+				//id->t_symbols[1] = res;
 				return (2);
 			} else
 				res |= 0x80;
 		}
 	}
 
-	id->t_symbols[0] = res;
+	//id->t_symbols[0] = res;
 	return (1);
 }
 

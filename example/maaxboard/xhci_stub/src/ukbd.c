@@ -51,6 +51,7 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <sys/callout.h>
 // #include <sys/kernel.h>
 #include <sys/device.h>
+#include <sys/device_impl.h>
 #include <sys/ioctl.h>
 #include <sys/file.h>
 #include <sys/select.h>
@@ -500,7 +501,7 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	ukbd_enable(sc, 1);
 	if (sc->sc_console_keyboard) {
 		DPRINTF(("%s: console keyboard sc=%p\n", __func__, sc));
-		//wskbd_cnattach(&ukbd_consops, sc, &ukbd_keymapdata);
+		// wskbd_cnattach(&ukbd_consops, sc, &ukbd_keymapdata);
 		// ;
 	}
 
@@ -522,25 +523,34 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 
 	usb_init_task(&sc->sc_ledtask, ukbd_set_leds_task, sc, 0);
 	// callout_init(&sc->sc_ledreset, 0);
-
+    //sc->sc_leds = 0;
 	/* Flash the leds; no real purpose, just shows we're alive. */
+	printf("About to set leds/n");
 	ukbd_set_leds(sc, WSKBD_LED_SCROLL | WSKBD_LED_NUM | WSKBD_LED_CAPS
 			| WSKBD_LED_COMPOSE);
+	printf("1\n");
 	sc->sc_leds_set = 0;	/* not explicitly set by wskbd yet */
 	// callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
 	    // sc);
-	usbd_delay_ms(0, 400);
-	ukbd_delayed_leds_off(&sc);
+	usbd_delay_ms(0, 1000);
+	ukbd_delayed_leds_off(sc);
 
     //wskbd_attach - do header file definition 
 	//parent is ukbd ukbd_softc
-	//self allocate seL4_NotEnoughMemory
-	//aux set up just pass pointer from ukbd
+	//self allocate seL4
+	//aux set up just pass pointer from a
 
-	device_t wskbd_self = kmem_alloc(sizeof(struct ukbd_softc), 0);
+	device_t wskbd_self = kmem_alloc(sizeof(device_t), 0);
 
 	//sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
-	wskbd_attach(wskbd_self, self, aux);
+	printf("2\n");
+	wskbd_attach(self, wskbd_self, &a);
+	printf("3\n");
+	//wskbd_cngetc();
+	struct wskbd_softc *wskbd_sc = wskbd_self->dv_private;
+	//struct wskbd_internal *id = wskbd_self->dv_private->id;
+	struct wskbd_internal *id = wskbd_sc->id;
+	update_leds(id);
 
 	sc->sc_attached = true;
 
@@ -1083,9 +1093,10 @@ ukbd_set_leds(void *v, int leds)
 {
 	struct ukbd_softc *sc = v;
 	struct usbd_device *udev = sc->sc_udev;
-
-	DPRINTF(("%s: sc=%p leds=%d, sc_leds=%d\n", __func__,
-		 sc, leds, sc->sc_leds));
+	printf("in set leds\n");
+	printf("sc=%p\n", sc);
+	printf("leds=%d\n",leds);
+	printf("sc_leds=%d\n", sc->sc_leds);
 
 	if (sc->sc_dying)
 		return;
@@ -1097,12 +1108,13 @@ ukbd_set_leds(void *v, int leds)
 
 	sc->sc_leds = leds;
 	ukbd_set_leds_task(sc);
-	//usb_add_task(udev, &sc->sc_ledtask, USB_TASKQ_DRIVER);
+	usb_add_task(udev, &sc->sc_ledtask, USB_TASKQ_DRIVER);
 }
 
 void
 ukbd_set_leds_task(void *v)
 {
+	printf("in set led task\n");
 	struct ukbd_softc *sc = v;
 	int leds = sc->sc_leds;
 	uint8_t res = 0;
@@ -1116,8 +1128,9 @@ ukbd_set_leds_task(void *v)
 		res |= 1 << sc->sc_numloc.pos;
 	if ((leds & WSKBD_LED_CAPS) && sc->sc_capsloc.size == 1)
 		res |= 1 << sc->sc_capsloc.pos;
-	printf("Set led task");
+	printf("Set led task\n");
 	uhidev_set_report(sc->sc_hdev, UHID_OUTPUT_REPORT, &res, 1);
+	printf("Set led task end\n");
 }
 
 #if defined(WSDISPLAY_COMPAT_RAWKBD) && defined(UKBD_REPEAT)

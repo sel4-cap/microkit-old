@@ -64,7 +64,7 @@ __KERNEL_RCSID(0, "$NetBSD: usb.c,v 1.200 2022/03/13 11:28:52 riastradh Exp $");
 #include <sys/mutex.h>
 #include <sys/bus.h>
 #include <sys/once.h>
-// #include <sys/atomic.h>
+#include <sys/atomic.h>
 // #include <sys/sysctl.h>
 // #include <sys/compat_stub.h>
 // #include <sys/sdt.h>
@@ -569,28 +569,28 @@ usb_create_event_thread(device_t self)
 //  * called from any context and the task will be executed in a process
 //  * context ASAP.
 //  */
- //void
-// usb_add_task(struct usbd_device *dev, struct usb_task *task, int queue)
-// {
-// 	struct usb_taskq *taskq;
+void
+usb_add_task(struct usbd_device *dev, struct usb_task *task, int queue)
+{
+	struct usb_taskq *taskq;
 
-// 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-// 	SDT_PROBE3(usb, kernel, task, add,  dev, task, queue);
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+	//SDT_PROBE3(usb, kernel, task, add,  dev, task, queue);
 
-// 	KASSERT(0 <= queue);
-// 	KASSERT(queue < USB_NUM_TASKQS);
-// 	taskq = &usb_taskq[queue];
-// 	mutex_enter(&taskq->lock);
-// 	if (atomic_cas_uint(&task->queue, USB_NUM_TASKQS, queue) ==
-// 	    USB_NUM_TASKQS) {
-// 		DPRINTFN(2, "task=%#jx", (uintptr_t)task, 0, 0, 0);
-// 		TAILQ_INSERT_TAIL(&taskq->tasks, task, next);
-// 		cv_signal(&taskq->cv);
-// 	} else {
-// 		DPRINTFN(2, "task=%#jx on q", (uintptr_t)task, 0, 0, 0);
-// 	}
-// 	mutex_exit(&taskq->lock);
-// }
+	KASSERT(0 <= queue);
+	KASSERT(queue < USB_NUM_TASKQS);
+	taskq = &usb_taskq[queue];
+	mutex_enter(&taskq->lock);
+	// if (atomic_cas_uint(&task->queue, USB_NUM_TASKQS, queue) ==
+	//     USB_NUM_TASKQS) {
+	// 	DPRINTFN(2, "task=%#jx", (uintptr_t)task, 0, 0, 0);
+	// 	TAILQ_INSERT_TAIL(&taskq->tasks, task, next);
+	// 	cv_signal(&taskq->cv);
+	// } else {
+		DPRINTFN(2, "task=%#jx on q", (uintptr_t)task, 0, 0, 0);
+	// }
+	mutex_exit(&taskq->lock);
+}
 
 // /*
 //  * usb_rem_task(dev, task)

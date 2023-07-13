@@ -32,6 +32,8 @@
 #ifndef _SYS_ATOMIC_H_
 #define	_SYS_ATOMIC_H_
 
+//#define atomic_cas_uint		kasan_atomic_cas_uint
+
 #include <sys/types.h>
 #if !defined(_KERNEL) && !defined(_STANDALONE)
 #include <stdint.h>

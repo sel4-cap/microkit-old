@@ -9,6 +9,9 @@
         "stdbool.h": "c",
         "if.h": "c",
         "ioctl.h": "c",
-        "wskbd.h": "c"
+        "wskbd.h": "c",
+        "device_impl.h": "c",
+        "callout.h": "c",
+        "types.h": "c"
     }
 }

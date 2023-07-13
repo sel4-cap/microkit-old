@@ -34,6 +34,7 @@
 #define BUS_DEBUG 0
 #define __AARCH64__
 
+//extern variables
 bool int_once = false;
 struct xhci_softc *glob_xhci_sc	= NULL;
 struct usb_softc *glob_usb_sc 	= NULL;
@@ -45,17 +46,7 @@ struct usbd_pipe_methods *device_ctrl_pointer_other;
 struct usbd_pipe_methods *device_intr_pointer;
 struct usbd_pipe_methods *device_intr_pointer_other;
 bool pipe_thread;
-
-// struct usb_softc {
-// 	struct usbd_bus *sc_bus;	/* USB controller */
-// 	struct usbd_port sc_port;	/* dummy port for root hub */
-
-// 	struct lwp	*sc_event_thread;
-// 	struct lwp	*sc_attach_thread;
-
-// 	char		sc_dying;
-// 	bool		sc_pmf_registered;
-// };
+int cold = 1;
 
 struct imx8mq_usbphy_softc {
 	device_t		sc_dev;
@@ -81,7 +72,6 @@ uintptr_t timer_base;
 uintptr_t software_heap;
 
 // TODO: put these in a header file so can change it in a single place for a platform
-
 int phy_setup() {
     printf("setting up phy (imx8)\n");
     struct imx8mq_usbphy_softc *sc_usbphy;
@@ -118,6 +108,7 @@ init(void) {
     }
 
     pipe_thread = false;
+    cold = 0;
     // init
     printf("XHCI_STUB: dmapaddr = %p\n", dma_cp_paddr);
     xhci_root_intr_pointer = get_root_intr_methods();

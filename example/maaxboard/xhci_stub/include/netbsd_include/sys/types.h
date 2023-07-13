@@ -359,7 +359,7 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 
 // #if defined(_KERNEL) || defined(_STANDALONE)
 // #define SET(t, f)	((t) |= (f))
-// #define	ISSET(t, f)	((t) & (f))
+#define	ISSET(t, f)	((t) & (f))
 // #define	CLR(t, f)	((t) &= ~(f))
 // #endif
 

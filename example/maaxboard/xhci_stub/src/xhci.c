@@ -77,25 +77,12 @@ extern uintptr_t device_ctrl_pointer;
 
 // DEVELOPMENT {{{
 
-// #include <platsupport/delay.h>
-// #define roundup2(x,m)   (((x) + ((m) - 1)) & ~((m) - 1))
-// #define le64dec(p) (le32dec(p) | (__CAST(uint64_t, le32dec(p + 4)) << 32))
-// #define le64dec(p) p
-
-
-
 #define device_has_power(d) 1
-// #define device_xname(d) "DEV_NAME"
-// #define DELAY(ms) ps_mdelay(ms)
 #define DELAY(ms) 0
-// #define pool_cache_init()
-// #define usbd_xfer_abort(x) printf("aborted (not really)\n")
-
 
 #define device_printf(dev, ...) printf(__VA_ARGS__)
 
 // }}}
-
 
 #define snprintb(...) snprintf(__VA_ARGS__)
 #ifdef USB_DEBUG
@@ -276,10 +263,6 @@ static struct usbd_pipe_methods xhci_root_intr_methods = {
 	.upm_done = xhci_root_intr_done,
 };
 
-struct usbd_pipe_methods *get_root_intr_methods() {
-	return &xhci_root_intr_methods;
-}
-
 
 static struct usbd_pipe_methods xhci_device_ctrl_methods = {
 	.upm_transfer = xhci_device_ctrl_transfer,
@@ -289,12 +272,6 @@ static struct usbd_pipe_methods xhci_device_ctrl_methods = {
 	.upm_cleartoggle = xhci_noop,
 	.upm_done = xhci_device_ctrl_done,
 };
-
-
-struct usbd_pipe_methods *get_device_methods() {
-	return &xhci_device_ctrl_methods;
-}
-
 
 static struct usbd_pipe_methods xhci_device_isoc_methods = {
 	.upm_transfer = xhci_device_isoc_transfer,
@@ -321,6 +298,15 @@ static struct usbd_pipe_methods xhci_device_intr_methods = {
 	.upm_cleartoggle = xhci_noop,
 	.upm_done = xhci_device_intr_done,
 };
+
+struct usbd_pipe_methods *get_device_methods() {
+	return &xhci_device_ctrl_methods;
+}
+
+struct usbd_pipe_methods *get_root_intr_methods() {
+	return &xhci_root_intr_methods;
+}
+
 
 struct usbd_pipe_methods *get_device_intr_methods() {
 	return &xhci_device_intr_methods;
@@ -596,8 +582,7 @@ static inline void
 xhci_xfer_put_trb(struct xhci_xfer * const xx, u_int idx,
     uint64_t parameter, uint32_t status, uint32_t control)
 {
-	/* KASSERTMSG(idx < xx->xx_ntrb, "idx=%u xx_ntrb=%u", idx, xx->xx_ntrb); */
-    DPRINTF("idx=%u, xx_ntrb=%u", idx, xx->xx_ntrb, 0, 0);
+	KASSERTMSG(idx < xx->xx_ntrb, "idx=%u xx_ntrb=%u", idx, xx->xx_ntrb);
 	xx->xx_trb[idx].trb_0 = parameter;
 	xx->xx_trb[idx].trb_2 = status;
 	xx->xx_trb[idx].trb_3 = control;
@@ -675,6 +660,7 @@ void
 xhci_childdet(device_t self, device_t child)
 {
 	struct xhci_softc * const sc = 	device_private(self);
+
 	mutex_enter(&sc->sc_intr_lock);
 	KASSERT((sc->sc_child == child) || (sc->sc_child2 == child));
 	if (child == sc->sc_child2)
@@ -684,65 +670,65 @@ xhci_childdet(device_t self, device_t child)
 	mutex_exit(&sc->sc_intr_lock);
 }
 
-// int
-// xhci_detach(struct xhci_softc *sc, int flags)
-// {
-// 	int rv = 0;
+int
+xhci_detach(struct xhci_softc *sc, int flags)
+{
+	int rv = 0;
 
-// 	if (sc->sc_child2 != NULL) {
-// 		rv = config_detach(sc->sc_child2, flags);
-// 		if (rv != 0)
-// 			return rv;
-// 		KASSERT(sc->sc_child2 == NULL);
-// 	}
+	if (sc->sc_child2 != NULL) {
+		rv = config_detach(sc->sc_child2, flags);
+		if (rv != 0)
+			return rv;
+		KASSERT(sc->sc_child2 == NULL);
+	}
 
-// 	if (sc->sc_child != NULL) {
-// 		rv = config_detach(sc->sc_child, flags);
-// 		if (rv != 0)
-// 			return rv;
-// 		KASSERT(sc->sc_child == NULL);
-// 	}
+	if (sc->sc_child != NULL) {
+		rv = config_detach(sc->sc_child, flags);
+		if (rv != 0)
+			return rv;
+		KASSERT(sc->sc_child == NULL);
+	}
 
-// 	/* XXX unconfigure/free slots */
+	/* XXX unconfigure/free slots */
 
-// 	/* verify: */
-// 	xhci_rt_write_4(sc, XHCI_IMAN(0), 0);
-// 	xhci_op_write_4(sc, XHCI_USBCMD, 0);
-// 	/* do we need to wait for stop? */
+	/* verify: */
+	xhci_rt_write_4(sc, XHCI_IMAN(0), 0);
+	xhci_op_write_4(sc, XHCI_USBCMD, 0);
+	/* do we need to wait for stop? */
 
-// 	xhci_op_write_8(sc, XHCI_CRCR, 0);
-// 	xhci_ring_free(sc, &sc->sc_cr);
-// 	cv_destroy(&sc->sc_command_cv);
-// 	cv_destroy(&sc->sc_cmdbusy_cv);
+	xhci_op_write_8(sc, XHCI_CRCR, 0);
+	xhci_ring_free(sc, &sc->sc_cr);
+	cv_destroy(&sc->sc_command_cv);
+	cv_destroy(&sc->sc_cmdbusy_cv);
 
-// 	xhci_rt_write_4(sc, XHCI_ERSTSZ(0), 0);
-// 	xhci_rt_write_8(sc, XHCI_ERSTBA(0), 0);
-// 	xhci_rt_write_8(sc, XHCI_ERDP(0), 0 | XHCI_ERDP_BUSY);
-// 	xhci_ring_free(sc, &sc->sc_er);
+	xhci_rt_write_4(sc, XHCI_ERSTSZ(0), 0);
+	xhci_rt_write_8(sc, XHCI_ERSTBA(0), 0);
+	xhci_rt_write_8(sc, XHCI_ERDP(0), 0 | XHCI_ERDP_BUSY);
+	xhci_ring_free(sc, &sc->sc_er);
 
-// 	usb_freemem(&sc->sc_eventst_dma);
+	usb_freemem(&sc->sc_eventst_dma);
 
-// 	xhci_op_write_8(sc, XHCI_DCBAAP, 0);
-// 	usb_freemem(&sc->sc_dcbaa_dma);
+	xhci_op_write_8(sc, XHCI_DCBAAP, 0);
+	usb_freemem(&sc->sc_dcbaa_dma);
 
-// 	kmem_free(sc->sc_slots, sizeof(*sc->sc_slots) * sc->sc_maxslots);
+	kmem_free(sc->sc_slots, sizeof(*sc->sc_slots) * sc->sc_maxslots);
 
-// 	kmem_free(sc->sc_ctlrportbus,
-// 	    howmany(sc->sc_maxports * sizeof(uint8_t), NBBY));
-// 	kmem_free(sc->sc_ctlrportmap, sc->sc_maxports * sizeof(int));
+	kmem_free(sc->sc_ctlrportbus,
+	    howmany(sc->sc_maxports * sizeof(uint8_t), NBBY));
+	kmem_free(sc->sc_ctlrportmap, sc->sc_maxports * sizeof(int));
 
-// 	for (size_t j = 0; j < __arraycount(sc->sc_rhportmap); j++) {
-// 		kmem_free(sc->sc_rhportmap[j], sc->sc_maxports * sizeof(int));
-// 	}
+	for (size_t j = 0; j < __arraycount(sc->sc_rhportmap); j++) {
+		kmem_free(sc->sc_rhportmap[j], sc->sc_maxports * sizeof(int));
+	}
 
-// 	mutex_destroy(&sc->sc_rhlock);
-// 	mutex_destroy(&sc->sc_lock);
-// 	mutex_destroy(&sc->sc_intr_lock);
+	mutex_destroy(&sc->sc_rhlock);
+	mutex_destroy(&sc->sc_lock);
+	mutex_destroy(&sc->sc_intr_lock);
 
-// 	pool_cache_destroy(sc->sc_xferpool);
+	// pool_cache_destroy(sc->sc_xferpool);
 
-// 	return rv;
-// }
+	return rv;
+}
 
 int
 xhci_activate(device_t self, enum devact act)
@@ -758,441 +744,441 @@ xhci_activate(device_t self, enum devact act)
 	}
 }
 
-// bool
-// xhci_suspend(device_t self, const pmf_qual_t *qual)
-// {
-// 	struct xhci_softc * const sc = device_private(self);
-// 	size_t i, j, bn, dci;
-// 	int port;
-// 	uint32_t v;
-// 	usbd_status err;
-// 	bool ok = false;
+bool
+xhci_suspend(device_t self, const pmf_qual_t *qual)
+{
+	struct xhci_softc * const sc = device_private(self);
+	size_t i, j, bn, dci;
+	int port;
+	uint32_t v;
+	usbd_status err;
+	bool ok = false;
 
-// 	XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-// 	/*
-// 	 * Block issuance of new commands, and wait for all pending
-// 	 * commands to complete.
-// 	 */
-// 	mutex_enter(&sc->sc_lock);
-// 	KASSERT(sc->sc_suspender == NULL);
-// 	// sc->sc_suspender = curlwp;
-// 	while (sc->sc_command_addr != 0)
-// 		cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock);
-// 	mutex_exit(&sc->sc_lock);
+	/*
+	 * Block issuance of new commands, and wait for all pending
+	 * commands to complete.
+	 */
+	mutex_enter(&sc->sc_lock);
+	KASSERT(sc->sc_suspender == NULL);
+	// sc->sc_suspender = curlwp;
+	while (sc->sc_command_addr != 0)
+		cv_wait(&sc->sc_cmdbusy_cv, &sc->sc_lock);
+	mutex_exit(&sc->sc_lock);
 
-// 	/*
-// 	 * Block roothub xfers which might touch portsc registers until
-// 	 * we're done suspending.
-// 	 */
-// 	mutex_enter(&sc->sc_rhlock);
+	/*
+	 * Block roothub xfers which might touch portsc registers until
+	 * we're done suspending.
+	 */
+	mutex_enter(&sc->sc_rhlock);
 
-// 	/*
-// 	 * xHCI Requirements Specification 1.2, May 2019, Sec. 4.23.2:
-// 	 * xHCI Power Management, p. 342
-// 	 * https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf#page=342
-// 	 */
+	/*
+	 * xHCI Requirements Specification 1.2, May 2019, Sec. 4.23.2:
+	 * xHCI Power Management, p. 342
+	 * https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf#page=342
+	 */
 
-// 	/*
-// 	 * `1. Stop all USB activity by issuing Stop Endpoint Commands
-// 	 *     for Busy endpoints in the Running state.  If the Force
-// 	 *     Save Context Capability (FSC = ``0'') is not supported,
-// 	 *     then Stop Endpoint Commands shall be issued for all idle
-// 	 *     endpoints in the Running state as well.  The Stop
-// 	 *     Endpoint Command causes the xHC to update the respective
-// 	 *     Endpoint or Stream Contexts in system memory, e.g. the
-// 	 *     TR Dequeue Pointer, DCS, etc. fields.  Refer to
-// 	 *     Implementation Note "0".'
-// 	 */
-// 	for (i = 0; i < sc->sc_maxslots; i++) {
-// 		struct xhci_slot *xs = &sc->sc_slots[i];
+	/*
+	 * `1. Stop all USB activity by issuing Stop Endpoint Commands
+	 *     for Busy endpoints in the Running state.  If the Force
+	 *     Save Context Capability (FSC = ``0'') is not supported,
+	 *     then Stop Endpoint Commands shall be issued for all idle
+	 *     endpoints in the Running state as well.  The Stop
+	 *     Endpoint Command causes the xHC to update the respective
+	 *     Endpoint or Stream Contexts in system memory, e.g. the
+	 *     TR Dequeue Pointer, DCS, etc. fields.  Refer to
+	 *     Implementation Note "0".'
+	 */
+	for (i = 0; i < sc->sc_maxslots; i++) {
+		struct xhci_slot *xs = &sc->sc_slots[i];
 
-// 		/* Skip if the slot is not in use.  */
-// 		if (xs->xs_idx == 0)
-// 			continue;
+		/* Skip if the slot is not in use.  */
+		if (xs->xs_idx == 0)
+			continue;
 
-// 		for (dci = XHCI_DCI_SLOT; dci <= XHCI_MAX_DCI; dci++) {
-// 			/* Skip if the endpoint is not Running.  */
-// 			/* XXX What about Busy?  */
-// 			if (xhci_get_epstate(sc, xs, dci) !=
-// 			    XHCI_EPSTATE_RUNNING)
-// 				continue;
+		for (dci = XHCI_DCI_SLOT; dci <= XHCI_MAX_DCI; dci++) {
+			/* Skip if the endpoint is not Running.  */
+			/* XXX What about Busy?  */
+			if (xhci_get_epstate(sc, xs, dci) !=
+			    XHCI_EPSTATE_RUNNING)
+				continue;
 
-// 			/* Stop endpoint.  */
-// 			mutex_enter(&sc->sc_lock);
-// 			err = xhci_stop_endpoint_cmd(sc, xs, dci,
-// 			    XHCI_TRB_3_SUSP_EP_BIT);
-// 			mutex_exit(&sc->sc_lock);
-// 			if (err) {
-// 				device_printf(self, "failed to stop endpoint"
-// 				    " slot %zu dci %zu err %d\n",
-// 				    i, dci, err);
-// 				goto out;
-// 			}
-// 		}
-// 	}
+			/* Stop endpoint.  */
+			mutex_enter(&sc->sc_lock);
+			err = xhci_stop_endpoint_cmd(sc, xs, dci,
+			    XHCI_TRB_3_SUSP_EP_BIT);
+			mutex_exit(&sc->sc_lock);
+			if (err) {
+				device_printf(self, "failed to stop endpoint"
+				    " slot %zu dci %zu err %d\n",
+				    i, dci, err);
+				goto out;
+			}
+		}
+	}
 
-// 	/*
-// 	 * Next, suspend all the ports:
-// 	 *
-// 	 * xHCI Requirements Specification 1.2, May 2019, Sec. 4.15:
-// 	 * Suspend-Resume, pp. 276-283
-// 	 * https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf#page=276
-// 	 */
-// 	for (bn = 0; bn < 2; bn++) {
-// 		for (i = 1; i <= sc->sc_rhportcount[bn]; i++) {
-// 			/* 4.15.1: Port Suspend.  */
-// 			port = XHCI_PORTSC(xhci_rhport2ctlrport(sc, bn, i));
+	/*
+	 * Next, suspend all the ports:
+	 *
+	 * xHCI Requirements Specification 1.2, May 2019, Sec. 4.15:
+	 * Suspend-Resume, pp. 276-283
+	 * https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf#page=276
+	 */
+	for (bn = 0; bn < 2; bn++) {
+		for (i = 1; i <= sc->sc_rhportcount[bn]; i++) {
+			/* 4.15.1: Port Suspend.  */
+			port = XHCI_PORTSC(xhci_rhport2ctlrport(sc, bn, i));
 
-// 			/*
-// 			 * `System software places individual ports
-// 			 *  into suspend mode by writing a ``3'' into
-// 			 *  the appropriate PORTSC register Port Link
-// 			 *  State (PLS) field (refer to Section 5.4.8).
-// 			 *  Software should only set the PLS field to
-// 			 *  ``3'' when the port is in the Enabled
-// 			 *  state.'
-// 			 *
-// 			 * `Software should not attempt to suspend a
-// 			 *  port unless the port reports that it is in
-// 			 *  the enabled (PED = ``1''; PLS < ``3'')
-// 			 *  state (refer to Section 5.4.8 for more
-// 			 *  information about PED and PLS).'
-// 			 */
-// 			v = xhci_op_read_4(sc, port);
-// 			if (((v & XHCI_PS_PED) == 0) ||
-// 			    XHCI_PS_PLS_GET(v) >= XHCI_PS_PLS_U3)
-// 				continue;
-// 			v &= ~(XHCI_PS_PLS_MASK | XHCI_PS_CLEAR);
-// 			v |= XHCI_PS_LWS | XHCI_PS_PLS_SET(XHCI_PS_PLS_SETU3);
-// 			xhci_op_write_4(sc, port, v);
+			/*
+			 * `System software places individual ports
+			 *  into suspend mode by writing a ``3'' into
+			 *  the appropriate PORTSC register Port Link
+			 *  State (PLS) field (refer to Section 5.4.8).
+			 *  Software should only set the PLS field to
+			 *  ``3'' when the port is in the Enabled
+			 *  state.'
+			 *
+			 * `Software should not attempt to suspend a
+			 *  port unless the port reports that it is in
+			 *  the enabled (PED = ``1''; PLS < ``3'')
+			 *  state (refer to Section 5.4.8 for more
+			 *  information about PED and PLS).'
+			 */
+			v = xhci_op_read_4(sc, port);
+			if (((v & XHCI_PS_PED) == 0) ||
+			    XHCI_PS_PLS_GET(v) >= XHCI_PS_PLS_U3)
+				continue;
+			v &= ~(XHCI_PS_PLS_MASK | XHCI_PS_CLEAR);
+			v |= XHCI_PS_LWS | XHCI_PS_PLS_SET(XHCI_PS_PLS_SETU3);
+			xhci_op_write_4(sc, port, v);
 
-// 			/*
-// 			 * `When the PLS field is written with U3
-// 			 *  (``3''), the status of the PLS bit will not
-// 			 *  change to the target U state U3 until the
-// 			 *  suspend signaling has completed to the
-// 			 *  attached device (which may be as long as
-// 			 *  10ms.).'
-// 			 *
-// 			 * `Software is required to wait for U3
-// 			 *  transitions to complete before it puts the
-// 			 *  xHC into a low power state, and before
-// 			 *  resuming the port.'
-// 			 *
-// 			 * XXX Take advantage of the technique to
-// 			 * reduce polling on host controllers that
-// 			 * support the U3C capability.
-// 			 */
-// 			for (j = 0; j < XHCI_WAIT_PLS_U3; j++) {
-// 				v = xhci_op_read_4(sc, port);
-// 				if (XHCI_PS_PLS_GET(v) == XHCI_PS_PLS_U3)
-// 					break;
-// 				usb_delay_ms(&sc->sc_bus, 1);
-// 			}
-// 			if (j == XHCI_WAIT_PLS_U3) {
-// 				device_printf(self,
-// 				    "suspend timeout on bus %zu port %zu\n",
-// 				    bn, i);
-// 				goto out;
-// 			}
-// 		}
-// 	}
+			/*
+			 * `When the PLS field is written with U3
+			 *  (``3''), the status of the PLS bit will not
+			 *  change to the target U state U3 until the
+			 *  suspend signaling has completed to the
+			 *  attached device (which may be as long as
+			 *  10ms.).'
+			 *
+			 * `Software is required to wait for U3
+			 *  transitions to complete before it puts the
+			 *  xHC into a low power state, and before
+			 *  resuming the port.'
+			 *
+			 * XXX Take advantage of the technique to
+			 * reduce polling on host controllers that
+			 * support the U3C capability.
+			 */
+			for (j = 0; j < XHCI_WAIT_PLS_U3; j++) {
+				v = xhci_op_read_4(sc, port);
+				if (XHCI_PS_PLS_GET(v) == XHCI_PS_PLS_U3)
+					break;
+				usb_delay_ms(&sc->sc_bus, 1);
+			}
+			if (j == XHCI_WAIT_PLS_U3) {
+				device_printf(self,
+				    "suspend timeout on bus %zu port %zu\n",
+				    bn, i);
+				goto out;
+			}
+		}
+	}
 
-// 	/*
-// 	 * `2. Ensure that the Command Ring is in the Stopped state
-// 	 *     (CRR = ``0'') or Idle (i.e. the Command Transfer Ring is
-// 	 *     empty), and all Command Completion Events associated
-// 	 *     with them have been received.'
-// 	 *
-// 	 * XXX
-// 	 */
+	/*
+	 * `2. Ensure that the Command Ring is in the Stopped state
+	 *     (CRR = ``0'') or Idle (i.e. the Command Transfer Ring is
+	 *     empty), and all Command Completion Events associated
+	 *     with them have been received.'
+	 *
+	 * XXX
+	 */
 
-// 	/* `3. Stop the controller by setting Run/Stop (R/S) = ``0''.'  */
-// 	xhci_op_write_4(sc, XHCI_USBCMD,
-// 	    xhci_op_read_4(sc, XHCI_USBCMD) & ~XHCI_CMD_RS);
+	/* `3. Stop the controller by setting Run/Stop (R/S) = ``0''.'  */
+	xhci_op_write_4(sc, XHCI_USBCMD,
+	    xhci_op_read_4(sc, XHCI_USBCMD) & ~XHCI_CMD_RS);
 
-// 	/*
-// 	 * `4. Read the Operational Runtime, and VTIO registers in the
-// 	 *     following order: USBCMD, DNCTRL, DCBAAP, CONFIG, ERSTSZ,
-// 	 *     ERSTBA, ERDP, IMAN, IMOD, and VTIO and save their
-// 	 *     state.'
-// 	 *
-// 	 * (We don't use VTIO here (XXX for now?).)
-// 	 */
-// 	sc->sc_regs.usbcmd = xhci_op_read_4(sc, XHCI_USBCMD);
-// 	sc->sc_regs.dnctrl = xhci_op_read_4(sc, XHCI_DNCTRL);
-// 	sc->sc_regs.dcbaap = xhci_op_read_8(sc, XHCI_DCBAAP);
-// 	sc->sc_regs.config = xhci_op_read_4(sc, XHCI_CONFIG);
-// 	sc->sc_regs.erstsz0 = xhci_rt_read_4(sc, XHCI_ERSTSZ(0));
-// 	sc->sc_regs.erstba0 = xhci_rt_read_8(sc, XHCI_ERSTBA(0));
-// 	sc->sc_regs.erdp0 = xhci_rt_read_8(sc, XHCI_ERDP(0));
-// 	sc->sc_regs.iman0 = xhci_rt_read_4(sc, XHCI_IMAN(0));
-// 	sc->sc_regs.imod0 = xhci_rt_read_4(sc, XHCI_IMOD(0));
+	/*
+	 * `4. Read the Operational Runtime, and VTIO registers in the
+	 *     following order: USBCMD, DNCTRL, DCBAAP, CONFIG, ERSTSZ,
+	 *     ERSTBA, ERDP, IMAN, IMOD, and VTIO and save their
+	 *     state.'
+	 *
+	 * (We don't use VTIO here (XXX for now?).)
+	 */
+	sc->sc_regs.usbcmd = xhci_op_read_4(sc, XHCI_USBCMD);
+	sc->sc_regs.dnctrl = xhci_op_read_4(sc, XHCI_DNCTRL);
+	sc->sc_regs.dcbaap = xhci_op_read_8(sc, XHCI_DCBAAP);
+	sc->sc_regs.config = xhci_op_read_4(sc, XHCI_CONFIG);
+	sc->sc_regs.erstsz0 = xhci_rt_read_4(sc, XHCI_ERSTSZ(0));
+	sc->sc_regs.erstba0 = xhci_rt_read_8(sc, XHCI_ERSTBA(0));
+	sc->sc_regs.erdp0 = xhci_rt_read_8(sc, XHCI_ERDP(0));
+	sc->sc_regs.iman0 = xhci_rt_read_4(sc, XHCI_IMAN(0));
+	sc->sc_regs.imod0 = xhci_rt_read_4(sc, XHCI_IMOD(0));
 
-// 	/*
-// 	 * `5. Set the Controller Save State (CSS) flag in the USBCMD
-// 	 *     register (5.4.1)...'
-// 	 */
-// 	xhci_op_write_4(sc, XHCI_USBCMD,
-// 	    xhci_op_read_4(sc, XHCI_USBCMD) | XHCI_CMD_CSS);
+	/*
+	 * `5. Set the Controller Save State (CSS) flag in the USBCMD
+	 *     register (5.4.1)...'
+	 */
+	xhci_op_write_4(sc, XHCI_USBCMD,
+	    xhci_op_read_4(sc, XHCI_USBCMD) | XHCI_CMD_CSS);
 
-// 	/*
-// 	 *    `...and wait for the Save State Status (SSS) flag in the
-// 	 *     USBSTS register (5.4.2) to transition to ``0''.'
-// 	 */
-// 	for (i = 0; i < XHCI_WAIT_SSS; i++) {
-// 		if ((xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_SSS) == 0)
-// 			break;
-// 		usb_delay_ms(&sc->sc_bus, 1);
-// 	}
-// 	if (i >= XHCI_WAIT_SSS) {
-// 		device_printf(self, "suspend timeout, USBSTS.SSS\n");
-// 		/*
-// 		 * Just optimistically go on and check SRE anyway --
-// 		 * what's the worst that could happen?
-// 		 */
-// 	}
+	/*
+	 *    `...and wait for the Save State Status (SSS) flag in the
+	 *     USBSTS register (5.4.2) to transition to ``0''.'
+	 */
+	for (i = 0; i < XHCI_WAIT_SSS; i++) {
+		if ((xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_SSS) == 0)
+			break;
+		usb_delay_ms(&sc->sc_bus, 1);
+	}
+	if (i >= XHCI_WAIT_SSS) {
+		device_printf(self, "suspend timeout, USBSTS.SSS\n");
+		/*
+		 * Just optimistically go on and check SRE anyway --
+		 * what's the worst that could happen?
+		 */
+	}
 
-// 	/*
-// 	 * `Note: After a Save or Restore operation completes, the
-// 	 *  Save/Restore Error (SRE) flag in the USBSTS register should
-// 	 *  be checked to ensure that the operation completed
-// 	 *  successfully.'
-// 	 */
-// 	if (xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_SRE) {
-// 		device_printf(self, "suspend error, USBSTS.SRE\n");
-// 		goto out;
-// 	}
+	/*
+	 * `Note: After a Save or Restore operation completes, the
+	 *  Save/Restore Error (SRE) flag in the USBSTS register should
+	 *  be checked to ensure that the operation completed
+	 *  successfully.'
+	 */
+	if (xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_SRE) {
+		device_printf(self, "suspend error, USBSTS.SRE\n");
+		goto out;
+	}
 
-// 	/* Success!  */
-// 	ok = true;
+	/* Success!  */
+	ok = true;
 
-// out:	mutex_exit(&sc->sc_rhlock);
-// 	if (!ok) {
-// 		/*
-// 		 * If suspend failed, resume command issuance.
-// 		 */
-// 		mutex_enter(&sc->sc_lock);
-// 		// KASSERT(sc->sc_suspender == curlwp);
-// 		sc->sc_suspender = NULL;
-// 		cv_broadcast(&sc->sc_cmdbusy_cv);
-// 		mutex_exit(&sc->sc_lock);
-// 	}
-// 	return ok;
-// }
+out:	mutex_exit(&sc->sc_rhlock);
+	if (!ok) {
+		/*
+		 * If suspend failed, resume command issuance.
+		 */
+		mutex_enter(&sc->sc_lock);
+		// KASSERT(sc->sc_suspender == curlwp);
+		sc->sc_suspender = NULL;
+		cv_broadcast(&sc->sc_cmdbusy_cv);
+		mutex_exit(&sc->sc_lock);
+	}
+	return ok;
+}
 
-// bool
-// xhci_resume(device_t self, const pmf_qual_t *qual)
-// {
-// 	struct xhci_softc * const sc = device_private(self);
-// 	size_t i, j, bn, dci;
-// 	int port;
-// 	uint32_t v;
-// 	bool ok = false;
+bool
+xhci_resume(device_t self, const pmf_qual_t *qual)
+{
+	struct xhci_softc * const sc = device_private(self);
+	size_t i, j, bn, dci;
+	int port;
+	uint32_t v;
+	bool ok = false;
 
-// 	XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-// 	KASSERT(sc->sc_suspender);
+	KASSERT(sc->sc_suspender);
 
-// 	/*
-// 	 * Block roothub xfers which might touch portsc registers until
-// 	 * we're done resuming.
-// 	 */
-// 	mutex_enter(&sc->sc_rhlock);
+	/*
+	 * Block roothub xfers which might touch portsc registers until
+	 * we're done resuming.
+	 */
+	mutex_enter(&sc->sc_rhlock);
 
-// 	/*
-// 	 * xHCI Requirements Specification 1.2, May 2019, Sec. 4.23.2:
-// 	 * xHCI Power Management, p. 343
-// 	 * https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf#page=343
-// 	 */
+	/*
+	 * xHCI Requirements Specification 1.2, May 2019, Sec. 4.23.2:
+	 * xHCI Power Management, p. 343
+	 * https://www.intel.com/content/dam/www/public/us/en/documents/technical-specifications/extensible-host-controler-interface-usb-xhci.pdf#page=343
+	 */
 
-// 	/*
-// 	 * `4. Restore the Operational Runtime, and VTIO registers with
-// 	 *     their previously saved state in the following order:
-// 	 *     DNCTRL, DCBAAP, CONFIG, ERSTSZ, ERSTBA, ERDP, IMAN,
-// 	 *     IMOD, and VTIO.'
-// 	 *
-// 	 * (We don't use VTIO here (for now?).)
-// 	 */
-// 	xhci_op_write_4(sc, XHCI_USBCMD, sc->sc_regs.usbcmd);
-// 	xhci_op_write_4(sc, XHCI_DNCTRL, sc->sc_regs.dnctrl);
-// 	xhci_op_write_8(sc, XHCI_DCBAAP, sc->sc_regs.dcbaap);
-// 	xhci_op_write_4(sc, XHCI_CONFIG, sc->sc_regs.config);
-// 	xhci_rt_write_4(sc, XHCI_ERSTSZ(0), sc->sc_regs.erstsz0);
-// 	xhci_rt_write_8(sc, XHCI_ERSTBA(0), sc->sc_regs.erstba0);
-// 	xhci_rt_write_8(sc, XHCI_ERDP(0), sc->sc_regs.erdp0);
-// 	xhci_rt_write_4(sc, XHCI_IMAN(0), sc->sc_regs.iman0);
-// 	xhci_rt_write_4(sc, XHCI_IMOD(0), sc->sc_regs.imod0);
+	/*
+	 * `4. Restore the Operational Runtime, and VTIO registers with
+	 *     their previously saved state in the following order:
+	 *     DNCTRL, DCBAAP, CONFIG, ERSTSZ, ERSTBA, ERDP, IMAN,
+	 *     IMOD, and VTIO.'
+	 *
+	 * (We don't use VTIO here (for now?).)
+	 */
+	xhci_op_write_4(sc, XHCI_USBCMD, sc->sc_regs.usbcmd);
+	xhci_op_write_4(sc, XHCI_DNCTRL, sc->sc_regs.dnctrl);
+	xhci_op_write_8(sc, XHCI_DCBAAP, sc->sc_regs.dcbaap);
+	xhci_op_write_4(sc, XHCI_CONFIG, sc->sc_regs.config);
+	xhci_rt_write_4(sc, XHCI_ERSTSZ(0), sc->sc_regs.erstsz0);
+	xhci_rt_write_8(sc, XHCI_ERSTBA(0), sc->sc_regs.erstba0);
+	xhci_rt_write_8(sc, XHCI_ERDP(0), sc->sc_regs.erdp0);
+	xhci_rt_write_4(sc, XHCI_IMAN(0), sc->sc_regs.iman0);
+	xhci_rt_write_4(sc, XHCI_IMOD(0), sc->sc_regs.imod0);
 
-// 	memset(&sc->sc_regs, 0, sizeof(sc->sc_regs)); /* paranoia */
+	memset(&sc->sc_regs, 0, sizeof(sc->sc_regs)); /* paranoia */
 
-// 	/*
-// 	 * `5. Set the Controller Restore State (CRS) flag in the
-// 	 *     USBCMD register (5.4.1) to ``1''...'
-// 	 */
-// 	xhci_op_write_4(sc, XHCI_USBCMD,
-// 	    xhci_op_read_4(sc, XHCI_USBCMD) | XHCI_CMD_CRS);
+	/*
+	 * `5. Set the Controller Restore State (CRS) flag in the
+	 *     USBCMD register (5.4.1) to ``1''...'
+	 */
+	xhci_op_write_4(sc, XHCI_USBCMD,
+	    xhci_op_read_4(sc, XHCI_USBCMD) | XHCI_CMD_CRS);
 
-// 	/*
-// 	 *    `...and wait for the Restore State Status (RSS) in the
-// 	 *     USBSTS register (5.4.2) to transition to ``0''.'
-// 	 */
-// 	for (i = 0; i < XHCI_WAIT_RSS; i++) {
-// 		if ((xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_RSS) == 0)
-// 			break;
-// 		usb_delay_ms(&sc->sc_bus, 1);
-// 	}
-// 	if (i >= XHCI_WAIT_RSS) {
-// 		device_printf(self, "resume timeout, USBSTS.RSS\n");
-// 		goto out;
-// 	}
+	/*
+	 *    `...and wait for the Restore State Status (RSS) in the
+	 *     USBSTS register (5.4.2) to transition to ``0''.'
+	 */
+	for (i = 0; i < XHCI_WAIT_RSS; i++) {
+		if ((xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_RSS) == 0)
+			break;
+		usb_delay_ms(&sc->sc_bus, 1);
+	}
+	if (i >= XHCI_WAIT_RSS) {
+		device_printf(self, "resume timeout, USBSTS.RSS\n");
+		goto out;
+	}
 
-// 	/*
-// 	 * `6. Reinitialize the Command Ring, i.e. so its Cycle bits
-// 	 *     are consistent with the RCS values to be written to the
-// 	 *     CRCR.'
-// 	 *
-// 	 * XXX Hope just zeroing it is good enough!
-// 	 */
-// 	xhci_host_dequeue(sc->sc_cr);
+	/*
+	 * `6. Reinitialize the Command Ring, i.e. so its Cycle bits
+	 *     are consistent with the RCS values to be written to the
+	 *     CRCR.'
+	 *
+	 * XXX Hope just zeroing it is good enough!
+	 */
+	xhci_host_dequeue(sc->sc_cr);
 
-// 	/*
-// 	 * `7. Write the CRCR with the address and RCS value of the
-// 	 *     reinitialized Command Ring.  Note that this write will
-// 	 *     cause the Command Ring to restart at the address
-// 	 *     specified by the CRCR.'
-// 	 */
-// 	xhci_op_write_8(sc, XHCI_CRCR, xhci_ring_trbp(sc->sc_cr, 0) |
-// 	    sc->sc_cr->xr_cs);
+	/*
+	 * `7. Write the CRCR with the address and RCS value of the
+	 *     reinitialized Command Ring.  Note that this write will
+	 *     cause the Command Ring to restart at the address
+	 *     specified by the CRCR.'
+	 */
+	xhci_op_write_8(sc, XHCI_CRCR, xhci_ring_trbp(sc->sc_cr, 0) |
+	    sc->sc_cr->xr_cs);
 
-// 	/*
-// 	 * `8. Enable the controller by setting Run/Stop (R/S) =
-// 	 *     ``1''.'
-// 	 */
-// 	xhci_op_write_4(sc, XHCI_USBCMD,
-// 	    xhci_op_read_4(sc, XHCI_USBCMD) | XHCI_CMD_RS);
+	/*
+	 * `8. Enable the controller by setting Run/Stop (R/S) =
+	 *     ``1''.'
+	 */
+	xhci_op_write_4(sc, XHCI_USBCMD,
+	    xhci_op_read_4(sc, XHCI_USBCMD) | XHCI_CMD_RS);
 
-// 	/*
-// 	 * `9. Software shall walk the USB topology and initialize each
-// 	 *     of the xHC PORTSC, PORTPMSC, and PORTLI registers, and
-// 	 *     external hub ports attached to USB devices.'
-// 	 *
-// 	 * This follows the procedure in 4.15 `Suspend-Resume', 4.15.2
-// 	 * `Port Resume', 4.15.2.2 `Host Initiated'.
-// 	 *
-// 	 * XXX We should maybe batch up initiating the state
-// 	 * transitions, and then wait for them to complete all at once.
-// 	 */
-// 	for (bn = 0; bn < 2; bn++) {
-// 		for (i = 1; i <= sc->sc_rhportcount[bn]; i++) {
-// 			port = XHCI_PORTSC(xhci_rhport2ctlrport(sc, bn, i));
+	/*
+	 * `9. Software shall walk the USB topology and initialize each
+	 *     of the xHC PORTSC, PORTPMSC, and PORTLI registers, and
+	 *     external hub ports attached to USB devices.'
+	 *
+	 * This follows the procedure in 4.15 `Suspend-Resume', 4.15.2
+	 * `Port Resume', 4.15.2.2 `Host Initiated'.
+	 *
+	 * XXX We should maybe batch up initiating the state
+	 * transitions, and then wait for them to complete all at once.
+	 */
+	for (bn = 0; bn < 2; bn++) {
+		for (i = 1; i <= sc->sc_rhportcount[bn]; i++) {
+			port = XHCI_PORTSC(xhci_rhport2ctlrport(sc, bn, i));
 
-// 			/* `When a port is in the U3 state: ...' */
-// 			v = xhci_op_read_4(sc, port);
-// 			if (XHCI_PS_PLS_GET(v) != XHCI_PS_PLS_U3)
-// 				continue;
+			/* `When a port is in the U3 state: ...' */
+			v = xhci_op_read_4(sc, port);
+			if (XHCI_PS_PLS_GET(v) != XHCI_PS_PLS_U3)
+				continue;
 
-// 			/*
-// 			 * `For a USB2 protocol port, software shall
-// 			 *  write a ``15'' (Resume) to the PLS field to
-// 			 *  initiate resume signaling.  The port shall
-// 			 *  transition to the Resume substate and the
-// 			 *  xHC shall transmit the resume signaling
-// 			 *  within 1ms (T_URSM).  Software shall ensure
-// 			 *  that resume is signaled for at least 20ms
-// 			 *  (T_DRSMDN).  Software shall start timing
-// 			 *  T_DRSMDN from the write of ``15'' (Resume)
-// 			 *  to PLS.'
-// 			 */
-// 			if (bn == 1) {
-// 				KASSERT(sc->sc_bus2.ub_revision == USBREV_2_0);
-// 				v &= ~(XHCI_PS_PLS_MASK | XHCI_PS_CLEAR);
-// 				v |= XHCI_PS_LWS;
-// 				v |= XHCI_PS_PLS_SET(XHCI_PS_PLS_SETRESUME);
-// 				xhci_op_write_4(sc, port, v);
-// 				usb_delay_ms(&sc->sc_bus, USB_RESUME_WAIT);
-// 			} else {
-// 				KASSERT(sc->sc_bus.ub_revision > USBREV_2_0);
-// 			}
+			/*
+			 * `For a USB2 protocol port, software shall
+			 *  write a ``15'' (Resume) to the PLS field to
+			 *  initiate resume signaling.  The port shall
+			 *  transition to the Resume substate and the
+			 *  xHC shall transmit the resume signaling
+			 *  within 1ms (T_URSM).  Software shall ensure
+			 *  that resume is signaled for at least 20ms
+			 *  (T_DRSMDN).  Software shall start timing
+			 *  T_DRSMDN from the write of ``15'' (Resume)
+			 *  to PLS.'
+			 */
+			if (bn == 1) {
+				KASSERT(sc->sc_bus2.ub_revision == USBREV_2_0);
+				v &= ~(XHCI_PS_PLS_MASK | XHCI_PS_CLEAR);
+				v |= XHCI_PS_LWS;
+				v |= XHCI_PS_PLS_SET(XHCI_PS_PLS_SETRESUME);
+				xhci_op_write_4(sc, port, v);
+				usb_delay_ms(&sc->sc_bus, USB_RESUME_WAIT);
+			} else {
+				KASSERT(sc->sc_bus.ub_revision > USBREV_2_0);
+			}
 
-// 			/*
-// 			 * `For a USB3 protocol port [and a USB2
-// 			 *  protocol port after transitioning to
-// 			 *  Resume], software shall write a ``0'' (U0)
-// 			 *  to the PLS field...'
-// 			 */
-// 			v = xhci_op_read_4(sc, port);
-// 			v &= ~(XHCI_PS_PLS_MASK | XHCI_PS_CLEAR);
-// 			v |= XHCI_PS_LWS | XHCI_PS_PLS_SET(XHCI_PS_PLS_SETU0);
-// 			xhci_op_write_4(sc, port, v);
+			/*
+			 * `For a USB3 protocol port [and a USB2
+			 *  protocol port after transitioning to
+			 *  Resume], software shall write a ``0'' (U0)
+			 *  to the PLS field...'
+			 */
+			v = xhci_op_read_4(sc, port);
+			v &= ~(XHCI_PS_PLS_MASK | XHCI_PS_CLEAR);
+			v |= XHCI_PS_LWS | XHCI_PS_PLS_SET(XHCI_PS_PLS_SETU0);
+			xhci_op_write_4(sc, port, v);
 
-// 			for (j = 0; j < XHCI_WAIT_PLS_U0; j++) {
-// 				v = xhci_op_read_4(sc, port);
-// 				if (XHCI_PS_PLS_GET(v) == XHCI_PS_PLS_U0)
-// 					break;
-// 				usb_delay_ms(&sc->sc_bus, 1);
-// 			}
-// 			if (j == XHCI_WAIT_PLS_U0) {
-// 				device_printf(self,
-// 				    "resume timeout on bus %zu port %zu\n",
-// 				    bn, i);
-// 				goto out;
-// 			}
-// 		}
-// 	}
+			for (j = 0; j < XHCI_WAIT_PLS_U0; j++) {
+				v = xhci_op_read_4(sc, port);
+				if (XHCI_PS_PLS_GET(v) == XHCI_PS_PLS_U0)
+					break;
+				usb_delay_ms(&sc->sc_bus, 1);
+			}
+			if (j == XHCI_WAIT_PLS_U0) {
+				device_printf(self,
+				    "resume timeout on bus %zu port %zu\n",
+				    bn, i);
+				goto out;
+			}
+		}
+	}
 
-// 	/*
-// 	 * `10. Restart each of the previously Running endpoints by
-// 	 *      ringing their doorbells.'
-// 	 */
-// 	for (i = 0; i < sc->sc_maxslots; i++) {
-// 		struct xhci_slot *xs = &sc->sc_slots[i];
+	/*
+	 * `10. Restart each of the previously Running endpoints by
+	 *      ringing their doorbells.'
+	 */
+	for (i = 0; i < sc->sc_maxslots; i++) {
+		struct xhci_slot *xs = &sc->sc_slots[i];
 
-// 		/* Skip if the slot is not in use.  */
-// 		if (xs->xs_idx == 0)
-// 			continue;
+		/* Skip if the slot is not in use.  */
+		if (xs->xs_idx == 0)
+			continue;
 
-// 		for (dci = XHCI_DCI_SLOT; dci <= XHCI_MAX_DCI; dci++) {
-// 			/* Skip if the endpoint is not Running.  */
-// 			if (xhci_get_epstate(sc, xs, dci) !=
-// 			    XHCI_EPSTATE_RUNNING)
-// 				continue;
+		for (dci = XHCI_DCI_SLOT; dci <= XHCI_MAX_DCI; dci++) {
+			/* Skip if the endpoint is not Running.  */
+			if (xhci_get_epstate(sc, xs, dci) !=
+			    XHCI_EPSTATE_RUNNING)
+				continue;
 
-// 			/* Ring the doorbell.  */
-// 			xhci_db_write_4(sc, XHCI_DOORBELL(xs->xs_idx), dci);
-// 		}
-// 	}
+			/* Ring the doorbell.  */
+			xhci_db_write_4(sc, XHCI_DOORBELL(xs->xs_idx), dci);
+		}
+	}
 
-// 	/*
-// 	 * `Note: After a Save or Restore operation completes, the
-// 	 *  Save/Restore Error (SRE) flag in the USBSTS register should
-// 	 *  be checked to ensure that the operation completed
-// 	 *  successfully.'
-// 	 */
-// 	if (xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_SRE) {
-// 		device_printf(self, "resume error, USBSTS.SRE\n");
-// 		goto out;
-// 	}
+	/*
+	 * `Note: After a Save or Restore operation completes, the
+	 *  Save/Restore Error (SRE) flag in the USBSTS register should
+	 *  be checked to ensure that the operation completed
+	 *  successfully.'
+	 */
+	if (xhci_op_read_4(sc, XHCI_USBSTS) & XHCI_STS_SRE) {
+		device_printf(self, "resume error, USBSTS.SRE\n");
+		goto out;
+	}
 
-// 	/* Success!  */
-// 	ok = true;
+	/* Success!  */
+	ok = true;
 
-// out:	/*
-// 	 * Resume command issuance.  If the hardware failed to resume,
-// 	 * well, tough -- deadlocking because everything is held up on
-// 	 * the suspension, with no opportunity to detach, isn't better
-// 	 * than timing out waiting for dead hardware.
-// 	 */
-// 	mutex_enter(&sc->sc_lock);
-// 	KASSERT(sc->sc_suspender);
-// 	sc->sc_suspender = NULL;
-// 	cv_broadcast(&sc->sc_cmdbusy_cv);
-// 	mutex_exit(&sc->sc_lock);
+out:	/*
+	 * Resume command issuance.  If the hardware failed to resume,
+	 * well, tough -- deadlocking because everything is held up on
+	 * the suspension, with no opportunity to detach, isn't better
+	 * than timing out waiting for dead hardware.
+	 */
+	mutex_enter(&sc->sc_lock);
+	KASSERT(sc->sc_suspender);
+	sc->sc_suspender = NULL;
+	cv_broadcast(&sc->sc_cmdbusy_cv);
+	mutex_exit(&sc->sc_lock);
 
-// 	mutex_exit(&sc->sc_rhlock);
-// 	return ok;
-// }
+	mutex_exit(&sc->sc_rhlock);
+	return ok;
+}
 
 bool
 xhci_shutdown(device_t self, int flags)
@@ -1439,12 +1425,6 @@ xhci_start(struct xhci_softc *sc)
 	xhci_op_write_4(sc, XHCI_USBCMD, XHCI_CMD_INTE|XHCI_CMD_RS);
 	aprint_debug_dev(sc->sc_dev, "USBCMD 0x%08"PRIx32"\n",
 	    xhci_op_read_4(sc, XHCI_USBCMD));
-	aprint_debug_dev(sc->sc_dev, "USBSTS 0x%08"PRIx32"\n",
-	    xhci_op_read_4(sc, XHCI_USBSTS));
-	aprint_debug_dev(sc->sc_dev, "USBCMD 0x%08"PRIx32"\n",
-	    xhci_op_read_4(sc, XHCI_USBCMD));
-	aprint_debug_dev(sc->sc_dev, "USBSTS 0x%08"PRIx32"\n",
-	    xhci_op_read_4(sc, XHCI_USBSTS));
 }
 
 int
@@ -1572,10 +1552,14 @@ xhci_init(struct xhci_softc *sc)
 		return EIO;
 	}
 	sc->sc_pgsz = 1 << (12 + (pagesize - 1));
+	aprint_debug_dev(sc->sc_dev, "sc_pgsz 0x%08x\n", (uint32_t)sc->sc_pgsz);
+	aprint_debug_dev(sc->sc_dev, "sc_maxslots 0x%08x\n",
+	    (uint32_t)sc->sc_maxslots);
+	aprint_debug_dev(sc->sc_dev, "sc_maxports %d\n", sc->sc_maxports);
 
 	int err;
 	sc->sc_maxspbuf = XHCI_HCS2_MAXSPBUF(hcs2);
-// 	aprint_debug_dev(sc->sc_dev, "sc_maxspbuf %d\n", sc->sc_maxspbuf);
+	aprint_debug_dev(sc->sc_dev, "sc_maxspbuf %d\n", sc->sc_maxspbuf);
 	if (sc->sc_maxspbuf != 0) {
 		err = usb_allocmem(sc->sc_bus.ub_dmatag,
 		    sizeof(uint64_t) * sc->sc_maxspbuf, sizeof(uint64_t),
@@ -1770,15 +1754,15 @@ xhci_intr(void *v)
 	struct xhci_softc * const sc = v;
 	int ret = 0;
 
-	/* XHCIHIST_FUNC(); XHCIHIST_CALLED(); */
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
 	if (sc == NULL)
 		return 0;
 
 	mutex_spin_enter(&sc->sc_intr_lock);
 
-	// if (sc->sc_dying || !device_has_power(sc->sc_dev))
-	// 	goto done;
+	if (sc->sc_dying || !device_has_power(sc->sc_dev))
+		goto done;
 
 	/* If we get an interrupt while polling, then just ignore it. */
 	if (xhci_polling_p(sc)) {
@@ -1815,10 +1799,10 @@ xhci_intr1(struct xhci_softc * const sc)
 	uint32_t usbsts;
 	uint32_t iman;
 
-	/* XHCIHIST_FUNC(); */
+	XHCIHIST_FUNC();
 
 	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
-	/* XHCIHIST_CALLARGS("USBSTS 0x%08jx", usbsts, 0, 0, 0); */
+	XHCIHIST_CALLARGS("USBSTS 0x%08jx", usbsts, 0, 0, 0);
 	if ((usbsts & (XHCI_STS_HSE | XHCI_STS_EINT | XHCI_STS_PCD |
 	    XHCI_STS_HCE)) == 0) {
 		DPRINTFN(16, "ignored intr not for %jd",
@@ -1834,20 +1818,20 @@ xhci_intr1(struct xhci_softc * const sc)
 	xhci_op_write_4(sc, XHCI_USBSTS, usbsts & XHCI_STS_RSVDP0);
 
 #ifdef XHCI_DEBUG
-	/* usbsts = xhci_op_read_4(sc, XHCI_USBSTS); */
-	/* DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0); */
+	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
+	DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0);
 #endif
 
 	iman = xhci_rt_read_4(sc, XHCI_IMAN(0));
-	/* DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0); */
+	DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0);
 	iman |= XHCI_IMAN_INTR_PEND;
 	xhci_rt_write_4(sc, XHCI_IMAN(0), iman);
 
 #ifdef XHCI_DEBUG
-	/* iman = xhci_rt_read_4(sc, XHCI_IMAN(0)); */
-	/* DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0); */
-	/* usbsts = xhci_op_read_4(sc, XHCI_USBSTS); */
-	/* DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0); */
+	iman = xhci_rt_read_4(sc, XHCI_IMAN(0));
+	DPRINTFN(16, "IMAN0 0x%08jx", iman, 0, 0, 0);
+	usbsts = xhci_op_read_4(sc, XHCI_USBSTS);
+	DPRINTFN(16, "USBSTS 0x%08jx", usbsts, 0, 0, 0);
 #endif
 
 	return 1;
@@ -2129,11 +2113,10 @@ xhci_open(struct usbd_pipe *pipe)
 				hardware_interrupt PD, need the memory address of the
 				structure in there instead of the one in xhci_stub PD.
 			*/ 
-			pipe->up_methods = (struct usbd_pipe_methods*) xhci_root_intr_pointer;
 			// pmi->pipe = pipe;
 			// pmi->method_ptr = XHCI_ROOT_INTR;
 			// sel4cp_ppcall(PIPE_INIT_CHANNEL, seL4_MessageInfo_new((uint64_t) pmi,1,0,0));
-			// pipe->up_methods = &xhci_root_intr_methods;
+			pipe->up_methods = (struct usbd_pipe_methods*) xhci_root_intr_pointer;
 			break;
 		default:
 			pipe->up_methods = NULL;
@@ -2228,7 +2211,7 @@ xhci_close_pipe(struct usbd_pipe *pipe)
 	XHCIHIST_CALLARGS("pipe %#jx slot %ju dci %ju",
 	    (uintptr_t)pipe, xs->xs_idx, dci, 0);
 
-	// KASSERTMSG(!cpu_intr_p() && !cpu_softintr_p(), "called from intr ctx");
+	KASSERTMSG(!cpu_intr_p() && !cpu_softintr_p(), "called from intr ctx");
 	KASSERT(mutex_owned(&sc->sc_lock));
 
 	if (pipe->up_dev->ud_depth == 0)
@@ -2430,7 +2413,7 @@ xhci_pipe_restart_async(struct usbd_pipe *pipe)
 	KASSERT(xhci_polling_p(sc) || mutex_owned(&sc->sc_lock));
 
 	tr->is_halted = true;
-	// usb_add_task(pipe->up_dev, &xp->xp_async_task, USB_TASKQ_HC);
+	usb_add_task(pipe->up_dev, &xp->xp_async_task, USB_TASKQ_HC);
 
 	DPRINTFN(4, "ends", 0, 0, 0, 0);
 }
@@ -2657,7 +2640,6 @@ xhci_event_cmd(struct xhci_softc * const sc, const struct xhci_trb * const trb)
 		sc->sc_result_trb.trb_3 = trb_3;
 		if (XHCI_TRB_2_ERROR_GET(trb_2) !=
 		    XHCI_TRB_ERROR_SUCCESS) {
-			printf("command error = %016jx\n", XHCI_TRB_2_ERROR_GET(trb_2));
 			DPRINTFN(1, "command completion "
 			    "failure: 0x%016jx 0x%08jx 0x%08jx",
 			    trb_0, trb_2, trb_3, 0);
@@ -2731,7 +2713,7 @@ xhci_softintr(void *v)
 
 	XHCIHIST_FUNC();
 
-	// KASSERT(xhci_polling_p(sc) || mutex_owned(&sc->sc_lock));
+	KASSERT(xhci_polling_p(sc) || mutex_owned(&sc->sc_lock));
 
 	i = er->xr_ep;
 	j = er->xr_cs;
@@ -2756,7 +2738,6 @@ xhci_softintr(void *v)
 		}
 	}
 
-
 	er->xr_ep = i;
 	er->xr_cs = j;
 
@@ -2771,19 +2752,18 @@ xhci_softintr(void *v)
 static void
 xhci_poll(struct usbd_bus *bus)
 {
-	printf("xhci_poll stubbed out\n");
-	// struct xhci_softc * const sc = XHCI_BUS2SC(bus);
+	struct xhci_softc * const sc = XHCI_BUS2SC(bus);
 
-	// XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-	// mutex_enter(&sc->sc_intr_lock);
-	// int ret = xhci_intr1(sc);
-	// if (ret) {
-	// 	xhci_softintr(bus);
-	// }
-	// mutex_exit(&sc->sc_intr_lock);
+	mutex_enter(&sc->sc_intr_lock);
+	int ret = xhci_intr1(sc);
+	if (ret) {
+		xhci_softintr(bus);
+	}
+	mutex_exit(&sc->sc_intr_lock);
 
-	// return;
+	return;
 }
 
 static struct usbd_xfer *
@@ -2800,7 +2780,6 @@ xhci_allocx(struct usbd_bus *bus, unsigned int nframes)
 
 	// xx = pool_cache_get(sc->sc_xferpool, PR_WAITOK);
 	xx = kmem_zalloc(sizeof(struct xhci_xfer), KM_SLEEP); //! this probably needs to change
-	/* printf("allocated xx at addr %p", xx); */
 	if (xx != NULL) {
 		memset(xx, 0, sizeof(*xx));
 		if (ntrbs > 0) {
@@ -2856,7 +2835,6 @@ xhci_get_lock(struct usbd_bus *bus, kmutex_t **lock)
 }
 
 extern uint32_t usb_cookie_no;
-// uint32_t usb_cookie_no = 0;
 
 /*
  * xHCI 4.3
@@ -2888,7 +2866,7 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 	XHCIHIST_CALLARGS("port %ju depth %ju speed %ju up %#jx",
 	    port, depth, speed, (uintptr_t)up);
 
-	// KASSERT(KERNEL_LOCKED_P());
+	KASSERT(KERNEL_LOCKED_P());
 
 	dev = kmem_zalloc(sizeof(*dev), KM_SLEEP);
 	dev->ud_bus = bus;
@@ -2915,7 +2893,6 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 	dev->ud_ep0desc.bInterval = 0;
 
 	/* 4.3,  4.8.2.1 */
-	DPRINTF("Speed of device = %x", speed, 0, 0, 0);
 	switch (speed) {
 	case USB_SPEED_SUPER:
 	case USB_SPEED_SUPER_PLUS:
@@ -2928,11 +2905,10 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 		break;
 	case USB_SPEED_LOW:
 	default:
-		printf("Device should have packet size of %d\n", USB_MAX_IPACKET);
+		aprint_debug("Device should have packet size of %d\n", USB_MAX_IPACKET);
 		USETW(dev->ud_ep0desc.wMaxPacketSize, USB_MAX_IPACKET);
 		break;
 	}
-	DPRINTF("wMaxPacketSize of device = %x", dev->ud_ep0desc.wMaxPacketSize, 0, 0, 0);
 
 	up->up_dev = dev;
 
@@ -3080,7 +3056,6 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 		return USBD_NORMAL_COMPLETION;
 	}
 
-	// needs to do this probe and attach via software interrupt
 	err = usbd_probe_and_attach(parent, dev, port, dev->ud_addr);
  bad:
 	if (err != USBD_NORMAL_COMPLETION) {
@@ -4523,10 +4498,9 @@ xhci_device_ctrl_done(struct usbd_xfer *xfer)
 	int len = UGETW(req->wLength);
 	int rd = req->bmRequestType & UT_READ;
 
-	if (len) {
+	if (len)
 		usb_syncmem(&xfer->ux_dmabuf, 0, len,
 		    rd ? BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE);
-	}
 }
 
 static void
@@ -4551,150 +4525,150 @@ xhci_device_ctrl_close(struct usbd_pipe *pipe)
 static usbd_status
 xhci_device_isoc_transfer(struct usbd_xfer *xfer)
 {
-	// XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-	// return xhci_device_isoc_enter(xfer);
+	return xhci_device_isoc_enter(xfer);
 }
 
 static usbd_status
 xhci_device_isoc_enter(struct usbd_xfer *xfer)
 {
-// 	struct xhci_softc * const sc = XHCI_XFER2SC(xfer);
-// 	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
-// 	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
-// 	struct xhci_ring * const tr = xs->xs_xr[dci];
-// 	struct xhci_xfer * const xx = XHCI_XFER2XXFER(xfer);
-// 	struct xhci_pipe * const xpipe = (struct xhci_pipe *)xfer->ux_pipe;
-// 	uint32_t len = xfer->ux_length;
-// 	usb_dma_t * const dma = &xfer->ux_dmabuf;
-// 	uint64_t parameter;
-// 	uint32_t status;
-// 	uint32_t control;
-// 	uint32_t mfindex;
-// 	uint32_t offs;
-// 	int i, ival;
-// 	const bool polling = xhci_polling_p(sc);
-// 	const uint16_t MPS = UGETW(xfer->ux_pipe->up_endpoint->ue_edesc->wMaxPacketSize);
-// 	const uint16_t mps = UE_GET_SIZE(MPS);
-// 	const uint8_t maxb = xpipe->xp_maxb;
-// 	u_int tdpc, tbc, tlbpc;
+	struct xhci_softc * const sc = XHCI_XFER2SC(xfer);
+	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
+	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
+	struct xhci_ring * const tr = xs->xs_xr[dci];
+	struct xhci_xfer * const xx = XHCI_XFER2XXFER(xfer);
+	struct xhci_pipe * const xpipe = (struct xhci_pipe *)xfer->ux_pipe;
+	uint32_t len = xfer->ux_length;
+	usb_dma_t * const dma = &xfer->ux_dmabuf;
+	uint64_t parameter;
+	uint32_t status;
+	uint32_t control;
+	uint32_t mfindex;
+	uint32_t offs;
+	int i, ival;
+	const bool polling = xhci_polling_p(sc);
+	const uint16_t MPS = UGETW(xfer->ux_pipe->up_endpoint->ue_edesc->wMaxPacketSize);
+	const uint16_t mps = UE_GET_SIZE(MPS);
+	const uint8_t maxb = xpipe->xp_maxb;
+	u_int tdpc, tbc, tlbpc;
 
-// 	XHCIHIST_FUNC();
-// 	XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
-// 	    (uintptr_t)xfer, xs->xs_idx, dci, 0);
+	XHCIHIST_FUNC();
+	XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
+	    (uintptr_t)xfer, xs->xs_idx, dci, 0);
 
-// 	KASSERT(polling || mutex_owned(&sc->sc_lock));
+	KASSERT(polling || mutex_owned(&sc->sc_lock));
 
-// 	if (sc->sc_dying)
-// 		return USBD_IOERROR;
+	if (sc->sc_dying)
+		return USBD_IOERROR;
 
-// 	KASSERT(xfer->ux_nframes != 0 && xfer->ux_frlengths);
-// 	KASSERT((xfer->ux_rqflags & URQ_REQUEST) == 0);
+	KASSERT(xfer->ux_nframes != 0 && xfer->ux_frlengths);
+	KASSERT((xfer->ux_rqflags & URQ_REQUEST) == 0);
 
-// 	const bool isread = usbd_xfer_isread(xfer);
-// 	if (xfer->ux_length)
-// 		usb_syncmem(dma, 0, xfer->ux_length,
-// 		    isread ? BUS_DMASYNC_PREREAD : BUS_DMASYNC_PREWRITE);
+	const bool isread = usbd_xfer_isread(xfer);
+	if (xfer->ux_length)
+		usb_syncmem(dma, 0, xfer->ux_length,
+		    isread ? BUS_DMASYNC_PREREAD : BUS_DMASYNC_PREWRITE);
 
-// 	ival = xfer->ux_pipe->up_endpoint->ue_edesc->bInterval;
-// 	if (ival >= 1 && ival <= 16)
-// 		ival = 1 << (ival - 1);
-// 	else
-// 		ival = 1; /* fake something up */
+	ival = xfer->ux_pipe->up_endpoint->ue_edesc->bInterval;
+	if (ival >= 1 && ival <= 16)
+		ival = 1 << (ival - 1);
+	else
+		ival = 1; /* fake something up */
 
-// 	if (xpipe->xp_isoc_next == -1) {
-// 		mfindex = xhci_rt_read_4(sc, XHCI_MFINDEX);
-// 		DPRINTF("mfindex %jx", (uintmax_t)mfindex, 0, 0, 0);
-// 		mfindex = XHCI_MFINDEX_GET(mfindex + 1);
-// 		mfindex /= USB_UFRAMES_PER_FRAME;
-// 		mfindex += 7; /* 7 frames is max possible IST */
-// 		xpipe->xp_isoc_next = roundup2(mfindex, ival);
-// 	}
+	if (xpipe->xp_isoc_next == -1) {
+		mfindex = xhci_rt_read_4(sc, XHCI_MFINDEX);
+		DPRINTF("mfindex %jx", (uintmax_t)mfindex, 0, 0, 0);
+		mfindex = XHCI_MFINDEX_GET(mfindex + 1);
+		mfindex /= USB_UFRAMES_PER_FRAME;
+		mfindex += 7; /* 7 frames is max possible IST */
+		xpipe->xp_isoc_next = roundup2(mfindex, ival);
+	}
 
-// 	offs = 0;
-// 	for (i = 0; i < xfer->ux_nframes; i++) {
-// 		len = xfer->ux_frlengths[i];
+	offs = 0;
+	for (i = 0; i < xfer->ux_nframes; i++) {
+		len = xfer->ux_frlengths[i];
 
-// 		tdpc = howmany(len, mps);
-// 		tbc = howmany(tdpc, maxb) - 1;
-// 		tlbpc = tdpc % maxb;
-// 		tlbpc = tlbpc ? tlbpc - 1 : maxb - 1;
+		tdpc = howmany(len, mps);
+		tbc = howmany(tdpc, maxb) - 1;
+		tlbpc = tdpc % maxb;
+		tlbpc = tlbpc ? tlbpc - 1 : maxb - 1;
 
-// 		KASSERTMSG(len <= 0x10000, "len %d", len);
-// 		parameter = DMAADDR(dma, offs);
-// 		status = XHCI_TRB_2_IRQ_SET(0) |
-// 		    XHCI_TRB_2_TDSZ_SET(0) |
-// 		    XHCI_TRB_2_BYTES_SET(len);
-// 		control = XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_ISOCH) |
-// 		    (isread ? XHCI_TRB_3_ISP_BIT : 0) |
-// 		    XHCI_TRB_3_TBC_SET(tbc) |
-// 		    XHCI_TRB_3_TLBPC_SET(tlbpc) |
-// 		    XHCI_TRB_3_IOC_BIT;
-// 		if (XHCI_HCC_CFC(sc->sc_hcc)) {
-// 			control |= XHCI_TRB_3_FRID_SET(xpipe->xp_isoc_next);
-// #if 0
-// 		} else if (xpipe->xp_isoc_next == -1) {
-// 			control |= XHCI_TRB_3_FRID_SET(xpipe->xp_isoc_next);
-// #endif
-// 		} else {
-// 			control |= XHCI_TRB_3_ISO_SIA_BIT;
-// 		}
-// #if 0
-// 		if (i != xfer->ux_nframes - 1)
-// 			control |= XHCI_TRB_3_BEI_BIT;
-// #endif
-// 		xhci_xfer_put_trb(xx, i, parameter, status, control);
+		KASSERTMSG(len <= 0x10000, "len %d", len);
+		parameter = DMAADDR(dma, offs);
+		status = XHCI_TRB_2_IRQ_SET(0) |
+		    XHCI_TRB_2_TDSZ_SET(0) |
+		    XHCI_TRB_2_BYTES_SET(len);
+		control = XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_ISOCH) |
+		    (isread ? XHCI_TRB_3_ISP_BIT : 0) |
+		    XHCI_TRB_3_TBC_SET(tbc) |
+		    XHCI_TRB_3_TLBPC_SET(tlbpc) |
+		    XHCI_TRB_3_IOC_BIT;
+		if (XHCI_HCC_CFC(sc->sc_hcc)) {
+			control |= XHCI_TRB_3_FRID_SET(xpipe->xp_isoc_next);
+#if 0
+		} else if (xpipe->xp_isoc_next == -1) {
+			control |= XHCI_TRB_3_FRID_SET(xpipe->xp_isoc_next);
+#endif
+		} else {
+			control |= XHCI_TRB_3_ISO_SIA_BIT;
+		}
+#if 0
+		if (i != xfer->ux_nframes - 1)
+			control |= XHCI_TRB_3_BEI_BIT;
+#endif
+		xhci_xfer_put_trb(xx, i, parameter, status, control);
 
-// 		xpipe->xp_isoc_next += ival;
-// 		offs += len;
-// 	}
+		xpipe->xp_isoc_next += ival;
+		offs += len;
+	}
 
-// 	xx->xx_isoc_done = 0;
+	xx->xx_isoc_done = 0;
 
-// 	if (!polling)
-// 		mutex_enter(&tr->xr_lock);
-// 	xhci_ring_put_xfer(sc, tr, xx, i);
-// 	if (!polling)
-// 		mutex_exit(&tr->xr_lock);
+	if (!polling)
+		mutex_enter(&tr->xr_lock);
+	xhci_ring_put_xfer(sc, tr, xx, i);
+	if (!polling)
+		mutex_exit(&tr->xr_lock);
 
-// 	xfer->ux_status = USBD_IN_PROGRESS;
-// 	xhci_db_write_4(sc, XHCI_DOORBELL(xs->xs_idx), dci);
-// 	usbd_xfer_schedule_timeout(xfer);
+	xfer->ux_status = USBD_IN_PROGRESS;
+	xhci_db_write_4(sc, XHCI_DOORBELL(xs->xs_idx), dci);
+	usbd_xfer_schedule_timeout(xfer);
 
-// 	return USBD_IN_PROGRESS;
+	return USBD_IN_PROGRESS;
 }
 
 static void
 xhci_device_isoc_abort(struct usbd_xfer *xfer)
 {
-	// XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-	// usbd_xfer_abort(xfer);
+	usbd_xfer_abort(xfer);
 }
 
 static void
 xhci_device_isoc_close(struct usbd_pipe *pipe)
 {
-	// XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-	// xhci_close_pipe(pipe);
+	xhci_close_pipe(pipe);
 }
 
 static void
 xhci_device_isoc_done(struct usbd_xfer *xfer)
 {
-// #ifdef USB_DEBUG
-// 	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
-// 	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
-// #endif
-// 	const bool isread = usbd_xfer_isread(xfer);
+#ifdef USB_DEBUG
+	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
+	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
+#endif
+	const bool isread = usbd_xfer_isread(xfer);
 
-// 	XHCIHIST_FUNC();
-// 	XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
-// 	    (uintptr_t)xfer, xs->xs_idx, dci, 0);
+	XHCIHIST_FUNC();
+	XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
+	    (uintptr_t)xfer, xs->xs_idx, dci, 0);
 
-// 	usb_syncmem(&xfer->ux_dmabuf, 0, xfer->ux_length,
-// 	    isread ? BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE);
+	usb_syncmem(&xfer->ux_dmabuf, 0, xfer->ux_length,
+	    isread ? BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE);
 }
 
 /* ----------- */
@@ -4703,88 +4677,88 @@ xhci_device_isoc_done(struct usbd_xfer *xfer)
 static usbd_status
 xhci_device_bulk_transfer(struct usbd_xfer *xfer)
 {
-	// XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-	// /* Pipe isn't running, so start it first.  */
-	// return xhci_device_bulk_start(SIMPLEQ_FIRST(&xfer->ux_pipe->up_queue));
+	/* Pipe isn't running, so start it first.  */
+	return xhci_device_bulk_start(SIMPLEQ_FIRST(&xfer->ux_pipe->up_queue));
 }
 
 static usbd_status
 xhci_device_bulk_start(struct usbd_xfer *xfer)
 {
-// 	struct xhci_softc * const sc = XHCI_XFER2SC(xfer);
-// 	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
-// 	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
-// 	struct xhci_ring * const tr = xs->xs_xr[dci];
-// 	struct xhci_xfer * const xx = XHCI_XFER2XXFER(xfer);
-// 	const uint32_t len = xfer->ux_length;
-// 	usb_dma_t * const dma = &xfer->ux_dmabuf;
-// 	uint64_t parameter;
-// 	uint32_t status;
-// 	uint32_t control;
-// 	u_int i = 0;
-// 	const bool polling = xhci_polling_p(sc);
+	struct xhci_softc * const sc = XHCI_XFER2SC(xfer);
+	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
+	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
+	struct xhci_ring * const tr = xs->xs_xr[dci];
+	struct xhci_xfer * const xx = XHCI_XFER2XXFER(xfer);
+	const uint32_t len = xfer->ux_length;
+	usb_dma_t * const dma = &xfer->ux_dmabuf;
+	uint64_t parameter;
+	uint32_t status;
+	uint32_t control;
+	u_int i = 0;
+	const bool polling = xhci_polling_p(sc);
 
-// 	XHCIHIST_FUNC();
-// 	XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
-// 	    (uintptr_t)xfer, xs->xs_idx, dci, 0);
+	XHCIHIST_FUNC();
+	XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
+	    (uintptr_t)xfer, xs->xs_idx, dci, 0);
 
-// 	KASSERT(polling || mutex_owned(&sc->sc_lock));
+	KASSERT(polling || mutex_owned(&sc->sc_lock));
 
-// 	if (sc->sc_dying)
-// 		return USBD_IOERROR;
+	if (sc->sc_dying)
+		return USBD_IOERROR;
 
-// 	KASSERT((xfer->ux_rqflags & URQ_REQUEST) == 0);
+	KASSERT((xfer->ux_rqflags & URQ_REQUEST) == 0);
 
-// 	if (tr->is_halted)
-// 		goto out;
+	if (tr->is_halted)
+		goto out;
 
-// 	parameter = DMAADDR(dma, 0);
-// 	const bool isread = usbd_xfer_isread(xfer);
-// 	if (len)
-// 		usb_syncmem(dma, 0, len,
-// 		    isread ? BUS_DMASYNC_PREREAD : BUS_DMASYNC_PREWRITE);
+	parameter = DMAADDR(dma, 0);
+	const bool isread = usbd_xfer_isread(xfer);
+	if (len)
+		usb_syncmem(dma, 0, len,
+		    isread ? BUS_DMASYNC_PREREAD : BUS_DMASYNC_PREWRITE);
 
-// 	/*
-// 	 * XXX: (dsl) The physical buffer must not cross a 64k boundary.
-// 	 * If the user supplied buffer crosses such a boundary then 2
-// 	 * (or more) TRB should be used.
-// 	 * If multiple TRB are used the td_size field must be set correctly.
-// 	 * For v1.0 devices (like ivy bridge) this is the number of usb data
-// 	 * blocks needed to complete the transfer.
-// 	 * Setting it to 1 in the last TRB causes an extra zero-length
-// 	 * data block be sent.
-// 	 * The earlier documentation differs, I don't know how it behaves.
-// 	 */
-// 	KASSERTMSG(len <= 0x10000, "len %d", len);
-// 	status = XHCI_TRB_2_IRQ_SET(0) |
-// 	    XHCI_TRB_2_TDSZ_SET(0) |
-// 	    XHCI_TRB_2_BYTES_SET(len);
-// 	control = XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_NORMAL) |
-// 	    (isread ? XHCI_TRB_3_ISP_BIT : 0) |
-// 	    XHCI_TRB_3_IOC_BIT;
-// 	xhci_xfer_put_trb(xx, i++, parameter, status, control);
+	/*
+	 * XXX: (dsl) The physical buffer must not cross a 64k boundary.
+	 * If the user supplied buffer crosses such a boundary then 2
+	 * (or more) TRB should be used.
+	 * If multiple TRB are used the td_size field must be set correctly.
+	 * For v1.0 devices (like ivy bridge) this is the number of usb data
+	 * blocks needed to complete the transfer.
+	 * Setting it to 1 in the last TRB causes an extra zero-length
+	 * data block be sent.
+	 * The earlier documentation differs, I don't know how it behaves.
+	 */
+	KASSERTMSG(len <= 0x10000, "len %d", len);
+	status = XHCI_TRB_2_IRQ_SET(0) |
+	    XHCI_TRB_2_TDSZ_SET(0) |
+	    XHCI_TRB_2_BYTES_SET(len);
+	control = XHCI_TRB_3_TYPE_SET(XHCI_TRB_TYPE_NORMAL) |
+	    (isread ? XHCI_TRB_3_ISP_BIT : 0) |
+	    XHCI_TRB_3_IOC_BIT;
+	xhci_xfer_put_trb(xx, i++, parameter, status, control);
 
-// 	if (!polling)
-// 		mutex_enter(&tr->xr_lock);
-// 	xhci_ring_put_xfer(sc, tr, xx, i);
-// 	if (!polling)
-// 		mutex_exit(&tr->xr_lock);
+	if (!polling)
+		mutex_enter(&tr->xr_lock);
+	xhci_ring_put_xfer(sc, tr, xx, i);
+	if (!polling)
+		mutex_exit(&tr->xr_lock);
 
-// 	xhci_db_write_4(sc, XHCI_DOORBELL(xs->xs_idx), dci);
+	xhci_db_write_4(sc, XHCI_DOORBELL(xs->xs_idx), dci);
 
-// out:	if (xfer->ux_status == USBD_NOT_STARTED) {
-// 		xfer->ux_status = USBD_IN_PROGRESS;
-// 		usbd_xfer_schedule_timeout(xfer);
-// 	} else {
-// 		/*
-// 		 * We must be coming from xhci_pipe_restart -- timeout
-// 		 * already set up, nothing to do.
-// 		 */
-// 	}
-// 	KASSERT(xfer->ux_status == USBD_IN_PROGRESS);
+out:	if (xfer->ux_status == USBD_NOT_STARTED) {
+		xfer->ux_status = USBD_IN_PROGRESS;
+		usbd_xfer_schedule_timeout(xfer);
+	} else {
+		/*
+		 * We must be coming from xhci_pipe_restart -- timeout
+		 * already set up, nothing to do.
+		 */
+	}
+	KASSERT(xfer->ux_status == USBD_IN_PROGRESS);
 
-// 	return USBD_IN_PROGRESS;
+	return USBD_IN_PROGRESS;
 }
 
 static void
@@ -4797,8 +4771,8 @@ xhci_device_bulk_done(struct usbd_xfer *xfer)
 	const bool isread = usbd_xfer_isread(xfer);
 
 	XHCIHIST_FUNC();
-	// XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
-	//     (uintptr_t)xfer, xs->xs_idx, dci, 0);
+	XHCIHIST_CALLARGS("%#jx slot %ju dci %ju",
+	    (uintptr_t)xfer, xs->xs_idx, dci, 0);
 
 	usb_syncmem(&xfer->ux_dmabuf, 0, xfer->ux_length,
 	    isread ? BUS_DMASYNC_POSTREAD : BUS_DMASYNC_POSTWRITE);
@@ -4807,17 +4781,17 @@ xhci_device_bulk_done(struct usbd_xfer *xfer)
 static void
 xhci_device_bulk_abort(struct usbd_xfer *xfer)
 {
-	// XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-	// usbd_xfer_abort(xfer);
+	usbd_xfer_abort(xfer);
 }
 
 static void
 xhci_device_bulk_close(struct usbd_pipe *pipe)
 {
-	// XHCIHIST_FUNC(); XHCIHIST_CALLED();
+	XHCIHIST_FUNC(); XHCIHIST_CALLED();
 
-	// xhci_close_pipe(pipe);
+	xhci_close_pipe(pipe);
 }
 
 /* ---------------- */
@@ -4902,10 +4876,10 @@ static void
 xhci_device_intr_done(struct usbd_xfer *xfer)
 {
 	struct xhci_softc * const sc __diagused = XHCI_XFER2SC(xfer);
-// #ifdef USB_DEBUG
+#ifdef USB_DEBUG
 	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
 	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
-// #endif
+#endif
 	const bool isread = usbd_xfer_isread(xfer);
 
 	XHCIHIST_FUNC();

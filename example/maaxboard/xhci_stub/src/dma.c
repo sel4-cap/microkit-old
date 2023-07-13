@@ -67,7 +67,7 @@ uintptr_t* getPhys(void* virt) {
     int offset = (uint64_t)virt - (int)virt_base;
     dma_print("offset = %d\n", offset);
     dma_print("getting phys of %p: %p\n", virt, phys_base+offset);
-    return (phys_base+offset);
+    return (uintptr_t*)(phys_base+offset);
 }
 
 uintptr_t* getVirt(void* paddr) {

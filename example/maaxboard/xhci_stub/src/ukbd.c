@@ -411,8 +411,9 @@ static void ukbd_childdet(device_t, device_t);
 
 
 // CFATTACH_DECL2_NEW(ukbd, sizeof(struct ukbd_softc), ukbd_match, ukbd_attach,
-    // ukbd_detach, ukbd_activate, NULL, ukbd_childdet);
+//     ukbd_detach, ukbd_activate, NULL, ukbd_childdet);
 
+#ifndef SEL4
 int
 ukbd_match(device_t parent, cfdata_t match, void *aux)
 {
@@ -427,6 +428,7 @@ ukbd_match(device_t parent, cfdata_t match, void *aux)
 
 	return UMATCH_IFACECLASS;
 }
+#endif
 
 void
 ukbd_attach(device_t parent, device_t self, void *aux)
@@ -566,7 +568,7 @@ ukbd_enable(void *v, int on)
 	}
 }
 
-
+#ifndef SEL4
 static void
 ukbd_childdet(device_t self, device_t child)
 {
@@ -631,6 +633,7 @@ ukbd_detach(device_t self, int flags)
 
 	return rv;
 }
+#endif
 
 static void
 ukbd_translate_keycodes(struct ukbd_softc *sc, struct ukbd_data *ud,

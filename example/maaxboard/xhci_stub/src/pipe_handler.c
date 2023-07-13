@@ -34,7 +34,6 @@
 uintptr_t xhci_base;
 uintptr_t dma_base;
 uintptr_t heap_base;
-uintptr_t pipe_heap_base;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t dma_cp_paddr;
 uintptr_t timer_base;
@@ -52,20 +51,21 @@ int ta_thresh = 16;
 int ta_align = 64;
 bool pipe_thread;
 
+//extern variables
 struct usbd_pipe_methods *xhci_root_intr_pointer;
 struct usbd_pipe_methods *xhci_root_intr_pointer_other;
 struct usbd_pipe_methods *device_ctrl_pointer;
 struct usbd_pipe_methods *device_ctrl_pointer_other;
 struct usbd_pipe_methods *device_intr_pointer;
 struct usbd_pipe_methods *device_intr_pointer_other;
+int cold = 1;
 
 void
 init(void) {
     printf("PIPE_HANDLER: dmapaddr = %p\n", dma_cp_paddr);
-    /* xhci_root_intr_pointer = get_root_intr_methods(); */
-    /* printf("root_intr_ptr = %p\n", xhci_root_intr_pointer); */
     xhci_root_intr_pointer = xhci_root_intr_pointer_other = device_ctrl_pointer = device_ctrl_pointer_other = device_intr_pointer = device_intr_pointer_other = 0;
     xhci_bus_methods_ptr = get_bus_methods();
+    cold = 0;
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);
     device_ctrl_pointer = 0;

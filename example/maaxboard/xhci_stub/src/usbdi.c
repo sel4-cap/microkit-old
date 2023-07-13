@@ -1496,13 +1496,16 @@ usbd_get_endpoint_descriptor(struct usbd_interface *iface, uint8_t address)
  * to notice it.  If the driver continuously tries to do I/O operations
  * this can generate a large number of messages.
  */
+// SEL4: not needed
+#ifndef SEL4
 int
 usbd_ratecheck(struct timeval *last)
 {
-	// static struct timeval errinterval = { 0, 250000 }; /* 0.25 s*/
+	static struct timeval errinterval = { 0, 250000 }; /* 0.25 s*/
 
-	// return ratecheck(last, &errinterval);
+	return ratecheck(last, &errinterval);
 }
+#endif
 
 /*
  * Search for a vendor/product pair in an array.  The item size is
@@ -1532,7 +1535,7 @@ usbd_status
 usbd_get_string0(struct usbd_device *dev, int si, char *buf, int unicode)
 {
 	int swap = dev->ud_quirks->uq_flags & UQ_SWAP_UNICODE;
-	usb_string_descriptor_t us;
+	usb_string_descriptor_t *us = kmem_zalloc(sizeof(usb_string_descriptor_t), 0);
 	char *s;
 	int i, n;
 	uint16_t c;
@@ -1548,7 +1551,7 @@ usbd_get_string0(struct usbd_device *dev, int si, char *buf, int unicode)
 		return USBD_STALLED;
 	if (dev->ud_langid == USBD_NOLANG) {
 		/* Set up default language */
-		err = usbd_get_string_desc(dev, USB_LANGUAGE_TABLE, 0, &us,
+		err = usbd_get_string_desc(dev, USB_LANGUAGE_TABLE, 0, us,
 		    &size);
 		if (err || size < 4) {
 			USBHIST_LOG(usbdebug, "getting lang failed, using 0",
@@ -1556,17 +1559,17 @@ usbd_get_string0(struct usbd_device *dev, int si, char *buf, int unicode)
 			dev->ud_langid = 0; /* Well, just pick something then */
 		} else {
 			/* Pick the first language as the default. */
-			dev->ud_langid = UGETW(us.bString[0]);
+			dev->ud_langid = UGETW(us->bString[0]);
 		}
 	}
-	err = usbd_get_string_desc(dev, si, dev->ud_langid, &us, &size);
+	err = usbd_get_string_desc(dev, si, dev->ud_langid, us, &size);
 	if (err)
 		return err;
 	s = buf;
 	n = size / 2 - 1;
 	if (unicode) {
 		for (i = 0; i < n; i++) {
-			c = UGETW(us.bString[i]);
+			c = UGETW(us->bString[i]);
 			if (swap)
 				c = (c >> 8) | (c << 8);
 			s += wput_utf8(s, 3, c);
@@ -1576,7 +1579,7 @@ usbd_get_string0(struct usbd_device *dev, int si, char *buf, int unicode)
 #ifdef COMPAT_30
 	else {
 		for (i = 0; i < n; i++) {
-			c = UGETW(us.bString[i]);
+			c = UGETW(us->bString[i]);
 			if (swap)
 				c = (c >> 8) | (c << 8);
 			*s++ = (c < 0x80) ? c : '?';

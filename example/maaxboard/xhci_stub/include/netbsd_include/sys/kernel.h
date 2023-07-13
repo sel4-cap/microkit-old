@@ -41,6 +41,7 @@
 
 #include "param.h"
 extern int hz;			/* system clock's frequency */
+extern int cold;		/* still working on startup */
 
 #if defined(_KERNEL) || defined(_STANDALONE)
 
@@ -54,7 +55,6 @@ extern int domainnamelen;
 
 extern int rtc_offset;		/* offset of rtc from UTC in minutes */
 
-extern int cold;		/* still working on startup */
 extern int start_init_exec;	/* init(8) may have started */
 extern int shutting_down;	/* system is shutting down */
 extern int tick;		/* usec per tick (1000000 / hz) */

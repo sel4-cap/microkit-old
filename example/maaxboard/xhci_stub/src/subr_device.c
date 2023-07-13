@@ -1,3 +1,4 @@
+//TODO: vimdiff this file
 #include <sys/cdefs.h>
 __KERNEL_RCSID(0, "$NetBSD: subr_device.c,v 1.13 2022/03/28 12:38:59 riastradh Exp $");
 

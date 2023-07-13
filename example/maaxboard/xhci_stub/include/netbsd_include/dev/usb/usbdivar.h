@@ -112,6 +112,8 @@ struct usbd_bus_methods {
 				    usb_device_request_t *, void *, int);
 };
 
+extern struct usbd_bus_methods *xhci_bus_methods_ptr;
+
 struct usbd_pipe_methods {
 	int		      (*upm_init)(struct usbd_xfer *);
 	void		      (*upm_fini)(struct usbd_xfer *);

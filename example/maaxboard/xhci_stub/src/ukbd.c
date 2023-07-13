@@ -57,10 +57,6 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <sys/proc.h>
 #include <sys/vnode.h>
 #include <sys/poll.h>
-#include <sys/intr.h>
-#include <sys/kmem.h>
-#include <timer.h>
-#include <printf.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -71,7 +67,6 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <dev/usb/usbdevs.h>
 #include <dev/usb/usb_quirks.h>
 #include <dev/usb/uhidev.h>
-#include <dev/usb/ukbd.h>
 #include <dev/usb/ukbdvar.h>
 #include <dev/hid/hid.h>
 
@@ -79,10 +74,132 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <dev/wscons/wskbdvar.h>
 #include <dev/wscons/wsksymdef.h>
 #include <dev/wscons/wsksymvar.h>
+#include <dev/usb/ukbd.h>
+#include <sys/intr.h>
+#include <sys/kmem.h>
+#include <timer.h>
+#include <printf.h>
 
-//uintptr_t timer_base;
+#define KC(v)	((v) | 0xe000)
+Static const keysym_t hidkbd_keydesc_us[] = {
+/*  pos      command		normal		shifted */
+    KC(4), 			KS_a,
+    KC(5), 			KS_b,
+    KC(6), 			KS_c,
+    KC(7), 			KS_d,
+    KC(8), 			KS_e,
+    KC(9), 			KS_f,
+    KC(10), 			KS_g,
+    KC(11), 			KS_h,
+    KC(12), 			KS_i,
+    KC(13), 			KS_j,
+    KC(14), 			KS_k,
+    KC(15), 			KS_l,
+    KC(16), 			KS_m,
+    KC(17), 			KS_n,
+    KC(18), 			KS_o,
+    KC(19), 			KS_p,
+    KC(20), 			KS_q,
+    KC(21), 			KS_r,
+    KC(22), 			KS_s,
+    KC(23), 			KS_t,
+    KC(24), 			KS_u,
+    KC(25), 			KS_v,
+    KC(26), 			KS_w,
+    KC(27), 			KS_x,
+    KC(28), 			KS_y,
+    KC(29), 			KS_z,
+    KC(30),  			KS_1,		KS_exclam,
+    KC(31),  			KS_2,		KS_at,
+    KC(32),  			KS_3,		KS_numbersign,
+    KC(33),  			KS_4,		KS_dollar,
+    KC(34),  			KS_5,		KS_percent,
+    KC(35),  			KS_6,		KS_asciicircum,
+    KC(36),  			KS_7,		KS_ampersand,
+    KC(37),  			KS_8,		KS_asterisk,
+    KC(38), 			KS_9,		KS_parenleft,
+    KC(39), 			KS_0,		KS_parenright,
+    KC(40), 			KS_Return,
+    KC(41),   KS_Cmd_Debugger,	KS_Escape,
+    KC(42), 			KS_BackSpace,
+    KC(43), 			KS_Tab,
+    KC(44), 			KS_space,
+    KC(45), 			KS_minus,	KS_underscore,
+    KC(46), 			KS_equal,	KS_plus,
+    KC(47), 			KS_bracketleft,	KS_braceleft,
+    KC(48), 			KS_bracketright,KS_braceright,
+    KC(49), 			KS_backslash,	KS_bar,
+    KC(50), 			KS_backslash,	KS_bar,
+    KC(51), 			KS_semicolon,	KS_colon,
+    KC(52), 			KS_apostrophe,	KS_quotedbl,
+    KC(53), 			KS_grave,	KS_asciitilde,
+    KC(54), 			KS_comma,	KS_less,
+    KC(55), 			KS_period,	KS_greater,
+    KC(56), 			KS_slash,	KS_question,
+    KC(57), 			KS_Caps_Lock,
+    KC(58),  KS_Cmd_Screen0,	KS_f1,
+    KC(59),  KS_Cmd_Screen1,	KS_f2,
+    KC(60),  KS_Cmd_Screen2,	KS_f3,
+    KC(61),  KS_Cmd_Screen3,	KS_f4,
+    KC(62),  KS_Cmd_Screen4,	KS_f5,
+    KC(63),  KS_Cmd_Screen5,	KS_f6,
+    KC(64),  KS_Cmd_Screen6,	KS_f7,
+    KC(65),  KS_Cmd_Screen7,	KS_f8,
+    KC(66),  KS_Cmd_Screen8,	KS_f9,
+    KC(67),  KS_Cmd_Screen9,	KS_f10,
+    KC(68), 			KS_f11,
+    KC(69), 			KS_f12,
+    KC(70),			KS_Print_Screen,
+    KC(71), 			KS_Hold_Screen,
+    KC(72),			KS_Pause,
+    KC(73),			KS_Insert,
+    KC(74),			KS_Home,
+    KC(75), KS_Cmd_ScrollFastUp, KS_Prior,
+    KC(76),			KS_Delete,
+    KC(77),			KS_End,
+    KC(78), KS_Cmd_ScrollFastDown, KS_Next,
+    KC(79),			KS_Right,
+    KC(80),			KS_Left,
+    KC(81),			KS_Down,
+    KC(82),			KS_Up,
+    KC(83), 			KS_Num_Lock,
+    KC(84),			KS_KP_Divide,
+    KC(85), 			KS_KP_Multiply,
+    KC(86), 			KS_KP_Subtract,
+    KC(87), 			KS_KP_Add,
+    KC(88),			KS_KP_Enter,
+    KC(89), 			KS_KP_End,	KS_KP_1,
+    KC(90), 			KS_KP_Down,	KS_KP_2,
+    KC(91), KS_Cmd_ScrollFastDown, KS_KP_Next,	KS_KP_3,
+    KC(92), 			KS_KP_Left,	KS_KP_4,
+    KC(93), 			KS_KP_Begin,	KS_KP_5,
+    KC(94), 			KS_KP_Right,	KS_KP_6,
+    KC(95), 			KS_KP_Home,	KS_KP_7,
+    KC(96), 			KS_KP_Up,	KS_KP_8,
+    KC(97), KS_Cmd_ScrollFastUp, KS_KP_Prior,	KS_KP_9,
+    KC(98), 			KS_KP_Insert,	KS_KP_0,
+    KC(99), 			KS_KP_Delete,	KS_KP_Decimal,
+    KC(100),			KS_backslash,	KS_bar,
+    KC(101),			KS_Menu,
+/* ... */
+    KC(104), 			KS_f13,
+    KC(105), 			KS_f14,
+    KC(106), 			KS_f15,
+    KC(107), 			KS_f16,
+/* ... */
+    KC(109),			KS_Power,
+/* ... many unmapped keys ... */
+    KC(224),  KS_Cmd1,		KS_Control_L,
+    KC(225), 			KS_Shift_L,
+    KC(226),  KS_Cmd2,		KS_Alt_L,
+    KC(227),			KS_Meta_L,
+    KC(228),			KS_Control_R,
+    KC(229), 			KS_Shift_R,
+    KC(230),			KS_Alt_R,	KS_Multi_key,
+    KC(231),			KS_Meta_R,
+};
 
-/* #define UKBD_DEBUG */
+
 #ifdef UKBD_DEBUG
 #define DPRINTF(x) printf x
 #define DPRINTFN(n,x) printf x
@@ -102,16 +219,13 @@ struct ukbd_data {
 #define PRESS    0x000
 #define RELEASE  0x100
 #define CODEMASK 0x0ff
-#define IS_PMF   0x8000
 
 struct ukbd_keycodetrans {
 	uint16_t	from;
 	uint16_t	to;
 };
 
-
-
-//TODO - find definitions for PMFEs below
+#define IS_PMF	0x8000
 
 Static const struct ukbd_keycodetrans trtab_apple_fn[] = {
 	{ 0x0c, 0x5d },	/* i -> KP 5 */
@@ -310,32 +424,32 @@ struct ukbd_softc {
 };
 
 #ifdef UKBD_DEBUG
-// #define UKBDTRACESIZE 64
-// struct ukbdtraceinfo {
-// 	int unit;
-// 	struct timeval tv;
-// 	struct ukbd_data ud;
-// };
-// struct ukbdtraceinfo ukbdtracedata[UKBDTRACESIZE];
-// int ukbdtraceindex = 0;
-// int ukbdtrace = 0;
-// void ukbdtracedump(void);
-// void
-// ukbdtracedump(void)
-// {
-// 	size_t i, j;
-// 	for (i = 0; i < UKBDTRACESIZE; i++) {
-// 		struct ukbdtraceinfo *p =
-// 		    &ukbdtracedata[(i+ukbdtraceindex)%UKBDTRACESIZE];
-// 		printf("%"PRIu64".%06"PRIu64":", p->tv.tv_sec,
-// 		    (uint64_t)p->tv.tv_usec);
-// 		for (j = 0; j < MAXKEYS; j++) {
-// 			if (isset(p->ud.keys, j))
-// 				printf(" %zu", j);
-// 		}
-// 		printf(".\n");
-// 	}
-// }
+#define UKBDTRACESIZE 64
+struct ukbdtraceinfo {
+	int unit;
+	struct timeval tv;
+	struct ukbd_data ud;
+};
+struct ukbdtraceinfo ukbdtracedata[UKBDTRACESIZE];
+int ukbdtraceindex = 0;
+int ukbdtrace = 0;
+void ukbdtracedump(void);
+void
+ukbdtracedump(void)
+{
+	size_t i, j;
+	for (i = 0; i < UKBDTRACESIZE; i++) {
+		struct ukbdtraceinfo *p =
+		    &ukbdtracedata[(i+ukbdtraceindex)%UKBDTRACESIZE];
+		printf("%"PRIu64".%06"PRIu64":", p->tv.tv_sec,
+		    (uint64_t)p->tv.tv_usec);
+		for (j = 0; j < MAXKEYS; j++) {
+			if (isset(p->ud.keys, j))
+				printf(" %zu", j);
+		}
+		printf(".\n");
+	}
+}
 #endif
 
 #define	UKBDUNIT(dev)	(minor(dev))
@@ -347,11 +461,13 @@ Static int	ukbd_is_console;
 Static void	ukbd_cngetc(void *, u_int *, int *);
 Static void	ukbd_cnpollc(void *, int);
 
+#ifndef SEL4
 const struct wskbd_consops ukbd_consops = {
 	.getc =  ukbd_cngetc,
 	.pollc = ukbd_cnpollc,
 	.bell =  NULL,
 };
+#endif
 
 Static const char *ukbd_parse_desc(struct ukbd_softc *);
 
@@ -413,7 +529,6 @@ static void ukbd_childdet(device_t, device_t);
 // CFATTACH_DECL2_NEW(ukbd, sizeof(struct ukbd_softc), ukbd_match, ukbd_attach,
 //     ukbd_detach, ukbd_activate, NULL, ukbd_childdet);
 
-#ifndef SEL4
 int
 ukbd_match(device_t parent, cfdata_t match, void *aux)
 {
@@ -428,12 +543,10 @@ ukbd_match(device_t parent, cfdata_t match, void *aux)
 
 	return UMATCH_IFACECLASS;
 }
-#endif
 
 void
 ukbd_attach(device_t parent, device_t self, void *aux)
 {
-	// self->dv_private = kmem_alloc(sizeof(struct ukbd_softc), 0);
 	struct ukbd_softc *sc = kmem_alloc(sizeof(struct ukbd_softc), 0);
 	struct uhidev_attach_arg *uha = aux;
 	uint32_t qflags;
@@ -448,12 +561,12 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	sc->sc_report_id = uha->reportid;
 	sc->sc_flags = 0;
 
-	aprint_naive("Finished sc initial\n");
+	aprint_naive("\n");
 
-	// if (!pmf_device_register(self, NULL, NULL)) {
-	// 	aprint_normal("\n");
-	// 	aprint_error_dev(self, "couldn't establish power handler\n");
-	// }
+	if (!pmf_device_register(self, NULL, NULL)) {
+		aprint_normal("\n");
+		aprint_error_dev(self, "couldn't establish power handler\n");
+	}
 
 	parseerr = ukbd_parse_desc(sc);
 	if (parseerr != NULL) {
@@ -498,12 +611,12 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 			ukbd_is_console = 0;
 		}
 	}
-	ukbd_enable(sc, 1);
+
 	if (sc->sc_console_keyboard) {
 		DPRINTF(("%s: console keyboard sc=%p\n", __func__, sc));
 		//wskbd_cnattach(&ukbd_consops, sc, &ukbd_keymapdata);
-		// ;
 	}
+	ukbd_enable(sc, 1); //SEL4: moved out to enable keyboard
 
 	a.console = sc->sc_console_keyboard;
 
@@ -516,25 +629,23 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	callout_init(&sc->sc_rawrepeat_ch, 0);
 #endif
 
-	// callout_init(&sc->sc_delay, 0);
+	callout_init(&sc->sc_delay, 0);
 
 	sc->sc_data_w = 0;
 	sc->sc_data_r = 0;
 
 	usb_init_task(&sc->sc_ledtask, ukbd_set_leds_task, sc, 0);
-	// callout_init(&sc->sc_ledreset, 0);
+	callout_init(&sc->sc_ledreset, 0);
 
 	/* Flash the leds; no real purpose, just shows we're alive. */
 	ukbd_set_leds(sc, WSKBD_LED_SCROLL | WSKBD_LED_NUM | WSKBD_LED_CAPS
 			| WSKBD_LED_COMPOSE);
 	sc->sc_leds_set = 0;	/* not explicitly set by wskbd yet */
-	// callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
-	    // sc);
+	callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
+	    sc);
 	usbd_delay_ms(0, 400);
 
-
-
-	// sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
+	sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
 
 	sc->sc_attached = true;
 
@@ -551,9 +662,9 @@ ukbd_enable(void *v, int on)
 
 	/* Should only be called to change state */
 	if ((sc->sc_flags & FLAG_ENABLED) != 0 && on != 0) {
+#ifdef DIAGNOSTIC
 		aprint_error_dev(sc->sc_dev, "bad call on=%d\n", on);
-// #ifdef DIAGNOSTIC
-// #endif
+#endif
 		return EBUSY;
 	}
 
@@ -568,7 +679,7 @@ ukbd_enable(void *v, int on)
 	}
 }
 
-#ifndef SEL4
+
 static void
 ukbd_childdet(device_t self, device_t child)
 {
@@ -633,7 +744,6 @@ ukbd_detach(device_t self, int flags)
 
 	return rv;
 }
-#endif
 
 static void
 ukbd_translate_keycodes(struct ukbd_softc *sc, struct ukbd_data *ud,
@@ -650,8 +760,8 @@ ukbd_translate_keycodes(struct ukbd_softc *sc, struct ukbd_data *ud,
 			for (tp = tab; tp->from; tp++)
 				if (tp->from == i) {
 					if (tp->to & IS_PMF) {
-						//pmf_event_inject(sc->sc_dev,
-						    //tp->to & 0xff);
+						pmf_event_inject(sc->sc_dev,
+						    tp->to & 0xff);
 					} else
 						setbit(ud->keys, tp->to);
 					clrbit(ud->keys, i);
@@ -696,13 +806,10 @@ ukbd_intr(void *cookie, void *ibuf, u_int len)
 		printf("\n");
 	}
 #endif
-    /* for (i = 0; i < len; i++) */
-    /*     printf(" 0x%02x", ((u_char *)ibuf)[i]); */
-    /* printf("\n"); */
 
 	memset(ud->keys, 0, sizeof(ud->keys));
 
-    for (i = 0; i < sc->sc_nkeyloc; i++)
+	for (i = 0; i < sc->sc_nkeyloc; i++)
 		if (hid_get_data(ibuf, &sc->sc_keyloc[i]))
 			setbit(ud->keys, sc->sc_keyuse[i]);
 
@@ -717,10 +824,10 @@ ukbd_intr(void *cookie, void *ibuf, u_int len)
 		if (hid_get_data(ibuf, &sc->sc_apple_fn)) {
 			sc->sc_flags |= FLAG_FN_PRESSED;
 			ukbd_translate_keycodes(sc, ud, trtab_apple_fn);
-		} else {
+		}
+		else
 			sc->sc_flags &= ~FLAG_FN_PRESSED;
-	    }
-    }
+	}
 
 #ifdef GDIUM_KEYBOARD_HACK
 	if (sc->sc_flags & FLAG_GDIUM_FN) {
@@ -742,12 +849,11 @@ ukbd_intr(void *cookie, void *ibuf, u_int len)
 		 * the data for any keyboard event that is followed by
 		 * another one within this time window.
 		 */
-		//hz = get_clock_freq(timer_base);
 		if (sc->sc_data_w == sc->sc_data_r) {
 			sc->sc_data_w = (sc->sc_data_w + 1) % MAXPENDING;
 		}
 		sc->sc_data[sc->sc_data_w] = *ud;
-		//callout_reset(&sc->sc_delay, hz / 50, ukbd_delayed_decode, sc);
+		callout_reset(&sc->sc_delay, hz / 50, ukbd_delayed_decode, sc);
 #ifdef DDB
 	} else if (sc->sc_console_keyboard && !(sc->sc_flags & FLAG_POLLING)) {
 		/*
@@ -791,125 +897,6 @@ ukbd_delayed_decode(void *addr)
 	}
 }
 
-#define KC(v)	((v) | 0xe000)
-Static const keysym_t hidkbd_keydesc_us[] = {
-/*  pos      command		normal		shifted */
-    KC(4), 			KS_a,
-    KC(5), 			KS_b,
-    KC(6), 			KS_c,
-    KC(7), 			KS_d,
-    KC(8), 			KS_e,
-    KC(9), 			KS_f,
-    KC(10), 			KS_g,
-    KC(11), 			KS_h,
-    KC(12), 			KS_i,
-    KC(13), 			KS_j,
-    KC(14), 			KS_k,
-    KC(15), 			KS_l,
-    KC(16), 			KS_m,
-    KC(17), 			KS_n,
-    KC(18), 			KS_o,
-    KC(19), 			KS_p,
-    KC(20), 			KS_q,
-    KC(21), 			KS_r,
-    KC(22), 			KS_s,
-    KC(23), 			KS_t,
-    KC(24), 			KS_u,
-    KC(25), 			KS_v,
-    KC(26), 			KS_w,
-    KC(27), 			KS_x,
-    KC(28), 			KS_y,
-    KC(29), 			KS_z,
-    KC(30),  			KS_1,		KS_exclam,
-    KC(31),  			KS_2,		KS_at,
-    KC(32),  			KS_3,		KS_numbersign,
-    KC(33),  			KS_4,		KS_dollar,
-    KC(34),  			KS_5,		KS_percent,
-    KC(35),  			KS_6,		KS_asciicircum,
-    KC(36),  			KS_7,		KS_ampersand,
-    KC(37),  			KS_8,		KS_asterisk,
-    KC(38), 			KS_9,		KS_parenleft,
-    KC(39), 			KS_0,		KS_parenright,
-    KC(40), 			KS_Return,
-    KC(41),   KS_Cmd_Debugger,	KS_Escape,
-    KC(42), 			KS_BackSpace,
-    KC(43), 			KS_Tab,
-    KC(44), 			KS_space,
-    KC(45), 			KS_minus,	KS_underscore,
-    KC(46), 			KS_equal,	KS_plus,
-    KC(47), 			KS_bracketleft,	KS_braceleft,
-    KC(48), 			KS_bracketright,KS_braceright,
-    KC(49), 			KS_backslash,	KS_bar,
-    KC(50), 			KS_backslash,	KS_bar,
-    KC(51), 			KS_semicolon,	KS_colon,
-    KC(52), 			KS_apostrophe,	KS_quotedbl,
-    KC(53), 			KS_grave,	KS_asciitilde,
-    KC(54), 			KS_comma,	KS_less,
-    KC(55), 			KS_period,	KS_greater,
-    KC(56), 			KS_slash,	KS_question,
-    KC(57), 			KS_Caps_Lock,
-    KC(58),  KS_Cmd_Screen0,	KS_f1,
-    KC(59),  KS_Cmd_Screen1,	KS_f2,
-    KC(60),  KS_Cmd_Screen2,	KS_f3,
-    KC(61),  KS_Cmd_Screen3,	KS_f4,
-    KC(62),  KS_Cmd_Screen4,	KS_f5,
-    KC(63),  KS_Cmd_Screen5,	KS_f6,
-    KC(64),  KS_Cmd_Screen6,	KS_f7,
-    KC(65),  KS_Cmd_Screen7,	KS_f8,
-    KC(66),  KS_Cmd_Screen8,	KS_f9,
-    KC(67),  KS_Cmd_Screen9,	KS_f10,
-    KC(68), 			KS_f11,
-    KC(69), 			KS_f12,
-    KC(70),			KS_Print_Screen,
-    KC(71), 			KS_Hold_Screen,
-    KC(72),			KS_Pause,
-    KC(73),			KS_Insert,
-    KC(74),			KS_Home,
-    KC(75), KS_Cmd_ScrollFastUp, KS_Prior,
-    KC(76),			KS_Delete,
-    KC(77),			KS_End,
-    KC(78), KS_Cmd_ScrollFastDown, KS_Next,
-    KC(79),			KS_Right,
-    KC(80),			KS_Left,
-    KC(81),			KS_Down,
-    KC(82),			KS_Up,
-    KC(83), 			KS_Num_Lock,
-    KC(84),			KS_KP_Divide,
-    KC(85), 			KS_KP_Multiply,
-    KC(86), 			KS_KP_Subtract,
-    KC(87), 			KS_KP_Add,
-    KC(88),			KS_KP_Enter,
-    KC(89), 			KS_KP_End,	KS_KP_1,
-    KC(90), 			KS_KP_Down,	KS_KP_2,
-    KC(91), KS_Cmd_ScrollFastDown, KS_KP_Next,	KS_KP_3,
-    KC(92), 			KS_KP_Left,	KS_KP_4,
-    KC(93), 			KS_KP_Begin,	KS_KP_5,
-    KC(94), 			KS_KP_Right,	KS_KP_6,
-    KC(95), 			KS_KP_Home,	KS_KP_7,
-    KC(96), 			KS_KP_Up,	KS_KP_8,
-    KC(97), KS_Cmd_ScrollFastUp, KS_KP_Prior,	KS_KP_9,
-    KC(98), 			KS_KP_Insert,	KS_KP_0,
-    KC(99), 			KS_KP_Delete,	KS_KP_Decimal,
-    KC(100),			KS_backslash,	KS_bar,
-    KC(101),			KS_Menu,
-/* ... */
-    KC(104), 			KS_f13,
-    KC(105), 			KS_f14,
-    KC(106), 			KS_f15,
-    KC(107), 			KS_f16,
-/* ... */
-    KC(109),			KS_Power,
-/* ... many unmapped keys ... */
-    KC(224),  KS_Cmd1,		KS_Control_L,
-    KC(225), 			KS_Shift_L,
-    KC(226),  KS_Cmd2,		KS_Alt_L,
-    KC(227),			KS_Meta_L,
-    KC(228),			KS_Control_R,
-    KC(229), 			KS_Shift_R,
-    KC(230),			KS_Alt_R,	KS_Multi_key,
-    KC(231),			KS_Meta_R,
-};
-
 void
 ukbd_decode(struct ukbd_softc *sc, struct ukbd_data *ud)
 {
@@ -930,25 +917,25 @@ ukbd_decode(struct ukbd_softc *sc, struct ukbd_data *ud)
 	 * Keep a trace of the last events.  Using printf changes the
 	 * timing, so this can be useful sometimes.
 	 */
-	// if (ukbdtrace) {
-	// 	struct ukbdtraceinfo *p = &ukbdtracedata[ukbdtraceindex];
-	// 	p->unit = device_unit(sc->sc_dev);
-	// 	microtime(&p->tv);
-	// 	p->ud = *ud;
-	// 	if (++ukbdtraceindex >= UKBDTRACESIZE)
-	// 		ukbdtraceindex = 0;
-	// }
-	// if (ukbddebug > 5) {
-	// 	struct timeval tv;
-	// 	microtime(&tv);
-	// 	DPRINTF((" at %"PRIu64".%06"PRIu64":", tv.tv_sec,
-	// 	    (uint64_t)tv.tv_usec));
-	// 	for (size_t k = 0; k < MAXKEYS; k++) {
-	// 		if (isset(ud->keys, k))
-	// 			DPRINTF((" %zu", k));
-	// 	}
-	// 	DPRINTF((".\n"));
-	// }
+	if (ukbdtrace) {
+		struct ukbdtraceinfo *p = &ukbdtracedata[ukbdtraceindex];
+		p->unit = device_unit(sc->sc_dev);
+		microtime(&p->tv);
+		p->ud = *ud;
+		if (++ukbdtraceindex >= UKBDTRACESIZE)
+			ukbdtraceindex = 0;
+	}
+	if (ukbddebug > 5) {
+		struct timeval tv;
+		microtime(&tv);
+		DPRINTF((" at %"PRIu64".%06"PRIu64":", tv.tv_sec,
+		    (uint64_t)tv.tv_usec));
+		for (size_t k = 0; k < MAXKEYS; k++) {
+			if (isset(ud->keys, k))
+				DPRINTF((" %zu", k));
+		}
+		DPRINTF((".\n"));
+	}
 #endif
 
 	if (isset(ud->keys, KEY_ERROR)) {
@@ -1043,6 +1030,9 @@ ukbd_decode(struct ukbd_softc *sc, struct ukbd_data *ud)
 	// test output: should probably send this to a separate PD
 	for (i = 0; i < nkeys; i++) {
 		key = ibuf[i];
+		//wskbd_input(sc->sc_wskbddev,
+		    //key&RELEASE ? WSCONS_EVENT_KEY_UP : WSCONS_EVENT_KEY_DOWN,
+		    //key&CODEMASK);
 		int index = 0;
         int up = key&RELEASE ? WSCONS_EVENT_KEY_UP : WSCONS_EVENT_KEY_DOWN;
         if (up == WSCONS_EVENT_KEY_DOWN) {
@@ -1064,9 +1054,6 @@ ukbd_decode(struct ukbd_softc *sc, struct ukbd_data *ud)
 					printf("%c", keypress);
 			}
         }
-		//wskbd_input(sc->sc_wskbddev,
-		    //key&RELEASE ? WSCONS_EVENT_KEY_UP : WSCONS_EVENT_KEY_DOWN,
-		    //key&CODEMASK);
 	}
 	//splx(s);
 }
@@ -1089,8 +1076,8 @@ ukbd_set_leds(void *v, int leds)
 		return;
 
 	sc->sc_leds = leds;
+	usb_add_task(udev, &sc->sc_ledtask, USB_TASKQ_DRIVER);
 	ukbd_set_leds_task(sc);
-	//usb_add_task(udev, &sc->sc_ledtask, USB_TASKQ_DRIVER);
 }
 
 void
@@ -1164,6 +1151,7 @@ ukbd_ioctl(void *v, u_long cmd, void *data, int flag,
 static int pollenter, warned;
 
 /* Console interface. */
+#ifndef SEL4
 void
 ukbd_cngetc(void *v, u_int *type, int *data)
 {
@@ -1191,8 +1179,8 @@ ukbd_cngetc(void *v, u_int *type, int *data)
 	if (sc->sc_npollchar > 0) {
 		c = sc->sc_pollchars[0];
 		sc->sc_npollchar--;
-		//memmove(sc->sc_pollchars, sc->sc_pollchars+1,
-		       //sc->sc_npollchar * sizeof(uint16_t));
+		memmove(sc->sc_pollchars, sc->sc_pollchars+1,
+		       sc->sc_npollchar * sizeof(uint16_t));
 		*type = c & RELEASE ? WSCONS_EVENT_KEY_UP : WSCONS_EVENT_KEY_DOWN;
 		*data = c & CODEMASK;
 		DPRINTFN(0,("%s: return 0x%02x\n", __func__, c));
@@ -1215,14 +1203,15 @@ ukbd_cnpollc(void *v, int on)
 	/* XXX Can this just use sc->sc_udev, or am I mistaken?  */
 	usbd_interface2device_handle(sc->sc_iface, &dev);
 	if (on) {
-		//sc->sc_spl = splusb();
+		sc->sc_spl = splusb();
 		pollenter++;
 	} else {
-		//splx(sc->sc_spl);
+		splx(sc->sc_spl);
 		pollenter--;
 	}
 	usbd_set_polling(dev, on);
 }
+#endif
 
 int
 ukbd_cnattach(void)

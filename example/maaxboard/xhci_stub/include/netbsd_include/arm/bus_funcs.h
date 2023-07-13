@@ -745,8 +745,10 @@ void bus_dmamap_sync(bus_dma_tag_t, bus_dmamap_t, bus_addr_t, bus_size_t, int);
 	sel4_dma_map(k, sg);						
 	// *k = (void*) sg->ds_addr;
 	// (*(t)->_dmamem_map)((t), (sg), (n), (s), (k), (f))
-// #define	bus_dmamem_unmap(t, k, s)				
-	// (*(t)->_dmamem_unmap)((t), (k), (s))
+#define	bus_dmamem_unmap(t, k, s)				\
+	0
+#define	bus_dmamap_destroy(t, k)				\
+	0
 // #define	bus_dmamem_mmap(t, sg, n, o, p, f)			
 	// (*(t)->_dmamem_mmap)((t), (sg), (n), (o), (p), (f))
 #define bus_dmamap_create(t,s,n,mxs,b,f,dmap)		\
@@ -761,8 +763,8 @@ void bus_dmamap_sync(bus_dma_tag_t, bus_dmamap_t, bus_addr_t, bus_size_t, int);
 
 #define	bus_dmatag_subregion(t, mna, mxa, nt, f)		
 	// (*(t)->_dmatag_subregion)((t), (mna), (mxa), (nt), (f))
-#define	bus_dmatag_destroy(t)					
-	// (*(t)->_dmatag_destroy)(t)
+#define	bus_dmatag_destroy(t)					\
+	0
 
 #ifdef _ARM32_BUS_DMA_PRIVATE
 

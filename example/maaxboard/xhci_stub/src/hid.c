@@ -441,6 +441,21 @@ hid_locate(const void *desc, int size, uint32_t u, uint8_t id, enum hid_kind k,
 	return 0;
 }
 
+long
+hid_get_data(const u_char *buf, const struct hid_location *loc)
+{
+	u_int hsize = loc->size;
+	u_long data;
+
+	if (hsize == 0)
+		return 0;
+
+	data = hid_get_udata(buf, loc);
+	if (data < (1UL << (hsize - 1)) || hsize == sizeof(data) * NBBY)
+		return data;
+	return data - (1UL << hsize);
+}
+
 u_long
 hid_get_udata(const u_char *buf, const struct hid_location *loc)
 {
@@ -465,21 +480,6 @@ hid_get_udata(const u_char *buf, const struct hid_location *loc)
 
 	DPRINTFN(10,("hid_get_udata: loc %d/%d = %lu\n", hpos, hsize, data));
 	return data;
-}
-
-long
-hid_get_data(const u_char *buf, const struct hid_location *loc)
-{
-	u_int hsize = loc->size;
-	u_long data;
-
-	if (hsize == 0)
-		return 0;
-
-	data = hid_get_udata(buf, loc);
-	if (data < (1UL << (hsize - 1)) || hsize == sizeof(data) * NBBY)
-		return data;
-	return data - (1UL << hsize);
 }
 
 /*

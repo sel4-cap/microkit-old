@@ -40,8 +40,6 @@ __KERNEL_RCSID(0, "$NetBSD: usbdi.c,v 1.247 2022/09/13 10:32:58 riastradh Exp $"
 #include "usb_dma.h"
 #endif
 
-#include <sys/errno.h>
-#include <sys/condvar.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
@@ -60,6 +58,7 @@ __KERNEL_RCSID(0, "$NetBSD: usbdi.c,v 1.247 2022/09/13 10:32:58 riastradh Exp $"
 #include <dev/usb/usb_sdt.h>
 #include <dev/usb/usbhist.h>
 #include <pipe_methods.h>
+#include <sys/errno.h>
 
 extern struct usbd_pipe_methods *xhci_root_intr_pointer;
 extern struct usbd_pipe_methods *xhci_root_intr_pointer_other;
@@ -70,24 +69,6 @@ extern struct usbd_pipe_methods *device_intr_pointer_other;
 extern struct usbd_bus_methods *xhci_bus_methods_ptr;
 extern bool pipe_thread;
 
-#define mutex_enter(d) 0
-#define mutex_init(d, f, i) 0
-#define mutex_owned(d) 0
-#define mutex_exit(d) 0
-#define mutex_destroy(d) 0
-#define mutex_spin_enter(d) 0
-#define mutex_spin_exit(d) 0
-
-
-#define panic(s) 0
-
-
-#define device_has_power(d) 1
-#define device_xname(d) "DEV_NAME"
-
-
-#define usbd_get
-int curlwp = 1;
 /* UTF-8 encoding stuff */
 #include <fs/unicode.h>
 
@@ -530,23 +511,21 @@ usbd_transfer(struct usbd_xfer *xfer)
 		    (uintptr_t)xfer, 0, 0, 0);
 
 		err = 0;
-
+		if ((flags & USBD_SYNCHRONOUS_SIG) != 0) {
+			err = cv_wait_sig(&xfer->ux_cv, pipe->up_dev->ud_bus->ub_lock);
+		} else {
+			cv_wait(&xfer->ux_cv, pipe->up_dev->ud_bus->ub_lock);
+		}
 		usb_delay_ms(0, 500); //sel4 assumes complete. dangerous.
-		// err = 1
-		// if ((flags & USBD_SYNCHRONOUS_SIG) != 0) {
-		// 	err = cv_wait_sig(&xfer->ux_cv, pipe->up_dev->ud_bus->ub_lock);
-		// } else {
-		// 	cv_wait(&xfer->ux_cv, pipe->up_dev->ud_bus->ub_lock);
-		// }
 		if (err) {
 			if (!xfer->ux_done) {
 				SDT_PROBE1(usb, device, xfer, abort,  xfer);
+				// pipe->up_methods->upm_abort(xfer);
 				struct pipe_method_rpc *pmr = kmem_alloc(sizeof(struct pipe_method_rpc), 0);
 				pmr->pipe = pipe;
 				pmr->xfer = xfer;
 				pmr->method_ptr = ABORT;
 				sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
-				// pipe->up_methods->upm_abort(xfer);
 			}
 			break;
 		}
@@ -583,7 +562,6 @@ usbd_alloc_buffer(struct usbd_xfer *xfer, uint32_t size)
 // #if NUSB_DMA > 0
 	struct usbd_bus *bus = xfer->ux_bus;
 
-	// printf("does this bus use dma? %d\n", bus->ub_usedma);
 	if (bus->ub_usedma) {
 		usb_dma_t *dmap = &xfer->ux_dmabuf;
 
@@ -651,16 +629,16 @@ usbd_alloc_xfer(struct usbd_device *dev, unsigned int nframes)
 
 	USBHIST_FUNC();
 
-	// ASSERT_SLEEPABLE();
+	ASSERT_SLEEPABLE();
 
 	xhci_bus_methods_ptr = get_bus_methods();
 	xfer = xhci_bus_methods_ptr->ubm_allocx(dev->ud_bus, nframes);
 	if (xfer == NULL)
 		goto out;
 	xfer->ux_bus = dev->ud_bus;
-	// callout_init(&xfer->ux_callout, CALLOUT_MPSAFE);
-	// callout_setfunc(&xfer->ux_callout, usbd_xfer_timeout, xfer);
-	// cv_init(&xfer->ux_cv, "usbxfer");
+	callout_init(&xfer->ux_callout, CALLOUT_MPSAFE);
+	callout_setfunc(&xfer->ux_callout, usbd_xfer_timeout, xfer);
+	cv_init(&xfer->ux_cv, "usbxfer");
 	usb_init_task(&xfer->ux_aborttask, usbd_xfer_timeout_task, xfer,
 	    USB_TASKQ_MPSAFE);
 

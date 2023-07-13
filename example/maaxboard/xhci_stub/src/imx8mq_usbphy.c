@@ -1,3 +1,4 @@
+//TODO: vimdiff this file
 /* $NetBSD: imx8mq_usbphy.c,v 1.5 2021/01/27 03:10:20 thorpej Exp $ */
 
 /*-

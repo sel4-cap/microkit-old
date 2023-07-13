@@ -56,7 +56,6 @@ __KERNEL_RCSID(0, "$NetBSD: uhidev.c,v 1.94 2022/11/04 19:46:55 jmcneill Exp $")
 //#include <sys/signalvar.h>
 #include <sys/systm.h>
 #include <sys/xcall.h>
-#include <sys/condvar.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -203,7 +202,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 	sc->sc_refcnt = 0;
 	sc->sc_writereportid = -1;
 	sc->sc_stopreportid = -1;
-	
+
 	id = usbd_get_interface_descriptor(iface);
 
 	devinfop = usbd_devinfo_alloc(uiaa->uiaa_device, 0);
@@ -420,9 +419,10 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 			uha.reportid = repid;
 			//locs[UHIDBUSCF_REPORTID] = repid;
 
-			//dev = config_found(self, &uha, uhidevprint,
-			    //CFARGS(.submatch = config_stdsubmatch,
-				 //  .locators = locs));
+			dev = config_found(self, &uha, uhidevprint,
+			    CFARGS(.submatch = config_stdsubmatch,
+				   .locators = locs));
+            //XXX SEL4: just do the keyboard attach for now
 			device_t self_ukbd = kmem_alloc(sizeof(device_t), 0);
 			ukbd_attach(self_ukbd, self, &uha);
 			sc->sc_subdevs[repid].sc_dev = self;
@@ -532,7 +532,7 @@ uhidev_detach(device_t self, int flags)
 	pmf_device_deregister(self);
 	KASSERT(sc->sc_configlock == NULL);
 	KASSERT(sc->sc_writelock == NULL);
-	//cv_destroy(&sc->sc_cv);
+	cv_destroy(&sc->sc_cv);
 	mutex_destroy(&sc->sc_lock);
 
 	return rv;
@@ -583,8 +583,8 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 	scd = &sc->sc_subdevs[rep];
 	DPRINTFN(5,("uhidev_intr: rep=%d, scd=%p state=%#x\n",
 		    rep, scd, scd->sc_state));
-	//if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN))
-		//return;
+	if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN))
+		return;
 #ifdef UHIDEV_DEBUG
 	if (scd->sc_in_rep_size != cc) {
 		DPRINTF(("%s: expected %d bytes, got %d\n",
@@ -597,8 +597,11 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 		return;
 	}
 	//rnd_add_uint32(&scd->sc_rndsource, (uintptr_t)(sc->sc_ibuf));
+#ifdef SEL4 //XXX just do the keyboard interrupt for now
     ukbd_intr(scd->sc_cookie, p, cc);
-	/* scd->sc_intr(scd->sc_cookie, p, cc); */
+#else
+	scd->sc_intr(scd->sc_cookie, p, cc);
+#endif
 }
 
 void
@@ -625,7 +628,9 @@ uhidev_config_enter(struct uhidev_softc *sc)
 			return error;
 	}
 
-	//sc->sc_configlock = curlwp;
+#ifndef SEL4 //XXX curlwp not needed
+	sc->sc_configlock = curlwp;
+#endif
 	return 0;
 }
 
@@ -635,9 +640,11 @@ uhidev_config_enter_nointr(struct uhidev_softc *sc)
 
 	KASSERT(mutex_owned(&sc->sc_lock));
 
-	//while (sc->sc_configlock)
-		//cv_wait(&sc->sc_cv, &sc->sc_lock);
-	//sc->sc_configlock = curlwp;
+#ifndef SEL4 //XXX curlwp not needed
+	while (sc->sc_configlock)
+		cv_wait(&sc->sc_cv, &sc->sc_lock);
+	sc->sc_configlock = curlwp;
+#endif
 }
 
 static void
@@ -645,11 +652,13 @@ uhidev_config_exit(struct uhidev_softc *sc)
 {
 
 	KASSERT(mutex_owned(&sc->sc_lock));
-	//KASSERTMSG(sc->sc_configlock == curlwp, "%s: migrated from %p to %p",
-	    //device_xname(sc->sc_dev), curlwp, sc->sc_configlock);
+#ifndef SEL4 //curlwp not needed
+	KASSERTMSG(sc->sc_configlock == curlwp, "%s: migrated from %p to %p",
+	    device_xname(sc->sc_dev), curlwp, sc->sc_configlock);
+#endif
 
 	sc->sc_configlock = NULL;
-	//cv_broadcast(&sc->sc_cv);
+	cv_broadcast(&sc->sc_cv);
 }
 
 /*
@@ -879,7 +888,7 @@ uhidev_open(struct uhidev *scd, void (*intr)(void *, void *, u_int),
 	}
 	scd->sc_intr = intr;
 	scd->sc_cookie = cookie;
-	//atomic_store_release(&scd->sc_state, scd->sc_state | UHIDEV_OPEN);
+	atomic_store_release(&scd->sc_state, scd->sc_state | UHIDEV_OPEN);
 
 	/* Open the pipes which are shared by all report ids.  */
 	error = uhidev_open_pipes(sc);
@@ -893,8 +902,8 @@ out:	if (error) {
 		KASSERTMSG(scd->sc_state & UHIDEV_OPEN,
 		    "%s: report id %d: closed while opening",
 		    device_xname(sc->sc_dev), scd->sc_report_id);
-		//atomic_store_relaxed(&scd->sc_state,
-		    //scd->sc_state & ~UHIDEV_OPEN);
+		atomic_store_relaxed(&scd->sc_state,
+		    scd->sc_state & ~UHIDEV_OPEN);
 	}
 	mutex_exit(&sc->sc_lock);
 	return error;
@@ -921,7 +930,7 @@ uhidev_stop(struct uhidev *scd)
 	mutex_enter(&sc->sc_lock);
 
 	/* Prevent further writes on this report from starting.  */
-	//atomic_store_relaxed(&scd->sc_state, scd->sc_state | UHIDEV_STOPPED);
+	atomic_store_relaxed(&scd->sc_state, scd->sc_state | UHIDEV_STOPPED);
 
 	/* If there's no output pipe at all, nothing to do.  */
 	if (sc->sc_opipe == NULL)
@@ -955,7 +964,7 @@ uhidev_stop(struct uhidev *scd)
 	mutex_enter(&sc->sc_lock);
 	KASSERT(sc->sc_stopreportid == scd->sc_report_id);
 	sc->sc_stopreportid = scd->sc_report_id;
-	//cv_broadcast(&sc->sc_cv);
+	cv_broadcast(&sc->sc_cv);
 out:	mutex_exit(&sc->sc_lock);
 }
 
@@ -1000,7 +1009,7 @@ uhidev_close(struct uhidev *scd)
 		KASSERT(sc->sc_stopreportid == scd->sc_report_id);
 		KASSERT(scd->sc_state & UHIDEV_STOPPED);
 		sc->sc_stopreportid = -1;
-		//cv_broadcast(&sc->sc_cv);
+		cv_broadcast(&sc->sc_cv);
 	}
 
 	/*
@@ -1011,8 +1020,8 @@ uhidev_close(struct uhidev *scd)
 	KASSERT(scd->sc_state & UHIDEV_OPEN);
 	uhidev_close_pipes(sc);
 	KASSERT(scd->sc_state & UHIDEV_OPEN);
-	//atomic_store_relaxed(&scd->sc_state,
-	    //scd->sc_state & ~(UHIDEV_OPEN | UHIDEV_STOPPED));
+	atomic_store_relaxed(&scd->sc_state,
+	    scd->sc_state & ~(UHIDEV_OPEN | UHIDEV_STOPPED));
 
 	/*
 	 * Make sure the next uhidev_intr (which runs in softint, like
@@ -1088,12 +1097,14 @@ uhidev_write(struct uhidev *scd, void *data, int len)
 		}
 		if (sc->sc_writelock == NULL && sc->sc_stopreportid == -1)
 			break;
-		//if (cv_wait_sig(&sc->sc_cv, &sc->sc_lock)) {
-			//err = USBD_INTERRUPTED;
-			//goto out;
-		//}
+		if (cv_wait_sig(&sc->sc_cv, &sc->sc_lock)) {
+			err = USBD_INTERRUPTED;
+			goto out;
+		}
 	}
-	//sc->sc_writelock = curlwp;
+#ifndef SEL4 //curlwp not needed
+	sc->sc_writelock = curlwp;
+#endif
 	sc->sc_writereportid = scd->sc_report_id;
 	mutex_exit(&sc->sc_lock);
 
@@ -1115,14 +1126,16 @@ uhidev_write(struct uhidev *scd, void *data, int len)
 	mutex_enter(&sc->sc_lock);
 	KASSERT(sc->sc_refcnt);
 	KASSERT(scd->sc_state & UHIDEV_OPEN);
-	//KASSERTMSG(sc->sc_writelock == curlwp, "%s: migrated from %p to %p",
-	    //device_xname(sc->sc_dev), curlwp, sc->sc_writelock);
+#ifndef SEL4 //curlwp not needed
+	KASSERTMSG(sc->sc_writelock == curlwp, "%s: migrated from %p to %p",
+	    device_xname(sc->sc_dev), curlwp, sc->sc_writelock);
+#endif
 	KASSERTMSG(sc->sc_writereportid == scd->sc_report_id,
 	    "%s: changed write report ids from %d to %d",
 	    device_xname(sc->sc_dev), scd->sc_report_id, sc->sc_writereportid);
 	sc->sc_writereportid = -1;
 	sc->sc_writelock = NULL;
-	//cv_broadcast(&sc->sc_cv);
+	cv_broadcast(&sc->sc_cv);
 out:	mutex_exit(&sc->sc_lock);
 	return err;
 }
@@ -1147,7 +1160,7 @@ uhidev_write_callback(struct usbd_xfer *xfer, void *cookie, usbd_status err)
 	sc->sc_writelock = NULL;
 	sc->sc_writecallback = NULL;
 	sc->sc_writecookie = NULL;
-	//cv_broadcast(&sc->sc_cv);
+	cv_broadcast(&sc->sc_cv);
 	mutex_exit(&sc->sc_lock);
 
 	(*writecallback)(xfer, writecookie, err);
@@ -1193,7 +1206,7 @@ uhidev_write_async(struct uhidev *scd, void *data, int len, int flags,
 		sc->sc_writereportid = -1;
 		sc->sc_writecallback = NULL;
 		sc->sc_writecookie = NULL;
-		//cv_broadcast(&sc->sc_cv);
+		cv_broadcast(&sc->sc_cv);
 	}
 out:	mutex_exit(&sc->sc_lock);
 	return err;

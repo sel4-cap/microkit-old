@@ -77,5 +77,6 @@ extern kcondvar_t lbolt;
 #define cv_wait(cv, cmd) 0
 #define cv_signal(cv) 0
 #define cv_broadcast(cv) 0
+#define cv_timedwait(...) 0
 
 #endif /* _SYS_CONDVAR_H_ */

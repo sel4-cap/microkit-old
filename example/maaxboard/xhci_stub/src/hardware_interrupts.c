@@ -166,20 +166,14 @@ void
 notified(sel4cp_channel ch) {
     switch (ch) {
         case 6:
-            // printf("!!xhci hard interrupt!!\n");
             if (glob_xhci_sc != NULL) {
                 xhci_intr(glob_xhci_sc);
             } else {
                 printf("FATAL: sc not defined");
             }
-            // printf("end of ch\n");
             sel4cp_irq_ack(ch);
             break;
     }
-    // printf("Hanging to prevent io spam\n");
-    // while(1) {
-
-    // }
 }
 
 sel4cp_msginfo

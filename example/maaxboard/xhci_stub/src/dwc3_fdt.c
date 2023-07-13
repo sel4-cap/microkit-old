@@ -198,7 +198,7 @@ dwc3_fdt_enable_phy(struct xhci_softc *sc, const int phandle, u_int rev)
 
 	val = RD4(sc, DWC3_DCFG);
 	val &= ~DCFG_SPEED;
-	// TODO: add strcmp lol
+	// TODO: add strcmp
 	// if (strcmp(max_speed, "low-speed") == 0)
 	// 	val |= __SHIFTIN(DCFG_SPEED_LS, DCFG_SPEED);
 	// else if (strcmp(max_speed, "full-speed") == 0)
@@ -266,8 +266,6 @@ dwc3_fdt_attach(device_t parent, device_t self, void *aux)
 	// void *ih;
 	// u_int n;
 
-	/* hard code the fdt handle for dwc3 */
-	// phandle = 0x12000000;
 	dwc3_phandle = phandle;
 
 	// /* Find dwc3 sub-node */

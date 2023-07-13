@@ -149,6 +149,7 @@ static int uhidev_detach(device_t, int);
 // CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
 //     uhidev_attach, uhidev_detach, NULL, NULL, uhidev_childdet);
 
+#ifndef SEL4
 static int
 uhidev_match(device_t parent, cfdata_t match, void *aux)
 {
@@ -167,6 +168,7 @@ uhidev_match(device_t parent, cfdata_t match, void *aux)
 		return UMATCH_NONE;
 	return UMATCH_IFACECLASS_GENERIC;
 }
+#endif /* SEL4 */
 
 void
 uhidev_attach(device_t parent, device_t self, void *aux)
@@ -195,7 +197,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 	aprint_normal("\n");
 
 	mutex_init(&sc->sc_lock, MUTEX_DEFAULT, IPL_SOFTUSB);
-	//cv_init(&sc->sc_cv, "uhidev");
+	cv_init(&sc->sc_cv, "uhidev");
 	sc->sc_writelock = NULL;
 	sc->sc_configlock = NULL;
 	sc->sc_refcnt = 0;
@@ -209,8 +211,8 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 	       devinfop, id->bInterfaceClass, id->bInterfaceSubClass);
 	usbd_devinfo_free(devinfop);
 
-	// if (!pmf_device_register(self, NULL, NULL))
-	// 	aprint_error_dev(self, "couldn't establish power handler\n");
+	if (!pmf_device_register(self, NULL, NULL))
+		aprint_error_dev(self, "couldn't establish power handler\n");
 
 	if (uiaa->uiaa_vendor == USB_VENDOR_WACOM) {
 		if (uiaa->uiaa_product == USB_PRODUCT_WACOM_XD0912U) {

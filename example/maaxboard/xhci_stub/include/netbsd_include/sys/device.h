@@ -347,6 +347,9 @@ struct cftable {
 TAILQ_HEAD(cftablelist, cftable);
 #endif
 
+#define	DVF_PRIV_ALLOC		0x0002	/* device private storage != device */
+#define	DVF_DETACH_SHUTDOWN	0x0080	/* device detaches safely at shutdown */
+
 typedef int (*cfsubmatch_t)(device_t, cfdata_t, const int *, void *);
 typedef int (*cfsearch_t)(device_t, cfdata_t, const int *, void *);
 
@@ -381,27 +384,27 @@ struct cfattach {
 };
 LIST_HEAD(cfattachlist, cfattach);
 
-// #define	CFATTACH_DECL3_NEW(name, ddsize, matfn, attfn, detfn, actfn, \
-// 	rescanfn, chdetfn, __flags) \
-// struct cfattach __CONCAT(name,_ca) = {					\
-// 	.ca_name		= ___STRING(name),			\
-// 	.ca_devsize		= ddsize,				\
-// 	.ca_flags		= (__flags) | DVF_PRIV_ALLOC,		\
-// 	.ca_match 		= matfn,				\
-// 	.ca_attach		= attfn,				\
-// 	.ca_detach		= detfn,				\
-// 	.ca_activate		= actfn,				\
-// 	.ca_rescan		= rescanfn,				\
-// 	.ca_childdetached	= chdetfn,				\
-// }
+#define	CFATTACH_DECL3_NEW(name, ddsize, matfn, attfn, detfn, actfn, \
+	rescanfn, chdetfn, __flags) \
+struct cfattach __CONCAT(name,_ca) = {					\
+	.ca_name		= ___STRING(name),			\
+	.ca_devsize		= ddsize,				\
+	.ca_flags		= (__flags) | DVF_PRIV_ALLOC,		\
+	.ca_match 		= matfn,				\
+	.ca_attach		= attfn,				\
+	.ca_detach		= detfn,				\
+	.ca_activate		= actfn,				\
+	.ca_rescan		= rescanfn,				\
+	.ca_childdetached	= chdetfn,				\
+}
 
-// #define	CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn,	\
-// 	rescanfn, chdetfn)						\
-// 	CFATTACH_DECL3_NEW(name, ddsize, matfn, attfn, detfn, actfn,	\
-// 	    rescanfn, chdetfn, 0)
+#define	CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn,	\
+	rescanfn, chdetfn)						\
+	CFATTACH_DECL3_NEW(name, ddsize, matfn, attfn, detfn, actfn,	\
+	    rescanfn, chdetfn, 0)
 
-// #define	CFATTACH_DECL_NEW(name, ddsize, matfn, attfn, detfn, actfn)	\
-// 	CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn, NULL, NULL)
+#define	CFATTACH_DECL_NEW(name, ddsize, matfn, attfn, detfn, actfn)	\
+	CFATTACH_DECL2_NEW(name, ddsize, matfn, attfn, detfn, actfn, NULL, NULL)
 
 /* Flags given to config_detach(), and the ca_detach function. */
 #define	DETACH_FORCE	0x01		/* force detachment; hardware gone */
@@ -507,6 +510,8 @@ struct cfargs {
 void * device_private(device_t);
 const char* device_xname(device_t dev);
 int device_unit(device_t dev);
+device_t	device_parent(device_t);
+bool		device_is_a(device_t, const char *);
 
 #ifdef _KERNEL
 
@@ -723,6 +728,8 @@ int	device_call_generic(device_t, const struct device_call_generic *);
 #define config_detach_children(...) 0
 #define config_match(...) 0
 #define config_detach(...) 0
+#define config_pending_incr(dev) 0;
+#define config_pending_decr(dev) 0;
 #endif /* _KERNEL */
 
 #endif /* !_SYS_DEVICE_H_ */

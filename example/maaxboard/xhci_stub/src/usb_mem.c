@@ -62,7 +62,8 @@
 #include <evbarm/bus_defs.h>
 #include <evbarm/bus_funcs.h>
 
-#define CACHE_LINE_SIZE 64
+#undef CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE 64 // this is very important
 
 #define	DPRINTF(FMT,A,B,C,D)	USBHIST_LOG(usbdebug,FMT,A,B,C,D)
 #define	DPRINTFN(N,FMT,A,B,C,D)	USBHIST_LOGN(usbdebug,N,FMT,A,B,C,D)

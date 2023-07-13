@@ -387,6 +387,8 @@ __END_DECLS
 #define atomic_inc_ulong_nv	kmsan_atomic_inc_ulong_nv
 #define atomic_inc_ptr_nv	kmsan_atomic_inc_ptr_nv
 #define atomic_inc_64_nv	kmsan_atomic_inc_64_nv
+#elif defined SEL4
+#define atomic_cas_uint(...) 0
 #endif
 
 

@@ -75,10 +75,11 @@ struct pmf_qual {
 typedef struct pmf_qual pmf_qual_t;
 #endif
 
-bool		pmf_device_register1(device_t,
-		    bool (*)(device_t, const pmf_qual_t *),
-		    bool (*)(device_t, const pmf_qual_t *),
-		    bool (*)(device_t, int));
+// bool		pmf_device_register1(device_t,
+// 		    bool (*)(device_t, const pmf_qual_t *),
+// 		    bool (*)(device_t, const pmf_qual_t *),
+// 		    bool (*)(device_t, int));
+#define pmf_device_register1(...) 0
 /* compatibility */
 #define pmf_device_register(__d, __s, __r) \
 	pmf_device_register1((__d), (__s), (__r), NULL)

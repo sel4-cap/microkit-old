@@ -45,17 +45,16 @@ __KERNEL_RCSID(0, "$NetBSD: usb.c,v 1.200 2022/03/13 11:28:52 riastradh Exp $");
 #include "opt_compat_netbsd.h"
 #endif
 
-#include <wrapper.h>
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/kmem.h>
 #include <sys/device.h>
-// #include <sys/kthread.h>
+#include <sys/kthread.h>
 #include <sys/proc.h>
 #include <sys/conf.h>
 // #include <sys/fcntl.h>
-// #include <poll.h>
+// #include <sys/poll.h>
 #include <sys/select.h>
 // #include <sys/vnode.h>
 // #include <sys/signalvar.h>
@@ -64,7 +63,7 @@ __KERNEL_RCSID(0, "$NetBSD: usb.c,v 1.200 2022/03/13 11:28:52 riastradh Exp $");
 #include <sys/mutex.h>
 #include <sys/bus.h>
 #include <sys/once.h>
-// #include <sys/atomic.h>
+#include <sys/atomic.h>
 // #include <sys/sysctl.h>
 // #include <sys/compat_stub.h>
 #include <sys/sdt.h>
@@ -79,6 +78,7 @@ __KERNEL_RCSID(0, "$NetBSD: usb.c,v 1.200 2022/03/13 11:28:52 riastradh Exp $");
 #include <dev/usb/usb_sdt.h>
 
 // #include "ioconf.h"
+#include <wrapper.h>
 
 #if defined(USB_DEBUG)
 
@@ -135,19 +135,21 @@ fail:
 #define	DPRINTF(FMT,A,B,C,D)	USBHIST_LOG(usbdebug,FMT,A,B,C,D)
 #define	DPRINTFN(N,FMT,A,B,C,D)	USBHIST_LOGN(usbdebug,N,FMT,A,B,C,D)
 
-// struct usb_softc {
-// #if 0
-// 	device_t	sc_dev;		/* base device */
-// #endif
-// 	struct usbd_bus *sc_bus;	/* USB controller */
-// 	struct usbd_port sc_port;	/* dummy port for root hub */
+#ifndef SEL4 // SEL4: moved usb_softc to usb.h
+struct usb_softc {
+#if 0
+	device_t	sc_dev;		/* base device */
+#endif
+	struct usbd_bus *sc_bus;	/* USB controller */
+	struct usbd_port sc_port;	/* dummy port for root hub */
 
-// 	struct lwp	*sc_event_thread;
-// 	struct lwp	*sc_attach_thread;
+	struct lwp	*sc_event_thread;
+	struct lwp	*sc_attach_thread;
 
-// 	char		sc_dying;
-// 	bool		sc_pmf_registered;
-// };
+	char		sc_dying;
+	bool		sc_pmf_registered;
+};
+#endif
 
 struct usb_taskq {
 	TAILQ_HEAD(, usb_task) tasks;
@@ -208,27 +210,29 @@ SDT_PROBE_DEFINE1(usb, kernel, bus, explore__done,
 SDT_PROBE_DEFINE1(usb, kernel, event, add,  "struct usb_event *"/*uep*/);
 SDT_PROBE_DEFINE1(usb, kernel, event, drop,  "struct usb_event *"/*uep*/);
 
-// dev_type_open(usbopen);
-// dev_type_close(usbclose);
-// dev_type_read(usbread);
-// dev_type_ioctl(usbioctl);
-// dev_type_poll(usbpoll);
-// dev_type_kqfilter(usbkqfilter);
+#ifndef SEL4
+dev_type_open(usbopen);
+dev_type_close(usbclose);
+dev_type_read(usbread);
+dev_type_ioctl(usbioctl);
+dev_type_poll(usbpoll);
+dev_type_kqfilter(usbkqfilter);
 
-// const struct cdevsw usb_cdevsw = {
-// 	.d_open = usbopen,
-// 	.d_close = usbclose,
-// 	.d_read = usbread,
-// 	.d_write = nowrite,
-// 	.d_ioctl = usbioctl,
-// 	.d_stop = nostop,
-// 	.d_tty = notty,
-// 	.d_poll = usbpoll,
-// 	.d_mmap = nommap,
-// 	.d_kqfilter = usbkqfilter,
-// 	.d_discard = nodiscard,
-// 	.d_flag = D_OTHER
-// };
+const struct cdevsw usb_cdevsw = {
+	.d_open = usbopen,
+	.d_close = usbclose,
+	.d_read = usbread,
+	.d_write = nowrite,
+	.d_ioctl = usbioctl,
+	.d_stop = nostop,
+	.d_tty = notty,
+	.d_poll = usbpoll,
+	.d_mmap = nommap,
+	.d_kqfilter = usbkqfilter,
+	.d_discard = nodiscard,
+	.d_flag = D_OTHER
+};
+#endif
 
 // Static void	usb_discover(struct usb_softc *);
 Static void	usb_create_event_thread(device_t);
@@ -272,19 +276,19 @@ static void usb_childdet(device_t, device_t);
 static int usb_once_init(void);
 static void usb_doattach(device_t);
 
-// CFATTACH_DECL3_NEW(usb, sizeof(struct usb_softc),
-//     usb_match, usb_attach, usb_detach, usb_activate, NULL, usb_childdet,
-//     DVF_DETACH_SHUTDOWN);
+CFATTACH_DECL3_NEW(usb, sizeof(struct usb_softc),
+    usb_match, usb_attach, usb_detach, usb_activate, NULL, usb_childdet,
+    DVF_DETACH_SHUTDOWN);
 
 static const char *taskq_names[] = USB_TASKQ_NAMES;
 
-// int
-// usb_match(device_t parent, cfdata_t match, void *aux)
-// {
-// 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+int
+usb_match(device_t parent, cfdata_t match, void *aux)
+{
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
 
-// 	return UMATCH_GENERIC;
-// }
+	return UMATCH_GENERIC;
+}
 
 void
 usb_attach(device_t parent, device_t self, void *aux)
@@ -317,96 +321,93 @@ usb_attach(device_t parent, device_t self, void *aux)
 	aprint_normal("\n");
 
 	/* XXX we should have our own level */
-	//!THREAD: softint should be registered here, come back to this when threading is done
-	// sc->sc_bus->ub_soft = softint_establish(SOFTINT_USB | SOFTINT_MPSAFE,
-	//     usb_soft_intr, sc->sc_bus);
-	// if (sc->sc_bus->ub_soft == NULL) {
-	// 	aprint_error("%s: can't register softintr\n",
-	// 		     device_xname(self));
-	// 	sc->sc_dying = 1;
-	// 	return;
-	// }
+#ifndef SEL4
+	sc->sc_bus->ub_soft = softint_establish(SOFTINT_USB | SOFTINT_MPSAFE,
+	    usb_soft_intr, sc->sc_bus);
+	if (sc->sc_bus->ub_soft == NULL) {
+		aprint_error("%s: can't register softintr\n",
+			     device_xname(self));
+		sc->sc_dying = 1;
+		return;
+	}
 
-	// sc->sc_bus->ub_methods->ubm_getlock(sc->sc_bus, &sc->sc_bus->ub_lock);
-	// KASSERT(sc->sc_bus->ub_lock != NULL);
+	sc->sc_bus->ub_methods->ubm_getlock(sc->sc_bus, &sc->sc_bus->ub_lock);
+	KASSERT(sc->sc_bus->ub_lock != NULL);
 
-	// RUN_ONCE(&init_control, usb_once_init);
-	//? config_interrupts(self, usb_doattach);
-	//! assume interrupts are enabled (potentially dangerous)
-	usb_doattach(self);
-
+	RUN_ONCE(&init_control, usb_once_init);
+	config_interrupts(self, usb_doattach);
+#else
+	usb_doattach(self); // just do the attach
+#endif
 }
 
-// #ifdef DDB
-// #include <machine/db_machdep.h>
-// #include <ddb/db_output.h>
-// #include <ddb/db_command.h>
+#ifdef DDB
+#include <machine/db_machdep.h>
+#include <ddb/db_output.h>
+#include <ddb/db_command.h>
 
-// static void
-// db_usb_xfer(db_expr_t addr, bool have_addr, db_expr_t count,
-//     const char *modif)
-// {
-// 	struct usbd_xfer *xfer = (struct usbd_xfer *)(uintptr_t)addr;
+static void
+db_usb_xfer(db_expr_t addr, bool have_addr, db_expr_t count,
+    const char *modif)
+{
+	struct usbd_xfer *xfer = (struct usbd_xfer *)(uintptr_t)addr;
 
-// 	if (!have_addr) {
-// 		db_printf("%s: need usbd_xfer address\n", __func__);
-// 		return;
-// 	}
+	if (!have_addr) {
+		db_printf("%s: need usbd_xfer address\n", __func__);
+		return;
+	}
 
-// 	db_printf("usb xfer: %p pipe %p priv %p buffer %p\n",
-// 	    xfer, xfer->ux_pipe, xfer->ux_priv, xfer->ux_buffer);
-// 	db_printf(" len %x actlen %x flags %x timeout %x status %x\n",
-// 	    xfer->ux_length, xfer->ux_actlen, xfer->ux_flags, xfer->ux_timeout,
-// 	    xfer->ux_status);
-// 	db_printf(" callback %p done %x state %x tm_set %x tm_reset %x\n",
-// 	    xfer->ux_callback, xfer->ux_done, xfer->ux_state,
-// 	    xfer->ux_timeout_set, xfer->ux_timeout_reset);
-// }
+	db_printf("usb xfer: %p pipe %p priv %p buffer %p\n",
+	    xfer, xfer->ux_pipe, xfer->ux_priv, xfer->ux_buffer);
+	db_printf(" len %x actlen %x flags %x timeout %x status %x\n",
+	    xfer->ux_length, xfer->ux_actlen, xfer->ux_flags, xfer->ux_timeout,
+	    xfer->ux_status);
+	db_printf(" callback %p done %x state %x tm_set %x tm_reset %x\n",
+	    xfer->ux_callback, xfer->ux_done, xfer->ux_state,
+	    xfer->ux_timeout_set, xfer->ux_timeout_reset);
+}
 
-// static void
-// db_usb_xferlist(db_expr_t addr, bool have_addr, db_expr_t count,
-//     const char *modif)
-// {
-// 	struct usbd_pipe *pipe = (struct usbd_pipe *)(uintptr_t)addr;
-// 	struct usbd_xfer *xfer;
+static void
+db_usb_xferlist(db_expr_t addr, bool have_addr, db_expr_t count,
+    const char *modif)
+{
+	struct usbd_pipe *pipe = (struct usbd_pipe *)(uintptr_t)addr;
+	struct usbd_xfer *xfer;
 
-// 	if (!have_addr) {
-// 		db_printf("%s: need usbd_pipe address\n", __func__);
-// 		return;
-// 	}
+	if (!have_addr) {
+		db_printf("%s: need usbd_pipe address\n", __func__);
+		return;
+	}
 
-// 	db_printf("usb pipe: %p\n", pipe);
-// 	unsigned xfercount = 0;
-// 	SIMPLEQ_FOREACH(xfer, &pipe->up_queue, ux_next) {
-// 		db_printf("  xfer = %p%s", xfer,
-// 		    xfercount == 0 || xfercount % 2 == 0 ? "" : "\n");
-// 		xfercount++;
-// 	}
-// }
+	db_printf("usb pipe: %p\n", pipe);
+	unsigned xfercount = 0;
+	SIMPLEQ_FOREACH(xfer, &pipe->up_queue, ux_next) {
+		db_printf("  xfer = %p%s", xfer,
+		    xfercount == 0 || xfercount % 2 == 0 ? "" : "\n");
+		xfercount++;
+	}
+}
 
-// static const struct db_command db_usb_command_table[] = {
-// 	{ DDB_ADD_CMD("usbxfer",	db_usb_xfer,	0, 
-// 	  "display a USB xfer structure",
-// 	  NULL, NULL) },
-// 	{ DDB_ADD_CMD("usbxferlist",	db_usb_xferlist,	0, 
-// 	  "display a USB xfer structure given pipe",
-// 	  NULL, NULL) },
-// 	{ DDB_END_CMD },
-// };
+static const struct db_command db_usb_command_table[] = {
+	{ DDB_ADD_CMD("usbxfer",	db_usb_xfer,	0, 
+	  "display a USB xfer structure",
+	  NULL, NULL) },
+	{ DDB_ADD_CMD("usbxferlist",	db_usb_xferlist,	0, 
+	  "display a USB xfer structure given pipe",
+	  NULL, NULL) },
+	{ DDB_END_CMD },
+};
 
-// static void
-// usb_init_ddb(void)
-// {
+static void
+usb_init_ddb(void)
+{
 
-// 	(void)db_register_tbl(DDB_SHOW_CMD, db_usb_command_table);
-// }
-// #else
-// #define usb_init_ddb() /* nothing */
-// #endif
+	(void)db_register_tbl(DDB_SHOW_CMD, db_usb_command_table);
+}
+#else
+#define usb_init_ddb() /* nothing */
+#endif
 
-/**
-	TODO: initialisation function. Setup callbacks for the software interrupts and selnotify.
-*/
 static int
 usb_once_init(void)
 {
@@ -431,12 +432,12 @@ usb_once_init(void)
 		cv_init(&taskq->cv, "usbtsk");
 		taskq->name = taskq_names[i];
 		taskq->current_task = NULL;
-		// if (kthread_create(PRI_NONE, KTHREAD_MPSAFE, NULL,
-		//     usb_task_thread, taskq, &taskq->task_thread_lwp,
-		//     "%s", taskq->name)) {
-		// 	printf("unable to create task thread: %s\n", taskq->name);
-		// 	panic("usb_create_event_thread task");
-		// }
+		if (kthread_create(PRI_NONE, KTHREAD_MPSAFE, NULL,
+		    usb_task_thread, taskq, &taskq->task_thread_lwp,
+		    "%s", taskq->name)) {
+			printf("unable to create task thread: %s\n", taskq->name);
+			panic("usb_create_event_thread task");
+		}
 		/*
 		 * XXX we should make sure these threads are alive before
 		 * end up using them in usb_doattach().
@@ -458,7 +459,7 @@ usb_doattach(device_t self)
 	struct usb_softc *sc = device_private(self);
 	struct usbd_device *dev;
 	usbd_status err;
-	int speed;
+	int speed = 0;
 	struct usb_event *ue;
 
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
@@ -486,7 +487,6 @@ usb_doattach(device_t self)
 		speed = USB_SPEED_SUPER_PLUS;
 		break;
 	default:
-		speed = 0;
 		panic("usb_doattach");
 	}
 
@@ -494,7 +494,7 @@ usb_doattach(device_t self)
 	ue->u.ue_ctrlr.ue_bus = device_unit(self);
 	usb_add_event(USB_EVENT_CTRLR_ATTACH, ue);
 
-	sc->sc_attach_thread = NULL; //curlwp
+	sc->sc_attach_thread = NULL; //SEL4: removed curlwp
 	err = usbd_new_device(self, sc->sc_bus, 0, speed, 0,
 		  &sc->sc_port);
 	sc->sc_attach_thread = NULL;
@@ -507,7 +507,6 @@ usb_doattach(device_t self)
 			return;
 		}
 		sc->sc_bus->ub_roothub = dev;
-		printf("HUB SET HERE: %p\n", dev);
 		usb_create_event_thread(self);
 	} else {
 		aprint_error("%s: root hub problem, error=%s\n",
@@ -519,14 +518,12 @@ usb_doattach(device_t self)
 	 * Drop this reference after the first set of attachments in the
 	 * event thread.
 	 */
-	//? manipulates config_pending semaphore
-	// config_pending_incr(self);
+	config_pending_incr(self);
 
-	//? probably don't need
-	// if (!pmf_device_register(self, NULL, NULL))
-	// 	aprint_error_dev(self, "couldn't establish power handler\n");
-	// else
-	sc->sc_pmf_registered = true;
+	if (!pmf_device_register(self, NULL, NULL))
+		aprint_error_dev(self, "couldn't establish power handler\n");
+	else
+		sc->sc_pmf_registered = true;
 
 	return;
 }
@@ -536,99 +533,101 @@ usb_create_event_thread(device_t self)
 {
 	struct usb_softc *sc = device_private(self);
 
-	// if (kthread_create(PRI_NONE, 0, NULL,
-	//     usb_event_thread, sc, &sc->sc_event_thread,
-	//     "%s", device_xname(self))) {
-	// 	printf("%s: unable to create event thread for\n",
-	// 	       device_xname(self));
-	// 	panic("usb_create_event_thread");
-	// }
+	if (kthread_create(PRI_NONE, 0, NULL,
+	    usb_event_thread, sc, &sc->sc_event_thread,
+	    "%s", device_xname(self))) {
+		printf("%s: unable to create event thread for\n",
+		       device_xname(self));
+		panic("usb_create_event_thread");
+	}
 }
 
-// bool
-// usb_in_event_thread(device_t dev)
-// {
-// 	struct usb_softc *sc;
+#ifndef SEL4
+bool
+usb_in_event_thread(device_t dev)
+{
+	struct usb_softc *sc;
 
-// 	if (cold)
-// 		return true;
+	if (cold)
+		return true;
 
-// 	for (; dev; dev = device_parent(dev)) {
-// 		if (device_is_a(dev, "usb"))
-// 			break;
-// 	}
-// 	if (dev == NULL)
-// 		return false;
-// 	sc = device_private(dev);
+	for (; dev; dev = device_parent(dev)) {
+		if (device_is_a(dev, "usb"))
+			break;
+	}
+	if (dev == NULL)
+		return false;
+	sc = device_private(dev);
 
-// 	return curlwp == sc->sc_event_thread || curlwp == sc->sc_attach_thread;
-// }
+	return curlwp == sc->sc_event_thread || curlwp == sc->sc_attach_thread;
+}
+#endif
 
-// /*
-//  * Add a task to be performed by the task thread.  This function can be
-//  * called from any context and the task will be executed in a process
-//  * context ASAP.
-//  */
-// void
-// usb_add_task(struct usbd_device *dev, struct usb_task *task, int queue)
-// {
-// 	struct usb_taskq *taskq;
+/*
+ * Add a task to be performed by the task thread.  This function can be
+ * called from any context and the task will be executed in a process
+ * context ASAP.
+ */
+void
+usb_add_task(struct usbd_device *dev, struct usb_task *task, int queue)
+{
+	struct usb_taskq *taskq;
 
-// 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-// 	SDT_PROBE3(usb, kernel, task, add,  dev, task, queue);
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+	SDT_PROBE3(usb, kernel, task, add,  dev, task, queue);
 
-// 	KASSERT(0 <= queue);
-// 	KASSERT(queue < USB_NUM_TASKQS);
-// 	taskq = &usb_taskq[queue];
-// 	mutex_enter(&taskq->lock);
-// 	if (atomic_cas_uint(&task->queue, USB_NUM_TASKQS, queue) ==
-// 	    USB_NUM_TASKQS) {
-// 		DPRINTFN(2, "task=%#jx", (uintptr_t)task, 0, 0, 0);
-// 		TAILQ_INSERT_TAIL(&taskq->tasks, task, next);
-// 		cv_signal(&taskq->cv);
-// 	} else {
-// 		DPRINTFN(2, "task=%#jx on q", (uintptr_t)task, 0, 0, 0);
-// 	}
-// 	mutex_exit(&taskq->lock);
-// }
+	KASSERT(0 <= queue);
+	KASSERT(queue < USB_NUM_TASKQS);
+	taskq = &usb_taskq[queue];
+	mutex_enter(&taskq->lock);
+	if (atomic_cas_uint(&task->queue, USB_NUM_TASKQS, queue) ==
+	    USB_NUM_TASKQS) {
+		DPRINTFN(2, "task=%#jx", (uintptr_t)task, 0, 0, 0);
+		TAILQ_INSERT_TAIL(&taskq->tasks, task, next);
+		cv_signal(&taskq->cv);
+	} else {
+		DPRINTFN(2, "task=%#jx on q", (uintptr_t)task, 0, 0, 0);
+	}
+	mutex_exit(&taskq->lock);
+}
 
-// /*
-//  * usb_rem_task(dev, task)
-//  *
-//  *	If task is queued to run, remove it from the queue.  Return
-//  *	true if it successfully removed the task from the queue, false
-//  *	if not.
-//  *
-//  *	Caller is _not_ guaranteed that the task is not running when
-//  *	this is done.
-//  *
-//  *	Never sleeps.
-//  */
-// bool
-// usb_rem_task(struct usbd_device *dev, struct usb_task *task)
-// {
-// 	unsigned queue;
+/*
+ * usb_rem_task(dev, task)
+ *
+ *	If task is queued to run, remove it from the queue.  Return
+ *	true if it successfully removed the task from the queue, false
+ *	if not.
+ *
+ *	Caller is _not_ guaranteed that the task is not running when
+ *	this is done.
+ *
+ *	Never sleeps.
+ */
+bool
+usb_rem_task(struct usbd_device *dev, struct usb_task *task)
+{
+	unsigned queue;
 
-// 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-// 	SDT_PROBE2(usb, kernel, task, rem__start,  dev, task);
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+	SDT_PROBE2(usb, kernel, task, rem__start,  dev, task);
 
-// 	while ((queue = task->queue) != USB_NUM_TASKQS) {
-// 		struct usb_taskq *taskq = &usb_taskq[queue];
-// 		mutex_enter(&taskq->lock);
-// 		if (__predict_true(task->queue == queue)) {
-// 			TAILQ_REMOVE(&taskq->tasks, task, next);
-// 			task->queue = USB_NUM_TASKQS;
-// 			mutex_exit(&taskq->lock);
-// 			SDT_PROBE3(usb, kernel, task, rem__done,
-// 			    dev, task, true);
-// 			return true; /* removed from the queue */
-// 		}
-// 		mutex_exit(&taskq->lock);
-// 	}
+	while ((queue = task->queue) != USB_NUM_TASKQS) {
+		struct usb_taskq *taskq = &usb_taskq[queue];
+		mutex_enter(&taskq->lock);
+		if (__predict_true(task->queue == queue)) {
+			TAILQ_REMOVE(&taskq->tasks, task, next);
+			task->queue = USB_NUM_TASKQS;
+			mutex_exit(&taskq->lock);
+			SDT_PROBE3(usb, kernel, task, rem__done,
+			    dev, task, true);
+			return true; /* removed from the queue */
+		}
+		mutex_exit(&taskq->lock);
+	}
 
-// 	SDT_PROBE3(usb, kernel, task, rem__done,  dev, task, false);
-// 	return false;		/* was not removed from the queue */
-// }
+	SDT_PROBE3(usb, kernel, task, rem__done,  dev, task, false);
+	return false;		/* was not removed from the queue */
+}
 
 /*
  * usb_rem_task_wait(dev, task, queue, interlock)
@@ -657,9 +656,9 @@ usb_rem_task_wait(struct usbd_device *dev, struct usb_task *task, int queue,
 	bool removed;
 
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-	// SDT_PROBE4(usb, kernel, task, rem__wait__start,
-	//     dev, task, queue, interlock);
-	// ASSERT_SLEEPABLE();
+	SDT_PROBE4(usb, kernel, task, rem__wait__start,
+	    dev, task, queue, interlock);
+	ASSERT_SLEEPABLE();
 	KASSERT(0 <= queue);
 	KASSERT(queue < USB_NUM_TASKQS);
 
@@ -697,8 +696,8 @@ usb_rem_task_wait(struct usbd_device *dev, struct usb_task *task, int queue,
 	if (interlock && !removed)
 		mutex_enter(interlock);
 
-	// SDT_PROBE5(usb, kernel, task, rem__wait__done,
-	//     dev, task, queue, interlock, removed);
+	SDT_PROBE5(usb, kernel, task, rem__wait__done,
+	    dev, task, queue, interlock, removed);
 	return removed;
 }
 
@@ -719,6 +718,7 @@ usb_task_pending(struct usbd_device *dev, struct usb_task *task)
 	return task->queue != USB_NUM_TASKQS;
 }
 
+#ifndef SEL4
 void
 usb_event_thread(void *arg)
 {
@@ -748,7 +748,7 @@ usb_event_thread(void *arg)
 	mutex_exit(bus->ub_lock);
 
 	/* Drop the config_pending reference from attach. */
-	// config_pending_decr(bus->ub_usbctl);
+	config_pending_decr(bus->ub_usbctl);
 
 	mutex_enter(bus->ub_lock);
 	while (!sc->sc_dying) {
@@ -760,8 +760,8 @@ usb_event_thread(void *arg)
 		if (usb_noexplore < 2)
 			usb_discover(sc);
 
-		// cv_timedwait(&bus->ub_needsexplore_cv,
-		//     bus->ub_lock, usb_noexplore ? 0 : hz * 60);
+		cv_timedwait(&bus->ub_needsexplore_cv,
+		    bus->ub_lock, usb_noexplore ? 0 : hz * 60);
 
 		DPRINTFN(2, "sc %#jx woke up", (uintptr_t)sc, 0, 0, 0);
 	}
@@ -772,8 +772,9 @@ usb_event_thread(void *arg)
 	mutex_exit(bus->ub_lock);
 
 	DPRINTF("sc %#jx exit", (uintptr_t)sc, 0, 0, 0);
-	// kthread_exit(0);
+	kthread_exit(0);
 }
+#endif
 
 void
 usb_task_thread(void *arg)
@@ -797,7 +798,7 @@ usb_task_thread(void *arg)
 		}
 		DPRINTFN(2, "woke up task=%#jx", (uintptr_t)task, 0, 0, 0);
 		if (task != NULL) {
-			// mpsafe = ISSET(task->flags, USB_TASKQ_MPSAFE);
+			mpsafe = ISSET(task->flags, USB_TASKQ_MPSAFE);
 			TAILQ_REMOVE(&taskq->tasks, task, next);
 			task->queue = USB_NUM_TASKQS;
 			taskq->current_task = task;
@@ -805,10 +806,10 @@ usb_task_thread(void *arg)
 
 			if (!mpsafe)
 				KERNEL_LOCK(1, curlwp);
-			// SDT_PROBE1(usb, kernel, task, start,  task);
+			SDT_PROBE1(usb, kernel, task, start,  task);
 			task->fun(task->arg);
 			/* Can't dereference task after this point.  */
-			// SDT_PROBE1(usb, kernel, task, done,  task);
+			SDT_PROBE1(usb, kernel, task, done,  task);
 			if (!mpsafe)
 				KERNEL_UNLOCK_ONE(curlwp);
 
@@ -822,362 +823,364 @@ usb_task_thread(void *arg)
 	mutex_exit(&taskq->lock);
 }
 
-// int
-// usbctlprint(void *aux, const char *pnp)
-// {
-// 	/* only "usb"es can attach to host controllers */
-// 	if (pnp)
-// 		aprint_normal("usb at %s", pnp);
+#ifndef SEL4
+int
+usbctlprint(void *aux, const char *pnp)
+{
+	/* only "usb"es can attach to host controllers */
+	if (pnp)
+		aprint_normal("usb at %s", pnp);
 
-// 	return UNCONF;
-// }
+	return UNCONF;
+}
 
-// int
-// usbopen(dev_t dev, int flag, int mode, struct lwp *l)
-// {
-// 	int unit = minor(dev);
-// 	struct usb_softc *sc;
+int
+usbopen(dev_t dev, int flag, int mode, struct lwp *l)
+{
+	int unit = minor(dev);
+	struct usb_softc *sc;
 
-// 	if (nusbbusses == 0)
-// 		return ENXIO;
+	if (nusbbusses == 0)
+		return ENXIO;
 
-// 	if (unit == USB_DEV_MINOR) {
-// 		if (usb_dev_open)
-// 			return EBUSY;
-// 		usb_dev_open = 1;
-// 		mutex_enter(&proc_lock);
-// 		atomic_store_relaxed(&usb_async_proc, NULL);
-// 		mutex_exit(&proc_lock);
-// 		return 0;
-// 	}
+	if (unit == USB_DEV_MINOR) {
+		if (usb_dev_open)
+			return EBUSY;
+		usb_dev_open = 1;
+		mutex_enter(&proc_lock);
+		atomic_store_relaxed(&usb_async_proc, NULL);
+		mutex_exit(&proc_lock);
+		return 0;
+	}
 
-// 	sc = device_lookup_private(&usb_cd, unit);
-// 	if (!sc)
-// 		return ENXIO;
+	sc = device_lookup_private(&usb_cd, unit);
+	if (!sc)
+		return ENXIO;
 
-// 	if (sc->sc_dying)
-// 		return EIO;
+	if (sc->sc_dying)
+		return EIO;
 
-// 	return 0;
-// }
+	return 0;
+}
 
-// int
-// usbread(dev_t dev, struct uio *uio, int flag)
-// {
-// 	struct usb_event *ue;
-// 	struct usb_event_old *ueo = NULL;	/* XXXGCC */
-// 	int useold = 0;
-// 	int error, n;
+int
+usbread(dev_t dev, struct uio *uio, int flag)
+{
+	struct usb_event *ue;
+	struct usb_event_old *ueo = NULL;	/* XXXGCC */
+	int useold = 0;
+	int error, n;
 
-// 	if (minor(dev) != USB_DEV_MINOR)
-// 		return ENXIO;
+	if (minor(dev) != USB_DEV_MINOR)
+		return ENXIO;
 
-// 	switch (uio->uio_resid) {
-// 	case sizeof(struct usb_event_old):
-// 		ueo = kmem_zalloc(sizeof(struct usb_event_old), KM_SLEEP);
-// 		useold = 1;
-// 		/* FALLTHROUGH */
-// 	case sizeof(struct usb_event):
-// 		ue = usb_alloc_event();
-// 		break;
-// 	default:
-// 		return EINVAL;
-// 	}
+	switch (uio->uio_resid) {
+	case sizeof(struct usb_event_old):
+		ueo = kmem_zalloc(sizeof(struct usb_event_old), KM_SLEEP);
+		useold = 1;
+		/* FALLTHROUGH */
+	case sizeof(struct usb_event):
+		ue = usb_alloc_event();
+		break;
+	default:
+		return EINVAL;
+	}
 
-// 	error = 0;
-// 	mutex_enter(&usb_event_lock);
-// 	for (;;) {
-// 		n = usb_get_next_event(ue);
-// 		if (n != 0)
-// 			break;
-// 		if (flag & IO_NDELAY) {
-// 			error = EWOULDBLOCK;
-// 			break;
-// 		}
-// 		error = cv_wait_sig(&usb_event_cv, &usb_event_lock);
-// 		if (error)
-// 			break;
-// 	}
-// 	mutex_exit(&usb_event_lock);
-// 	if (!error) {
-// 		if (useold) { /* copy fields to old struct */
-// 			MODULE_HOOK_CALL(usb_subr_copy_30_hook,
-// 			    (ue, ueo, uio), enosys(), error);
-// 			if (error == ENOSYS)
-// 				error = EINVAL;
+	error = 0;
+	mutex_enter(&usb_event_lock);
+	for (;;) {
+		n = usb_get_next_event(ue);
+		if (n != 0)
+			break;
+		if (flag & IO_NDELAY) {
+			error = EWOULDBLOCK;
+			break;
+		}
+		error = cv_wait_sig(&usb_event_cv, &usb_event_lock);
+		if (error)
+			break;
+	}
+	mutex_exit(&usb_event_lock);
+	if (!error) {
+		if (useold) { /* copy fields to old struct */
+			MODULE_HOOK_CALL(usb_subr_copy_30_hook,
+			    (ue, ueo, uio), enosys(), error);
+			if (error == ENOSYS)
+				error = EINVAL;
 
-// 			if (!error)
-// 				error = uiomove((void *)ueo, sizeof(*ueo), uio);
-// 		} else
-// 			error = uiomove((void *)ue, sizeof(*ue), uio);
-// 	}
-// 	usb_free_event(ue);
-// 	if (ueo)
-// 		kmem_free(ueo, sizeof(struct usb_event_old));
+			if (!error)
+				error = uiomove((void *)ueo, sizeof(*ueo), uio);
+		} else
+			error = uiomove((void *)ue, sizeof(*ue), uio);
+	}
+	usb_free_event(ue);
+	if (ueo)
+		kmem_free(ueo, sizeof(struct usb_event_old));
 
-// 	return error;
-// }
+	return error;
+}
 
-// int
-// usbclose(dev_t dev, int flag, int mode,
-//     struct lwp *l)
-// {
-// 	int unit = minor(dev);
+int
+usbclose(dev_t dev, int flag, int mode,
+    struct lwp *l)
+{
+	int unit = minor(dev);
 
-// 	if (unit == USB_DEV_MINOR) {
-// 		mutex_enter(&proc_lock);
-// 		atomic_store_relaxed(&usb_async_proc, NULL);
-// 		mutex_exit(&proc_lock);
-// 		usb_dev_open = 0;
-// 	}
+	if (unit == USB_DEV_MINOR) {
+		mutex_enter(&proc_lock);
+		atomic_store_relaxed(&usb_async_proc, NULL);
+		mutex_exit(&proc_lock);
+		usb_dev_open = 0;
+	}
 
-// 	return 0;
-// }
+	return 0;
+}
 
-// int
-// usbioctl(dev_t devt, u_long cmd, void *data, int flag, struct lwp *l)
-// {
-// 	struct usb_softc *sc;
-// 	int unit = minor(devt);
+int
+usbioctl(dev_t devt, u_long cmd, void *data, int flag, struct lwp *l)
+{
+	struct usb_softc *sc;
+	int unit = minor(devt);
 
-// 	USBHIST_FUNC(); USBHIST_CALLARGS(usbdebug, "cmd %#jx", cmd, 0, 0, 0);
+	USBHIST_FUNC(); USBHIST_CALLARGS(usbdebug, "cmd %#jx", cmd, 0, 0, 0);
 
-// 	if (unit == USB_DEV_MINOR) {
-// 		switch (cmd) {
-// 		case FIONBIO:
-// 			/* All handled in the upper FS layer. */
-// 			return 0;
+	if (unit == USB_DEV_MINOR) {
+		switch (cmd) {
+		case FIONBIO:
+			/* All handled in the upper FS layer. */
+			return 0;
 
-// 		case FIOASYNC:
-// 			mutex_enter(&proc_lock);
-// 			atomic_store_relaxed(&usb_async_proc,
-// 			    *(int *)data ? l->l_proc : NULL);
-// 			mutex_exit(&proc_lock);
-// 			return 0;
+		case FIOASYNC:
+			mutex_enter(&proc_lock);
+			atomic_store_relaxed(&usb_async_proc,
+			    *(int *)data ? l->l_proc : NULL);
+			mutex_exit(&proc_lock);
+			return 0;
 
-// 		default:
-// 			return EINVAL;
-// 		}
-// 	}
+		default:
+			return EINVAL;
+		}
+	}
 
-// 	sc = device_lookup_private(&usb_cd, unit);
+	sc = device_lookup_private(&usb_cd, unit);
 
-// 	if (sc->sc_dying)
-// 		return EIO;
+	if (sc->sc_dying)
+		return EIO;
 
-// 	int error = 0;
-// 	switch (cmd) {
-// #ifdef USB_DEBUG
-// 	case USB_SETDEBUG:
-// 		if (!(flag & FWRITE))
-// 			return EBADF;
-// 		usbdebug  = ((*(int *)data) & 0x000000ff);
-// 		break;
-// #endif /* USB_DEBUG */
-// 	case USB_REQUEST:
-// 	{
-// 		struct usb_ctl_request *ur = (void *)data;
-// 		int len = UGETW(ur->ucr_request.wLength);
-// 		struct iovec iov;
-// 		struct uio uio;
-// 		void *ptr = 0;
-// 		int addr = ur->ucr_addr;
-// 		usbd_status err;
+	int error = 0;
+	switch (cmd) {
+#ifdef USB_DEBUG
+	case USB_SETDEBUG:
+		if (!(flag & FWRITE))
+			return EBADF;
+		usbdebug  = ((*(int *)data) & 0x000000ff);
+		break;
+#endif /* USB_DEBUG */
+	case USB_REQUEST:
+	{
+		struct usb_ctl_request *ur = (void *)data;
+		int len = UGETW(ur->ucr_request.wLength);
+		struct iovec iov;
+		struct uio uio;
+		void *ptr = 0;
+		int addr = ur->ucr_addr;
+		usbd_status err;
 
-// 		if (!(flag & FWRITE)) {
-// 			error = EBADF;
-// 			goto fail;
-// 		}
+		if (!(flag & FWRITE)) {
+			error = EBADF;
+			goto fail;
+		}
 
-// 		DPRINTF("USB_REQUEST addr=%jd len=%jd", addr, len, 0, 0);
-// 		if (len < 0 || len > 32768) {
-// 			error = EINVAL;
-// 			goto fail;
-// 		}
-// 		if (addr < 0 || addr >= USB_MAX_DEVICES) {
-// 			error = EINVAL;
-// 			goto fail;
-// 		}
-// 		size_t dindex = usb_addr2dindex(addr);
-// 		if (sc->sc_bus->ub_devices[dindex] == NULL) {
-// 			error = EINVAL;
-// 			goto fail;
-// 		}
-// 		if (len != 0) {
-// 			iov.iov_base = (void *)ur->ucr_data;
-// 			iov.iov_len = len;
-// 			uio.uio_iov = &iov;
-// 			uio.uio_iovcnt = 1;
-// 			uio.uio_resid = len;
-// 			uio.uio_offset = 0;
-// 			uio.uio_rw =
-// 				ur->ucr_request.bmRequestType & UT_READ ?
-// 				UIO_READ : UIO_WRITE;
-// 			uio.uio_vmspace = l->l_proc->p_vmspace;
-// 			ptr = kmem_alloc(len, KM_SLEEP);
-// 			if (uio.uio_rw == UIO_WRITE) {
-// 				error = uiomove(ptr, len, &uio);
-// 				if (error)
-// 					goto ret;
-// 			}
-// 		}
-// 		err = usbd_do_request_flags(sc->sc_bus->ub_devices[dindex],
-// 			  &ur->ucr_request, ptr, ur->ucr_flags, &ur->ucr_actlen,
-// 			  USBD_DEFAULT_TIMEOUT);
-// 		if (err) {
-// 			error = EIO;
-// 			goto ret;
-// 		}
-// 		if (len > ur->ucr_actlen)
-// 			len = ur->ucr_actlen;
-// 		if (len != 0) {
-// 			if (uio.uio_rw == UIO_READ) {
-// 				error = uiomove(ptr, len, &uio);
-// 				if (error)
-// 					goto ret;
-// 			}
-// 		}
-// 	ret:
-// 		if (ptr) {
-// 			len = UGETW(ur->ucr_request.wLength);
-// 			kmem_free(ptr, len);
-// 		}
-// 		break;
-// 	}
+		DPRINTF("USB_REQUEST addr=%jd len=%jd", addr, len, 0, 0);
+		if (len < 0 || len > 32768) {
+			error = EINVAL;
+			goto fail;
+		}
+		if (addr < 0 || addr >= USB_MAX_DEVICES) {
+			error = EINVAL;
+			goto fail;
+		}
+		size_t dindex = usb_addr2dindex(addr);
+		if (sc->sc_bus->ub_devices[dindex] == NULL) {
+			error = EINVAL;
+			goto fail;
+		}
+		if (len != 0) {
+			iov.iov_base = (void *)ur->ucr_data;
+			iov.iov_len = len;
+			uio.uio_iov = &iov;
+			uio.uio_iovcnt = 1;
+			uio.uio_resid = len;
+			uio.uio_offset = 0;
+			uio.uio_rw =
+				ur->ucr_request.bmRequestType & UT_READ ?
+				UIO_READ : UIO_WRITE;
+			uio.uio_vmspace = l->l_proc->p_vmspace;
+			ptr = kmem_alloc(len, KM_SLEEP);
+			if (uio.uio_rw == UIO_WRITE) {
+				error = uiomove(ptr, len, &uio);
+				if (error)
+					goto ret;
+			}
+		}
+		err = usbd_do_request_flags(sc->sc_bus->ub_devices[dindex],
+			  &ur->ucr_request, ptr, ur->ucr_flags, &ur->ucr_actlen,
+			  USBD_DEFAULT_TIMEOUT);
+		if (err) {
+			error = EIO;
+			goto ret;
+		}
+		if (len > ur->ucr_actlen)
+			len = ur->ucr_actlen;
+		if (len != 0) {
+			if (uio.uio_rw == UIO_READ) {
+				error = uiomove(ptr, len, &uio);
+				if (error)
+					goto ret;
+			}
+		}
+	ret:
+		if (ptr) {
+			len = UGETW(ur->ucr_request.wLength);
+			kmem_free(ptr, len);
+		}
+		break;
+	}
 
-// 	case USB_DEVICEINFO:
-// 	{
-// 		struct usbd_device *dev;
-// 		struct usb_device_info *di = (void *)data;
-// 		int addr = di->udi_addr;
+	case USB_DEVICEINFO:
+	{
+		struct usbd_device *dev;
+		struct usb_device_info *di = (void *)data;
+		int addr = di->udi_addr;
 
-// 		if (addr < 0 || addr >= USB_MAX_DEVICES) {
-// 			error = EINVAL;
-// 			goto fail;
-// 		}
-// 		size_t dindex = usb_addr2dindex(addr);
-// 		if ((dev = sc->sc_bus->ub_devices[dindex]) == NULL) {
-// 			error = ENXIO;
-// 			goto fail;
-// 		}
-// 		usbd_fill_deviceinfo(dev, di, 1);
-// 		break;
-// 	}
+		if (addr < 0 || addr >= USB_MAX_DEVICES) {
+			error = EINVAL;
+			goto fail;
+		}
+		size_t dindex = usb_addr2dindex(addr);
+		if ((dev = sc->sc_bus->ub_devices[dindex]) == NULL) {
+			error = ENXIO;
+			goto fail;
+		}
+		usbd_fill_deviceinfo(dev, di, 1);
+		break;
+	}
 
-// 	case USB_DEVICEINFO_OLD:
-// 	{
-// 		struct usbd_device *dev;
-// 		struct usb_device_info_old *di = (void *)data;
-// 		int addr = di->udi_addr;
+	case USB_DEVICEINFO_OLD:
+	{
+		struct usbd_device *dev;
+		struct usb_device_info_old *di = (void *)data;
+		int addr = di->udi_addr;
 
-// 		if (addr < 1 || addr >= USB_MAX_DEVICES) {
-// 			error = EINVAL;
-// 			goto fail;
-// 		}
-// 		size_t dindex = usb_addr2dindex(addr);
-// 		if ((dev = sc->sc_bus->ub_devices[dindex]) == NULL) {
-// 			error = ENXIO;
-// 			goto fail;
-// 		}
-// 		MODULE_HOOK_CALL(usb_subr_fill_30_hook,
-// 		    (dev, di, 1, usbd_devinfo_vp, usbd_printBCD),
-// 		    enosys(), error);
-// 		if (error == ENOSYS)
-// 			error = EINVAL;
-// 		if (error)
-// 			goto fail;
-// 		break;
-// 	}
+		if (addr < 1 || addr >= USB_MAX_DEVICES) {
+			error = EINVAL;
+			goto fail;
+		}
+		size_t dindex = usb_addr2dindex(addr);
+		if ((dev = sc->sc_bus->ub_devices[dindex]) == NULL) {
+			error = ENXIO;
+			goto fail;
+		}
+		MODULE_HOOK_CALL(usb_subr_fill_30_hook,
+		    (dev, di, 1, usbd_devinfo_vp, usbd_printBCD),
+		    enosys(), error);
+		if (error == ENOSYS)
+			error = EINVAL;
+		if (error)
+			goto fail;
+		break;
+	}
 
-// 	case USB_DEVICESTATS:
-// 		*(struct usb_device_stats *)data = sc->sc_bus->ub_stats;
-// 		break;
+	case USB_DEVICESTATS:
+		*(struct usb_device_stats *)data = sc->sc_bus->ub_stats;
+		break;
 
-// 	default:
-// 		error = EINVAL;
-// 	}
+	default:
+		error = EINVAL;
+	}
 
-// fail:
+fail:
 
-// 	DPRINTF("... done (error = %jd)", error, 0, 0, 0);
+	DPRINTF("... done (error = %jd)", error, 0, 0, 0);
 
-// 	return error;
-// }
+	return error;
+}
 
-// int
-// usbpoll(dev_t dev, int events, struct lwp *l)
-// {
-// 	int revents, mask;
+int
+usbpoll(dev_t dev, int events, struct lwp *l)
+{
+	int revents, mask;
 
-// 	if (minor(dev) == USB_DEV_MINOR) {
-// 		revents = 0;
-// 		mask = POLLIN | POLLRDNORM;
+	if (minor(dev) == USB_DEV_MINOR) {
+		revents = 0;
+		mask = POLLIN | POLLRDNORM;
 
-// 		mutex_enter(&usb_event_lock);
-// 		if (events & mask && usb_nevents > 0)
-// 			revents |= events & mask;
-// 		if (revents == 0 && events & mask)
-// 			selrecord(l, &usb_selevent);
-// 		mutex_exit(&usb_event_lock);
+		mutex_enter(&usb_event_lock);
+		if (events & mask && usb_nevents > 0)
+			revents |= events & mask;
+		if (revents == 0 && events & mask)
+			selrecord(l, &usb_selevent);
+		mutex_exit(&usb_event_lock);
 
-// 		return revents;
-// 	} else {
-// 		return 0;
-// 	}
-// }
+		return revents;
+	} else {
+		return 0;
+	}
+}
 
-// static void
-// filt_usbrdetach(struct knote *kn)
-// {
+static void
+filt_usbrdetach(struct knote *kn)
+{
 
-// 	mutex_enter(&usb_event_lock);
-// 	selremove_knote(&usb_selevent, kn);
-// 	mutex_exit(&usb_event_lock);
-// }
+	mutex_enter(&usb_event_lock);
+	selremove_knote(&usb_selevent, kn);
+	mutex_exit(&usb_event_lock);
+}
 
-// static int
-// filt_usbread(struct knote *kn, long hint)
-// {
+static int
+filt_usbread(struct knote *kn, long hint)
+{
 
-// 	if (usb_nevents == 0)
-// 		return 0;
+	if (usb_nevents == 0)
+		return 0;
 
-// 	kn->kn_data = sizeof(struct usb_event);
-// 	return 1;
-// }
+	kn->kn_data = sizeof(struct usb_event);
+	return 1;
+}
 
-// static const struct filterops usbread_filtops = {
-// 	.f_flags = FILTEROP_ISFD,
-// 	.f_attach = NULL,
-// 	.f_detach = filt_usbrdetach,
-// 	.f_event = filt_usbread,
-// };
+static const struct filterops usbread_filtops = {
+	.f_flags = FILTEROP_ISFD,
+	.f_attach = NULL,
+	.f_detach = filt_usbrdetach,
+	.f_event = filt_usbread,
+};
 
-// int
-// usbkqfilter(dev_t dev, struct knote *kn)
-// {
+int
+usbkqfilter(dev_t dev, struct knote *kn)
+{
 
-// 	switch (kn->kn_filter) {
-// 	case EVFILT_READ:
-// 		if (minor(dev) != USB_DEV_MINOR)
-// 			return 1;
-// 		kn->kn_fop = &usbread_filtops;
-// 		break;
+	switch (kn->kn_filter) {
+	case EVFILT_READ:
+		if (minor(dev) != USB_DEV_MINOR)
+			return 1;
+		kn->kn_fop = &usbread_filtops;
+		break;
 
-// 	default:
-// 		return EINVAL;
-// 	}
+	default:
+		return EINVAL;
+	}
 
-// 	kn->kn_hook = NULL;
+	kn->kn_hook = NULL;
 
-// 	mutex_enter(&usb_event_lock);
-// 	selrecord_knote(&usb_selevent, kn);
-// 	mutex_exit(&usb_event_lock);
+	mutex_enter(&usb_event_lock);
+	selrecord_knote(&usb_selevent, kn);
+	mutex_exit(&usb_event_lock);
 
-// 	return 0;
-// }
+	return 0;
+}
+#endif
 
-// /* Explore device tree from the root. */
+/* Explore device tree from the root. */
 void
 usb_discover(struct usb_softc *sc)
 {
@@ -1199,16 +1202,16 @@ usb_discover(struct usb_softc *sc)
 	 * Also, we now have bus->ub_lock held, and in combination
 	 * with ub_exploring, avoids interferring with polling.
 	 */
-	// SDT_PROBE1(usb, kernel, bus, discover__start,  bus);
+	SDT_PROBE1(usb, kernel, bus, discover__start,  bus);
 	while (bus->ub_needsexplore && !sc->sc_dying) {
 		bus->ub_needsexplore = 0;
 		mutex_exit(sc->sc_bus->ub_lock);
-		// SDT_PROBE1(usb, kernel, bus, explore__start,  bus);
+		SDT_PROBE1(usb, kernel, bus, explore__start,  bus);
 		bus->ub_roothub->ud_hub->uh_explore(bus->ub_roothub);
-		// SDT_PROBE1(usb, kernel, bus, explore__done,  bus);
+		SDT_PROBE1(usb, kernel, bus, explore__done,  bus);
 		mutex_enter(bus->ub_lock);
 	}
-	// SDT_PROBE1(usb, kernel, bus, discover__done,  bus);
+	SDT_PROBE1(usb, kernel, bus, discover__done,  bus);
 }
 
 void
@@ -1216,7 +1219,7 @@ usb_needs_explore(struct usbd_device *dev)
 {
 
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-	// SDT_PROBE1(usb, kernel, bus, needs__explore,  dev->ud_bus);
+	SDT_PROBE1(usb, kernel, bus, needs__explore,  dev->ud_bus);
 
 	mutex_enter(dev->ud_bus->ub_lock);
 	dev->ud_bus->ub_needsexplore = 1;
@@ -1224,21 +1227,21 @@ usb_needs_explore(struct usbd_device *dev)
 	mutex_exit(dev->ud_bus->ub_lock);
 }
 
-// void
-// usb_needs_reattach(struct usbd_device *dev)
-// {
+void
+usb_needs_reattach(struct usbd_device *dev)
+{
 
-// 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
-// 	SDT_PROBE1(usb, kernel, bus, needs__reattach,  dev->ud_bus);
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+	SDT_PROBE1(usb, kernel, bus, needs__reattach,  dev->ud_bus);
 
-// 	mutex_enter(dev->ud_bus->ub_lock);
-// 	dev->ud_powersrc->up_reattach = 1;
-// 	dev->ud_bus->ub_needsexplore = 1;
-// 	cv_signal(&dev->ud_bus->ub_needsexplore_cv);
-// 	mutex_exit(dev->ud_bus->ub_lock);
-// }
+	mutex_enter(dev->ud_bus->ub_lock);
+	dev->ud_powersrc->up_reattach = 1;
+	dev->ud_bus->ub_needsexplore = 1;
+	cv_signal(&dev->ud_bus->ub_needsexplore_cv);
+	mutex_exit(dev->ud_bus->ub_lock);
+}
 
-// /* Called at with usb_event_lock held. */
+/* Called at with usb_event_lock held. */
 int
 usb_get_next_event(struct usb_event *ue)
 {
@@ -1251,7 +1254,7 @@ usb_get_next_event(struct usb_event *ue)
 	ueq = SIMPLEQ_FIRST(&usb_events);
 #ifdef DIAGNOSTIC
 	if (ueq == NULL) {
-		// printf("usb: usb_nevents got out of sync! %d\n", usb_nevents);
+		printf("usb: usb_nevents got out of sync! %d\n", usb_nevents);
 		usb_nevents = 0;
 		return 0;
 	}
@@ -1311,7 +1314,7 @@ usb_add_event(int type, struct usb_event *uep)
 	ueq->ue = *uep;
 	ueq->ue.ue_type = type;
 	// TIMEVAL_TO_TIMESPEC(&thetime, &ueq->ue.ue_time);
-	// SDT_PROBE1(usb, kernel, event, add,  uep);
+	SDT_PROBE1(usb, kernel, event, add,  uep);
 
 	mutex_enter(&usb_event_lock);
 	if (++usb_nevents >= USB_MAX_EVENTS) {
@@ -1320,7 +1323,7 @@ usb_add_event(int type, struct usb_event *uep)
 #ifdef KDTRACE_HOOKS
 		struct usb_event oue;
 		if (usb_get_next_event(&oue))
-			// SDT_PROBE1(usb, kernel, event, drop,  &oue);
+			SDT_PROBE1(usb, kernel, event, drop,  &oue);
 #else
 		usb_get_next_event(NULL);
 #endif
@@ -1343,7 +1346,7 @@ usb_async_intr(void *cookie)
 
 	mutex_enter(&proc_lock);
 	// if ((proc = atomic_load_relaxed(&usb_async_proc)) != NULL)
-	// 	psignal(proc, SIGIO); //? psignal schedules signal (SIGIO) to be delivered to process (proc)
+	// 	psignal(proc, SIGIO);
 	mutex_exit(&proc_lock);
 }
 
@@ -1357,93 +1360,93 @@ usb_soft_intr(void *arg)
 	mutex_exit(bus->ub_lock);
 }
 
-// void
-// usb_schedsoftintr(struct usbd_bus *bus)
-// {
+void
+usb_schedsoftintr(struct usbd_bus *bus)
+{
 
-// 	USBHIST_FUNC();
-// 	USBHIST_CALLARGS(usbdebug, "polling=%jd", bus->ub_usepolling, 0, 0, 0);
+	USBHIST_FUNC();
+	USBHIST_CALLARGS(usbdebug, "polling=%jd", bus->ub_usepolling, 0, 0, 0);
 
-// 	/* In case the bus never finished setting up. */
-// 	if (__predict_false(bus->ub_soft == NULL))
-// 		return;
+	/* In case the bus never finished setting up. */
+	if (__predict_false(bus->ub_soft == NULL))
+		return;
 
-// 	if (bus->ub_usepolling) {
-// 		bus->ub_methods->ubm_softint(bus);
-// 	} else {
-// 		kpreempt_disable();
-// 		softint_schedule(bus->ub_soft);
-// 		kpreempt_enable();
-// 	}
-// }
+	if (bus->ub_usepolling) {
+		bus->ub_methods->ubm_softint(bus);
+	} else {
+		kpreempt_disable();
+		softint_schedule(bus->ub_soft);
+		kpreempt_enable();
+	}
+}
 
-// int
-// usb_activate(device_t self, enum devact act)
-// {
-// 	struct usb_softc *sc = device_private(self);
+int
+usb_activate(device_t self, enum devact act)
+{
+	struct usb_softc *sc = device_private(self);
 
-// 	switch (act) {
-// 	case DVACT_DEACTIVATE:
-// 		sc->sc_dying = 1;
-// 		return 0;
-// 	default:
-// 		return EOPNOTSUPP;
-// 	}
-// }
+	switch (act) {
+	case DVACT_DEACTIVATE:
+		sc->sc_dying = 1;
+		return 0;
+	default:
+		return EOPNOTSUPP;
+	}
+}
 
-// void
-// usb_childdet(device_t self, device_t child)
-// {
-// 	int i;
-// 	struct usb_softc *sc = device_private(self);
-// 	struct usbd_device *dev;
+void
+usb_childdet(device_t self, device_t child)
+{
+	int i;
+	struct usb_softc *sc = device_private(self);
+	struct usbd_device *dev;
 
-// 	if ((dev = sc->sc_port.up_dev) == NULL || dev->ud_subdevlen == 0)
-// 		return;
+	if ((dev = sc->sc_port.up_dev) == NULL || dev->ud_subdevlen == 0)
+		return;
 
-// 	for (i = 0; i < dev->ud_subdevlen; i++)
-// 		if (dev->ud_subdevs[i] == child)
-// 			dev->ud_subdevs[i] = NULL;
-// }
+	for (i = 0; i < dev->ud_subdevlen; i++)
+		if (dev->ud_subdevs[i] == child)
+			dev->ud_subdevs[i] = NULL;
+}
 
-// int
-// usb_detach(device_t self, int flags)
-// {
-// 	struct usb_softc *sc = device_private(self);
-// 	struct usb_event *ue;
-// 	int rc;
+int
+usb_detach(device_t self, int flags)
+{
+	struct usb_softc *sc = device_private(self);
+	struct usb_event *ue;
+	int rc;
 
-// 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
+	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
 
-// 	/* Make all devices disconnect. */
-// 	if (sc->sc_port.up_dev != NULL &&
-// 	    (rc = usb_disconnect_port(&sc->sc_port, self, flags)) != 0)
-// 		return rc;
+	/* Make all devices disconnect. */
+	if (sc->sc_port.up_dev != NULL &&
+	    (rc = usb_disconnect_port(&sc->sc_port, self, flags)) != 0)
+		return rc;
 
-// 	if (sc->sc_pmf_registered)
-// 		pmf_device_deregister(self);
-// 	/* Kill off event thread. */
-// 	sc->sc_dying = 1;
-// 	while (sc->sc_event_thread != NULL) {
-// 		mutex_enter(sc->sc_bus->ub_lock);
-// 		cv_signal(&sc->sc_bus->ub_needsexplore_cv);
-// 		cv_timedwait(&sc->sc_bus->ub_needsexplore_cv,
-// 		    sc->sc_bus->ub_lock, hz * 60);
-// 		mutex_exit(sc->sc_bus->ub_lock);
-// 	}
-// 	DPRINTF("event thread dead", 0, 0, 0, 0);
+	if (sc->sc_pmf_registered)
+		pmf_device_deregister(self);
+	/* Kill off event thread. */
+	sc->sc_dying = 1;
+	while (sc->sc_event_thread != NULL) {
+		mutex_enter(sc->sc_bus->ub_lock);
+		cv_signal(&sc->sc_bus->ub_needsexplore_cv);
+		cv_timedwait(&sc->sc_bus->ub_needsexplore_cv,
+		    sc->sc_bus->ub_lock, hz * 60);
+		mutex_exit(sc->sc_bus->ub_lock);
+	}
+	DPRINTF("event thread dead", 0, 0, 0, 0);
 
-// 	if (sc->sc_bus->ub_soft != NULL) {
-// 		softint_disestablish(sc->sc_bus->ub_soft);
-// 		sc->sc_bus->ub_soft = NULL;
-// 	}
+	if (sc->sc_bus->ub_soft != NULL) {
+		softint_disestablish(sc->sc_bus->ub_soft);
+		sc->sc_bus->ub_soft = NULL;
+	}
 
-// 	ue = usb_alloc_event();
-// 	ue->u.ue_ctrlr.ue_bus = device_unit(self);
-// 	usb_add_event(USB_EVENT_CTRLR_DETACH, ue);
+	ue = usb_alloc_event();
+	ue->u.ue_ctrlr.ue_bus = device_unit(self);
+	usb_add_event(USB_EVENT_CTRLR_DETACH, ue);
 
-// 	cv_destroy(&sc->sc_bus->ub_needsexplore_cv);
-// 	cv_destroy(&sc->sc_bus->ub_rhxfercv);
+	cv_destroy(&sc->sc_bus->ub_needsexplore_cv);
+	cv_destroy(&sc->sc_bus->ub_rhxfercv);
 
-// 	return 0;
-// }
+	return 0;
+}

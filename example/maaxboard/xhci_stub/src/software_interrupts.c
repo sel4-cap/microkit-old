@@ -18,6 +18,7 @@
 
 #include <timer.h>
 #include <dev/usb/usb.h>
+#include <dev/usb/usb_quirks.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
 #include <dev/usb/usbdivar.h>
@@ -35,19 +36,14 @@
 uintptr_t xhci_base;
 uintptr_t dma_base;
 uintptr_t heap_base;
-uintptr_t pipe_heap_base;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t dma_cp_paddr;
 uintptr_t timer_base;
 uint64_t heap_size = 0x2000000;
-uintptr_t software_heap;
-int ta_blocks = 256;
-int ta_thresh = 16;
-int ta_align = 64;
-uintptr_t ta_limit;
 
 bool pipe_thread;
 
+//extern variables
 struct xhci_softc *glob_xhci_sc	= NULL;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
 struct usbd_pipe_methods *xhci_root_intr_pointer;
@@ -56,17 +52,17 @@ struct usbd_pipe_methods *device_ctrl_pointer;
 struct usbd_pipe_methods *device_ctrl_pointer_other;
 struct usbd_pipe_methods *device_intr_pointer;
 struct usbd_pipe_methods *device_intr_pointer_other;
+int cold = 1;
 
 void
 init(void) {
     printf("SOFTWARE: dmapaddr = %p\n", dma_cp_paddr);
+    cold = 0;
     xhci_bus_methods_ptr = get_bus_methods();
     xhci_root_intr_pointer = get_root_intr_methods();
     device_ctrl_pointer = get_device_methods();
     device_intr_pointer = get_device_intr_methods();
     printf("root_intr_ptr = %p\n", xhci_root_intr_pointer);
-    ta_limit = software_heap + heap_size;
-    bool error = ta_init((void*)software_heap, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
     pipe_thread = false;
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);

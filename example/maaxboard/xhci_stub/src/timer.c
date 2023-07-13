@@ -52,12 +52,12 @@ struct cntl_reg {
     uint32_t cntfid2;
 };
 
-uint64_t readl(uint32_t addr, uint32_t offset) {
+uint64_t readl(u_long addr, uint32_t offset) {
     return (uint64_t)bus_space_read_4(0,addr,offset);
 }
 
-void writel(uint32_t val, uint32_t addr, uint32_t offset) {
-    (uint64_t)bus_space_write_4(0,addr,offset,val);
+void writel(uint32_t val, u_long addr, uint32_t offset) {
+    bus_space_write_4(0,addr,offset,val);
 }
 
 #define CNTCR_EN    0x0b

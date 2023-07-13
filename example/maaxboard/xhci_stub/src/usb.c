@@ -1,3 +1,4 @@
+//TODO: vimdiff this file
 /*	$NetBSD: usb.c,v 1.200 2022/03/13 11:28:52 riastradh Exp $	*/
 
 /*

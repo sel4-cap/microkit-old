@@ -83,6 +83,7 @@ typedef struct pmf_qual pmf_qual_t;
 /* compatibility */
 #define pmf_device_register(__d, __s, __r) \
 	pmf_device_register1((__d), (__s), (__r), NULL)
+#define pmf_event_inject(...) 0
 
 
 #if defined(_KERNEL)

@@ -106,8 +106,6 @@ usbd_get_config_desc(struct usbd_device *dev, int confidx,
 		    confidx, d->bLength, d->bDescriptorType, 0);
 		return USBD_INVAL;
 	}
-	DPRINTFN(1, "confidx=%jd, good desc len=%jd type=%jd",
-		confidx, d->bLength, d->bDescriptorType, 0);
 	return USBD_NORMAL_COMPLETION;
 }
 
@@ -168,15 +166,12 @@ usbd_get_initial_ddesc(struct usbd_device *dev, usb_device_descriptor_t *desc)
 	USETW2(req.wValue, UDESC_DEVICE, 0);
 	USETW(req.wIndex, 0);
 	USETW(req.wLength, 8);
-	res = 0;
 	res = usbd_do_request_flags(dev, &req, buf, USBD_SHORT_XFER_OK,
 		&actlen, USBD_DEFAULT_TIMEOUT);
 	if (res)
 		return res;
-	if (actlen < 8) {
-		aprint_debug("SHORT XFER %d\n", actlen);
+	if (actlen < 8)
 		return USBD_SHORT_XFER;
-	}
 	memcpy(desc, buf, 8);
 	return USBD_NORMAL_COMPLETION;
 }
@@ -218,7 +213,6 @@ usbd_get_string_desc(struct usbd_device *dev, int sindex, int langid,
 	if (err)
 		return err;
 
-	DPRINTF("expected %jd, got %jd", sdesc->bLength, actlen, 0, 0);
 	if (actlen != sdesc->bLength) {
 		DPRINTF("expected %jd, got %jd", sdesc->bLength, actlen, 0, 0);
 	}
@@ -695,16 +689,17 @@ usbd_intr_transfer(struct usbd_xfer *xfer, struct usbd_pipe *pipe,
 	return err;
 }
 
+#ifndef SEL4
 void
 usb_detach_waitold(device_t dv)
 {
-	// USBHIST_FUNC();
-	// USBHIST_CALLARGS(usbdebug, "waiting for dv %#jx",
-	//     (uintptr_t)dv, 0, 0, 0);
+	USBHIST_FUNC();
+	USBHIST_CALLARGS(usbdebug, "waiting for dv %#jx",
+	    (uintptr_t)dv, 0, 0, 0);
 
-	// if (tsleep(dv, PZERO, "usbdet", hz * 60)) /* XXXSMP ok */
-	// 	aprint_error_dev(dv, "usb_detach_waitold: didn't detach\n");
-	// DPRINTFN(1, "done", 0, 0, 0, 0);
+	if (tsleep(dv, PZERO, "usbdet", hz * 60)) /* XXXSMP ok */
+		aprint_error_dev(dv, "usb_detach_waitold: didn't detach\n");
+	DPRINTFN(1, "done", 0, 0, 0, 0);
 }
 
 void
@@ -713,8 +708,9 @@ usb_detach_wakeupold(device_t dv)
 	USBHIST_FUNC();
 	USBHIST_CALLARGS(usbdebug, "for dv %#jx", (uintptr_t)dv, 0, 0, 0);
 
-	// wakeup(dv); /* XXXSMP ok */
+	wakeup(dv); /* XXXSMP ok */
 }
+#endif
 
 /* -------------------------------------------------------------------------- */
 

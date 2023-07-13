@@ -63,7 +63,6 @@ __KERNEL_RCSID(0, "$NetBSD: usbroothub.c,v 1.15 2022/03/13 11:28:52 riastradh Ex
 #include <sys/param.h>
 #include <sys/systm.h>		/* for ostype */
 
-#include <sys/device.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdivar.h>
@@ -71,8 +70,6 @@ __KERNEL_RCSID(0, "$NetBSD: usbroothub.c,v 1.15 2022/03/13 11:28:52 riastradh Ex
 #include <dev/usb/usbhist.h>
 
 /* helper functions for USB root hub emulation */
-
-extern struct usbd_bus_methods *xhci_bus_methods_ptr;
 
 static usbd_status	roothub_ctrl_transfer(struct usbd_xfer *);
 static usbd_status	roothub_ctrl_start(struct usbd_xfer *);
@@ -475,7 +472,7 @@ roothub_ctrl_start(struct usbd_xfer *xfer)
 			break;
 		case C(1, UDESC_STRING):
 			/* Vendor */
-			// buflen = usb_makestrdesc(sd, len, ostype);
+			buflen = usb_makestrdesc(sd, len, "seL4"); //SEL4: added vendor for roothub
 			break;
 		case C(2, UDESC_STRING):
 			/* Product */

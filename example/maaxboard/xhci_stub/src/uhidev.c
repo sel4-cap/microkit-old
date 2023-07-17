@@ -424,7 +424,8 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 				   .locators = locs));
             //XXX SEL4: just do the keyboard attach for now
 			device_t self_ukbd = kmem_alloc(sizeof(device_t), 0);
-			ukbd_attach(self_ukbd, self, &uha);
+			ums_attach(self_ukbd, self, &uha);
+			//ukbd_attach(self_ukbd, self, &uha);
 			sc->sc_subdevs[repid].sc_dev = self;
 			if (dev == NULL)
 				continue;
@@ -541,6 +542,7 @@ uhidev_detach(device_t self, int flags)
 void
 uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 {
+	printf("\nuhidev intr\n");
 	struct uhidev_softc *sc = addr;
 	struct uhidev *scd;
 	u_char *p;
@@ -583,8 +585,8 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 	scd = &sc->sc_subdevs[rep];
 	DPRINTFN(5,("uhidev_intr: rep=%d, scd=%p state=%#x\n",
 		    rep, scd, scd->sc_state));
-	if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN))
-		return;
+	// if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN))
+	// 	return;
 #ifdef UHIDEV_DEBUG
 	if (scd->sc_in_rep_size != cc) {
 		DPRINTF(("%s: expected %d bytes, got %d\n",
@@ -598,7 +600,8 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 	}
 	//rnd_add_uint32(&scd->sc_rndsource, (uintptr_t)(sc->sc_ibuf));
 #ifdef SEL4 //XXX just do the keyboard interrupt for now
-    ukbd_intr(scd->sc_cookie, p, cc);
+    //ukbd_intr(scd->sc_cookie, p, cc);
+	ums_intr(scd->sc_cookie, p, cc);
 #else
 	scd->sc_intr(scd->sc_cookie, p, cc);
 #endif

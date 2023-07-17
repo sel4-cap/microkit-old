@@ -12,6 +12,9 @@
         "usb_sdt.h": "c",
         "sdt.h": "c",
         "callout.h": "c",
-        "atomic.h": "c"
+        "atomic.h": "c",
+        "poll.h": "c",
+        "kernel.h": "c",
+        "usbdi_util.h": "c"
     }
 }

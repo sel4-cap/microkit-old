@@ -1035,6 +1035,7 @@ void	usb_event_thread(void *); //moved from usb.c
 
 void uhidev_attach(device_t, device_t, void *);
 void ukbd_attach(device_t, device_t, void *);
+void ums_attach(device_t, device_t, void *);
 
 #endif /* _USB_H_ */
 

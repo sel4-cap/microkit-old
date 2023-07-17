@@ -1261,7 +1261,7 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 
 		// xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
 		if (pipe->up_methods == device_intr_pointer) {
-			/* printf("WARNING: hard coded uhidev_intr\n"); */
+			 printf("WARNING: hard coded uhidev_intr\n");
 			uhidev_intr(xfer, xfer->ux_priv, xfer->ux_status);
 		} else {
 			aprint_debug("WARNING: hard coded uhub_intr\n");

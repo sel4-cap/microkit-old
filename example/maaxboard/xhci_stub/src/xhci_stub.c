@@ -15,7 +15,6 @@
 // #include <sys/systm.h>
 #include <sys/kernel.h>
 #include <sys/kmem.h>
-#include <dev/usb/ukbd.h>
 
 #include <timer.h>
 #include <dev/usb/usb.h>
@@ -169,7 +168,8 @@ init(void) {
     usb_discover(usb_sc);
     /* void *aux = aux_xhci; */
     /* ukbd_attach(self, parent, aux); */
-    printf("ready for keyboard press\n");
+    //printf("ready for keyboard press\n");
+    printf("ready for mouse \n");
 }
 
 

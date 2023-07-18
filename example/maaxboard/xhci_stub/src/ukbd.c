@@ -74,7 +74,6 @@ __KERNEL_RCSID(0, "$NetBSD: ukbd.c,v 1.162 2023/01/10 18:20:10 mrg Exp $");
 #include <dev/wscons/wskbdvar.h>
 #include <dev/wscons/wsksymdef.h>
 #include <dev/wscons/wsksymvar.h>
-#include <dev/usb/ukbd.h>
 #include <sys/intr.h>
 #include <sys/kmem.h>
 #include <timer.h>

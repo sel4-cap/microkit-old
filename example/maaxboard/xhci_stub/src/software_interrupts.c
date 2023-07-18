@@ -17,6 +17,7 @@
 #include <sys/kmem.h>
 
 #include <timer.h>
+#include <shared_ringbuffer.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdi_util.h>
@@ -34,10 +35,13 @@
 
 uintptr_t xhci_base;
 uintptr_t dma_base;
+uintptr_t ring_base;
 uintptr_t heap_base;
 uintptr_t pipe_heap_base;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t dma_cp_paddr;
+uintptr_t ring_cp_vaddr = 0x60000000;
+uintptr_t ring_cp_paddr;
 uintptr_t timer_base;
 uint64_t heap_size = 0x2000000;
 int ta_blocks = 256;
@@ -67,6 +71,21 @@ uintptr_t device_intr_pointer;
 uintptr_t device_intr_pointer_other;
 uintptr_t software_heap;
 
+/* Pointers to shared_ringbuffers */
+ring_handle_t *kbd_buffer_ring;
+
+typedef struct state {
+    /* Pointers to shared buffers */
+    ring_handle_t rx_ring;
+    ring_handle_t tx_ring;
+    /*
+    //  * Metadata associated with buffers
+    //  */
+    // ethernet_buffer_t buffer_metadata[NUM_BUFFERS * 2];
+} state_t;
+
+state_t state;
+
 void
 init(void) {
     printf("SOFTWARE: dmapaddr = %p\n", dma_cp_paddr);
@@ -81,6 +100,9 @@ init(void) {
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);
     printf("Software up and running\n");
+
+    kbd_buffer_ring = kmem_alloc(sizeof(*kbd_buffer_ring), 0);
+    ring_init(kbd_buffer_ring, (ring_buffer_t *)rx_free, (ring_buffer_t *)rx_used, NULL, 0);
 }
 
 void

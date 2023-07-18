@@ -18,6 +18,7 @@
 #include <dev/usb/ukbd.h>
 
 #include <timer.h>
+#include <shared_ringbuffer.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdivar.h>
@@ -44,6 +45,10 @@ uintptr_t device_ctrl_pointer;
 uintptr_t device_ctrl_pointer_other;
 uintptr_t device_intr_pointer;
 uintptr_t device_intr_pointer_other;
+uintptr_t rx_free;
+uintptr_t rx_used;
+uintptr_t tx_free;
+uintptr_t tx_used;
 bool pipe_thread;
 
 // struct usb_softc {
@@ -79,6 +84,9 @@ uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t ta_limit;
 uintptr_t timer_base;
 uintptr_t software_heap;
+
+/* Pointers to shared_ringbuffers */
+ring_handle_t *kbd_buffer_ring;
 
 // TODO: put these in a header file so can change it in a single place for a platform
 
@@ -140,6 +148,7 @@ init(void) {
     printf("dma init ok\n");
 
     device_t parent_xhci = NULL;
+    kbd_buffer_ring = kmem_alloc(sizeof(*kbd_buffer_ring), 0);
     printf("Allocing mem\n");
 
     phy_setup();

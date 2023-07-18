@@ -676,14 +676,14 @@ xhci_detach(struct xhci_softc *sc, int flags)
 	int rv = 0;
 
 	if (sc->sc_child2 != NULL) {
-		rv = config_detach(sc->sc_child2, flags);
+		// rv = config_detach(sc->sc_child2, flags);
 		if (rv != 0)
 			return rv;
 		KASSERT(sc->sc_child2 == NULL);
 	}
 
 	if (sc->sc_child != NULL) {
-		rv = config_detach(sc->sc_child, flags);
+		// rv = config_detach(sc->sc_child, flags);
 		if (rv != 0)
 			return rv;
 		KASSERT(sc->sc_child == NULL);
@@ -4657,10 +4657,10 @@ xhci_device_isoc_close(struct usbd_pipe *pipe)
 static void
 xhci_device_isoc_done(struct usbd_xfer *xfer)
 {
-#ifdef USB_DEBUG
+/* #ifdef USB_DEBUG */
 	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
 	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
-#endif
+/* #endif */
 	const bool isread = usbd_xfer_isread(xfer);
 
 	XHCIHIST_FUNC();
@@ -4764,10 +4764,10 @@ out:	if (xfer->ux_status == USBD_NOT_STARTED) {
 static void
 xhci_device_bulk_done(struct usbd_xfer *xfer)
 {
-#ifdef USB_DEBUG
+/* #ifdef USB_DEBUG */
 	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
 	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
-#endif
+/* #endif */
 	const bool isread = usbd_xfer_isread(xfer);
 
 	XHCIHIST_FUNC();
@@ -4876,10 +4876,10 @@ static void
 xhci_device_intr_done(struct usbd_xfer *xfer)
 {
 	struct xhci_softc * const sc __diagused = XHCI_XFER2SC(xfer);
-#ifdef USB_DEBUG
+/* #ifdef USB_DEBUG */
 	struct xhci_slot * const xs = xfer->ux_pipe->up_dev->ud_hcpriv;
 	const u_int dci = xhci_ep_get_dci(xfer->ux_pipe->up_endpoint->ue_edesc);
-#endif
+/* #endif */
 	const bool isread = usbd_xfer_isread(xfer);
 
 	XHCIHIST_FUNC();

@@ -343,6 +343,7 @@ struct cftable {
 	cfdata_t	ct_cfdata;	/* pointer to cfdata table */
 	TAILQ_ENTRY(cftable) ct_list;	/* list linkage */
 };
+TAILQ_HEAD(cftablelist, cftable);
 #ifdef _KERNEL
 TAILQ_HEAD(cftablelist, cftable);
 #endif
@@ -469,7 +470,7 @@ struct pdevinit {
 /* This allows us to wildcard a device unit. */
 #define	DVUNIT_ANY	-1
 
-#if defined(_KERNEL) || defined(_KMEMUSER) || defined(_STANDALONE)
+#if defined(_KERNEL) || defined(_KMEMUSER) || defined(_STANDALONE) || defined(SEL4)
 /*
  * Arguments passed to config_search() and config_found().
  */
@@ -512,7 +513,10 @@ const char* device_xname(device_t dev);
 int device_unit(device_t dev);
 device_t	device_parent(device_t);
 bool		device_is_a(device_t, const char *);
+#define	DEVICE_XNAME_SIZE	16
 
+extern struct cfdriverlist allcfdrivers;/* list of all cfdrivers */
+extern struct cftablelist allcftables;	/* list of all cfdata tables */
 #ifdef _KERNEL
 
 extern struct cfdriverlist allcfdrivers;/* list of all cfdrivers */
@@ -724,12 +728,23 @@ int	device_call_generic(device_t, const struct device_call_generic *);
 	device_call_generic((dev), &(call)->generic)
 
 #else
-#define config_found(...) 0
-#define config_detach_children(...) 0
-#define config_match(...) 0
-#define config_detach(...) 0
+// #define config_found(...) 0
+// #define config_detach_children(...) 0
+// #define config_match(...) 0
+// #define config_detach(...) 0
+device_t config_found(device_t, void *, cfprint_t, const struct cfargs *);
+int	config_detach_children(device_t, int flags);
+int	config_match(device_t, cfdata_t, void *);
+int	config_detach(device_t, int);
 #define config_pending_incr(dev) 0;
 #define config_pending_decr(dev) 0;
+const char *cfdata_ifattr(const struct cfdata *);
+const struct cfiattrdata *cfiattr_lookup(const char *, const struct cfdriver *);
+int	config_stdsubmatch(device_t, cfdata_t, const int *, void *);
+void	config_init(void);
+prop_dictionary_t device_properties(device_t);
+int	config_cfdriver_attach(struct cfdriver *);
+int	config_cfattach_attach(const char *, struct cfattach *);
 #endif /* _KERNEL */
 
 #endif /* !_SYS_DEVICE_H_ */

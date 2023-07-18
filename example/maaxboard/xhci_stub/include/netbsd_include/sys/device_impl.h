@@ -133,7 +133,7 @@ struct device {
 	cfattach_t	dv_cfattach;	/* our cfattach */
 	int		dv_unit;	/* device unit number */
 					/* external name (name + unit) */
-	// char		dv_xname[DEVICE_XNAME_SIZE];
+	char		dv_xname[DEVICE_XNAME_SIZE];
 	device_t	dv_parent;	/* pointer to parent device
 					   (NULL if pseudo- or root node) */
 	int		dv_depth;	/* number of parents until root */

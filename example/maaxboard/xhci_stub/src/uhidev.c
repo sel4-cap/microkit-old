@@ -75,7 +75,7 @@ __KERNEL_RCSID(0, "$NetBSD: uhidev.c,v 1.94 2022/11/04 19:46:55 jmcneill Exp $")
 /* Report descriptor for Xbox One controllers */
 #include <dev/usb/x1input_rdesc.h>
 
-//#include "locators.h"
+#include "locators.h"
 
 struct uhidev_softc {
 	device_t sc_dev;		/* base device */
@@ -145,13 +145,13 @@ static int uhidev_match(device_t, cfdata_t, void *);
 static void uhidev_childdet(device_t, device_t);
 static int uhidev_detach(device_t, int);
 
-// CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
-//     uhidev_attach, uhidev_detach, NULL, NULL, uhidev_childdet);
+CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
+    uhidev_attach, uhidev_detach, NULL, NULL, uhidev_childdet);
 
-#ifndef SEL4
 static int
 uhidev_match(device_t parent, cfdata_t match, void *aux)
 {
+	printf("we in uhidev match\n");
 	struct usbif_attach_arg *uiaa = aux;
 
 	/* Game controllers in "XInput" mode */
@@ -167,7 +167,6 @@ uhidev_match(device_t parent, cfdata_t match, void *aux)
 		return UMATCH_NONE;
 	return UMATCH_IFACECLASS_GENERIC;
 }
-#endif /* SEL4 */
 
 void
 uhidev_attach(device_t parent, device_t self, void *aux)
@@ -186,7 +185,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 	const void *descptr;
 	usbd_status err;
 	char *devinfop;
-	//int locs[UHIDBUSCF_NLOCS];
+	int locs[0];
 
 	sc->sc_dev = self;
 	sc->sc_udev = uiaa->uiaa_device;
@@ -507,7 +506,7 @@ uhidev_detach(device_t self, int flags)
 	 * refusing detachment.  If they do detach, the pipes can no
 	 * longer be in use.
 	 */
-	rv = config_detach_children(self, flags);
+	// rv = config_detach_children(self, flags);
 	if (rv)
 		return rv;
 
@@ -583,8 +582,8 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 	scd = &sc->sc_subdevs[rep];
 	DPRINTFN(5,("uhidev_intr: rep=%d, scd=%p state=%#x\n",
 		    rep, scd, scd->sc_state));
-	if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN))
-		return;
+	/* if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN)) */
+	/* 	return; */
 #ifdef UHIDEV_DEBUG
 	if (scd->sc_in_rep_size != cc) {
 		DPRINTF(("%s: expected %d bytes, got %d\n",

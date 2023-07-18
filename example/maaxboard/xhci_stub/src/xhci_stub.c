@@ -107,6 +107,7 @@ init(void) {
         printf("Attempted bus_space_read_4: %p\n", response);
     }
 
+    config_init();
     pipe_thread = false;
     cold = 0;
     // init

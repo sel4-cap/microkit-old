@@ -715,7 +715,7 @@ uhidev_open_pipes(struct uhidev_softc *sc)
 
 	err = usbd_open_pipe_intr(sc->sc_iface, sc->sc_iep_addr,
 		  USBD_SHORT_XFER_OK, &sc->sc_ipipe, sc, sc->sc_ibuf,
-		  sc->sc_isize, uhidev_intr, USBD_DEFAULT_INTERVAL);
+		  sc->sc_isize, intr_ptrs->uhidev, USBD_DEFAULT_INTERVAL);
 	if (err != USBD_NORMAL_COMPLETION) {
 		DPRINTF(("uhidopen: usbd_open_pipe_intr failed, "
 		    "error=%d\n", err));

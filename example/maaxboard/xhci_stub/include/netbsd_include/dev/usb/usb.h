@@ -1041,6 +1041,8 @@ void ums_attach(device_t, device_t, void *);
 struct intr_ptrs_holder {
 	void *ums;
 	void *ukbd;
+	void *uhidev;
+	void *uhub;
 };
 
 extern struct intr_ptrs_holder *intr_ptrs;

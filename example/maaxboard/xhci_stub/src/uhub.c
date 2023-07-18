@@ -425,7 +425,7 @@ uhub_attach(device_t parent, device_t self, void *aux)
 	err = usbd_open_pipe_intr(iface, ed->bEndpointAddress,
 		  USBD_SHORT_XFER_OK|USBD_MPSAFE, &sc->sc_ipipe, sc,
 		  sc->sc_statusbuf, sc->sc_statuslen,
-		  uhub_intr, USBD_DEFAULT_INTERVAL);
+		  intr_ptrs->uhub, USBD_DEFAULT_INTERVAL);
 	if (err) {
 		aprint_error_dev(self, "cannot open interrupt pipe\n");
 		goto bad;

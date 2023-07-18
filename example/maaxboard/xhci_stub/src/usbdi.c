@@ -1259,13 +1259,7 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 				KERNEL_LOCK(1, curlwp);
 		}
 
-		// xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
-		if (pipe->up_methods == device_intr_pointer) {
-			uhidev_intr(xfer, xfer->ux_priv, xfer->ux_status);
-		} else {
-			aprint_debug("WARNING: hard coded uhub_intr\n");
-			uhub_intr(xfer, xfer->ux_priv, xfer->ux_status);
-		}
+		xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
 
 		if (!polling) {
 			if (!(pipe->up_flags & USBD_MPSAFE))

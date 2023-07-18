@@ -526,12 +526,13 @@ static void ukbd_childdet(device_t, device_t);
 
 
 
-// CFATTACH_DECL2_NEW(ukbd, sizeof(struct ukbd_softc), ukbd_match, ukbd_attach,
-//     ukbd_detach, ukbd_activate, NULL, ukbd_childdet);
+CFATTACH_DECL2_NEW(ukbd, sizeof(struct ukbd_softc), ukbd_match, ukbd_attach,
+    ukbd_detach, ukbd_activate, NULL, ukbd_childdet);
 
 int
 ukbd_match(device_t parent, cfdata_t match, void *aux)
 {
+	printf("we in ukbd match\n");
 	struct uhidev_attach_arg *uha = aux;
 	int size;
 	void *desc;
@@ -644,8 +645,9 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
 	    sc);
 	usbd_delay_ms(0, 400);
+	ukbd_delayed_leds_off(&sc);
 
-	sc->sc_wskbddev = config_found(self, &a, wskbddevprint, CFARGS_NONE);
+	sc->sc_wskbddev = config_found(self, &a, NULL, CFARGS_NONE);
 
 	sc->sc_attached = true;
 
@@ -716,6 +718,7 @@ ukbd_detach(device_t self, int flags)
 	if (!sc->sc_attached)
 		return rv;
 
+#ifndef SEL4 //not using console keyboards
 	if (sc->sc_console_keyboard) {
 		/*
 		 * Disconnect our consops and set ukbd_is_console
@@ -729,9 +732,10 @@ ukbd_detach(device_t self, int flags)
 		wskbd_cndetach();
 		ukbd_is_console = 1;
 	}
+#endif
 	/* No need to do reference counting of ukbd, wskbd has all the goo. */
-	if (sc->sc_wskbddev != NULL)
-		rv = config_detach(sc->sc_wskbddev, flags);
+	// if (sc->sc_wskbddev != NULL)
+	// 	rv = config_detach(sc->sc_wskbddev, flags);
 
 	callout_halt(&sc->sc_delay, NULL);
 	callout_halt(&sc->sc_ledreset, NULL);

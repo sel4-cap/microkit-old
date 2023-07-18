@@ -19,7 +19,7 @@
 #define aprint_error_dev(dev, ...)      aprint_error(__VA_ARGS__)
 
 // no-ops
-#define panic(s) 0
+#define panic(...) 0
 #define KERNEL_LOCK(count, lwp) 0
 #define KERNEL_UNLOCK_ONE(lwp) 0
 #define KERNEL_LOCKED_P() 0

@@ -192,12 +192,12 @@ static int uhub_rescan(device_t, const char *, const int *);
 static void uhub_childdet(device_t, device_t);
 static int uhub_detach(device_t, int);
 
-// CFATTACH_DECL3_NEW(uhub, sizeof(struct uhub_softc), uhub_match,
-//     uhub_attach, uhub_detach, NULL, uhub_rescan, uhub_childdet,
-//     DVF_DETACH_SHUTDOWN);
-// CFATTACH_DECL3_NEW(uroothub, sizeof(struct uhub_softc), uhub_match,
-//     uhub_attach, uhub_detach, NULL, uhub_rescan, uhub_childdet,
-//     DVF_DETACH_SHUTDOWN);
+CFATTACH_DECL3_NEW(uhub, sizeof(struct uhub_softc), uhub_match,
+    uhub_attach, uhub_detach, NULL, uhub_rescan, uhub_childdet,
+    DVF_DETACH_SHUTDOWN);
+CFATTACH_DECL3_NEW(uroothub, sizeof(struct uhub_softc), uhub_match,
+    uhub_attach, uhub_detach, NULL, uhub_rescan, uhub_childdet,
+    DVF_DETACH_SHUTDOWN);
 
 /*
  * Setting this to 1 makes sure than an uhub attaches even at higher

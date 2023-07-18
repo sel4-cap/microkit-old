@@ -57,3 +57,10 @@ device_is_a(device_t dev, const char *dname)
 
 	return strcmp(dev->dv_cfdriver->cd_name, dname) == 0;
 }
+
+prop_dictionary_t
+device_properties(device_t dev)
+{
+
+	return dev->dv_properties;
+}

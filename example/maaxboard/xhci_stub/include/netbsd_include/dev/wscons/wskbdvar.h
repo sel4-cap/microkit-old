@@ -74,7 +74,7 @@ struct wskbddev_attach_args {
 	void	*accesscookie;				/* access cookie */
 };
 
-//#include "locators.h" //not needed
+// #include "locators.h"
 
 #define	wskbddevcf_console		cf_loc[WSKBDDEVCF_CONSOLE]	/* spec'd as console? */
 #define	WSKBDDEVCF_CONSOLE_UNK		(WSKBDDEVCF_CONSOLE_DEFAULT)

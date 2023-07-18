@@ -675,10 +675,9 @@ config_cfdriver_lookup(const char *name)
 {
 	struct cfdriver *cd;
 
-	printf("looking up %s\n", name);
 	LIST_FOREACH(cd, &allcfdrivers, cd_list) {
 		if (STREQ(cd->cd_name, name)) {
-			printf("found %s\n");
+			printf("SEL4: found %s\n");
 			return cd;
 		}
 	}
@@ -752,12 +751,10 @@ static struct cfattach *
 config_cfattach_lookup_cd(struct cfdriver *cd, const char *atname)
 {
 	struct cfattach *ca;
-	printf("DOING LOOKUP CD\n");
 
-	printf("looking up %s\n", atname);
 	LIST_FOREACH(ca, &cd->cd_attach, ca_list) {
 		if (STREQ(ca->ca_name, atname)) {
-			printf("found %s\n", ca->ca_name);
+			printf("SEL4: found %s\n", ca->ca_name);
 			return ca;
 		}
 	}
@@ -787,16 +784,13 @@ config_cfattach_lookup(const char *name, const char *atname)
 static void
 mapply(struct matchinfo *m, cfdata_t cf)
 {
-	printf("applying m\n");
 	int pri;
 
 	if (m->fn != NULL) {
-		printf("match is not null smiley face %p\n", m->fn);
 		pri = (*m->fn)(m->parent, cf, m->locs, m->aux);
 	} else {
 		pri = config_match(m->parent, cf, m->aux);
 	}
-	printf("dropped out\n");
 	if (pri > m->pri) {
 		m->match = cf;
 		m->pri = pri;
@@ -806,13 +800,11 @@ mapply(struct matchinfo *m, cfdata_t cf)
 int
 config_stdsubmatch(device_t parent, cfdata_t cf, const int *locs, void *aux)
 {
-	printf("inside stdsubmatch\n");
 	const struct cfiattrdata *ci;
 	const struct cflocdesc *cl;
 	int nlocs, i;
 
 	ci = cfiattr_lookup(cfdata_ifattr(cf), parent->dv_cfdriver);
-	printf("done cfiattr_lookup\n");
 	// KASSERT(ci);
 	// nlocs = ci->ci_loclen;
 	// KASSERT(!nlocs || locs);
@@ -838,13 +830,10 @@ cfdriver_get_iattr(const struct cfdriver *cd, const char *ia)
 {
 	const struct cfiattrdata * const *cpp;
 
-	printf("checking cd_attrs\n");
 	if (cd->cd_attrs == NULL)
 		return 0;
 
-	printf("for loop\n");
 	for (cpp = cd->cd_attrs; *cpp; cpp++) {
-		printf("checking string\n");
 		if (STREQ((*cpp)->ci_name, ia)) {
 			/* Match. */
 			return *cpp;
@@ -878,10 +867,8 @@ cfiattr_lookup(const char *name, const struct cfdriver *cd)
 	const struct cfdriver *d;
 	const struct cfiattrdata *ia;
 
-	printf("checking cd\n");
 	if (cd)
 		return cfdriver_get_iattr(cd, name);
-	printf("cd not given %s\n", name);
 
 	LIST_FOREACH(d, &allcfdrivers, cd_list) {
 		ia = cfdriver_get_iattr(d, name);
@@ -898,7 +885,6 @@ cfiattr_lookup(const char *name, const struct cfdriver *cd)
 static int
 cfparent_match(const device_t parent, const struct cfparent *cfp)
 {
-	printf("reached match\n");
 	struct cfdriver *pcd;
 
 	/* We don't match root nodes here. */
@@ -919,26 +905,22 @@ cfparent_match(const device_t parent, const struct cfparent *cfp)
 	 * If no specific parent device instance was specified (i.e.
 	 * we're attaching to the attribute only), we're done!
 	 */
-	printf("cfp_parent\n");
 	if (cfp->cfp_parent == NULL)
 		return 1;
 
 	/*
 	 * Check the parent device's name.
 	 */
-	printf("parent check\n");
 	if (STREQ(pcd->cd_name, cfp->cfp_parent) == 0)
 		return 0;	/* not the same parent */
 
 	/*
 	 * Make sure the unit number matches.
 	 */
-	printf("unit check\n");
 	if (cfp->cfp_unit == DVUNIT_ANY ||	/* wildcard */
 	    cfp->cfp_unit == parent->dv_unit)
 		return 1;
 
-	printf("ok let's go\n");
 	/* Unit numbers don't match. */
 	return 0;
 }
@@ -1068,7 +1050,6 @@ cfparent_match(const device_t parent, const struct cfparent *cfp)
 int
 config_match(device_t parent, cfdata_t cf, void *aux)
 {
-	printf("im going to match\n");
 	struct cfattach *ca;
 
 	// KASSERT(KERNEL_LOCKED_P());
@@ -1076,11 +1057,10 @@ config_match(device_t parent, cfdata_t cf, void *aux)
 	ca = config_cfattach_lookup(cf->cf_name, cf->cf_atname);
 	if (ca == NULL) {
 		/* No attachment for this entry, oh well. */
-		printf("no attachment\n");
+		printf("NO ATTACHMENT\n");
 		return 0;
 	}
 
-	printf("trying my hardest to do the match\n");
 	return (*ca->ca_match)(parent, cf, aux);
 }
 
@@ -1164,7 +1144,6 @@ config_search_internal(device_t parent, void *aux,
 	struct cftable *ct;
 	cfdata_t cf;
 	struct matchinfo m;
-	printf("doing search internal\n");
 
 	// KASSERT(config_initialized);
 	// KASSERT(!args->iattr ||
@@ -1179,7 +1158,6 @@ config_search_internal(device_t parent, void *aux,
 	m.match = NULL;
 	m.pri = 0;
 
-	printf("going into tail\n");
 	TAILQ_FOREACH(ct, &allcftables, ct_list) {
 		for (cf = ct->ct_cfdata; cf->cf_name; cf++) {
 
@@ -1212,7 +1190,6 @@ config_search_internal(device_t parent, void *aux,
 			// 	mapply(&m, cf);
 		}
 	}
-	printf("finished all\n");
 	// rnd_add_uint32(&rnd_autoconf_source, 0);
 	return m.match;
 }
@@ -1288,7 +1265,6 @@ config_found(device_t parent, void *aux, cfprint_t print,
 	if (cf != NULL) {
 		return config_attach_internal(parent, cf, aux, print, args);
 	}
-	printf("cf was null :O\n");
 	if (print) {
 		if (config_do_twiddle && cold)
 			printf("twiddling\n");
@@ -1728,7 +1704,6 @@ static device_t
 config_attach_internal(device_t parent, cfdata_t cf, void *aux, cfprint_t print,
     const struct cfargs_internal * const args)
 {
-	printf("going to do attach\n");
 	device_t dev;
 	struct cftable *ct;
 	const char *drvname;
@@ -1774,7 +1749,6 @@ config_attach_internal(device_t parent, cfdata_t cf, void *aux, cfprint_t print,
 	 * otherwise identical.
 	 * XXX code above is redundant?
 	 */
-	printf("checking clobber\n");
 	drvname = dev->dv_cfdriver->cd_name;
 	TAILQ_FOREACH(ct, &allcftables, ct_list) {
 		for (cf = ct->ct_cfdata; cf->cf_name; cf++) {
@@ -1797,9 +1771,7 @@ config_attach_internal(device_t parent, cfdata_t cf, void *aux, cfprint_t print,
 	// config_pending_incr(dev);
 
 	/* Call the driver's attach function.  */
-	printf("going to the attach\n");
 	(*dev->dv_cfattach->ca_attach)(parent, dev, aux);
-	printf("finished the attach\n");
 
 	/*
 	 * Allow other threads to acquire references to the device now

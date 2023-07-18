@@ -2567,7 +2567,7 @@ struct cfdata cfdata[] = {
 // /* 93: wsmouse* at sunxits? mux 0 */
 //     { "wsmouse",	"wsmouse",	 0, STAR, loc+612,      0, &pspec48 },
 // /* 94: wsmouse* at ums? mux 0 */
-//     { "wsmouse",	"wsmouse",	 0, STAR, loc+613,      0, &pspec57 },
+    // { "wsmouse",	"wsmouse",	 0, STAR, loc+613,      0, &pspec57 },
 // /* 95: wsmouse* at uts? mux 0 */
 //     { "wsmouse",	"wsmouse",	 0, STAR, loc+614,      0, &pspec58 },
 // /* 96: wsmouse* at uep? mux 0 */
@@ -2813,7 +2813,7 @@ struct cfdata cfdata[] = {
 /*216: ums* at uhidev? reportid -1 */
     { "ums",		"ums",		 0, STAR, loc+551,      0, &pspec56 },
 // /*217: uts* at uhidev? reportid -1 */
-//     { "uts",		"uts",		 0, STAR, loc+552,      0, &pspec56 },
+    /* { "uts",		"uts",		 0, STAR, loc+552,      0, &pspec56 }, */
 // /*218: uep* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "uep",		"uep",		 0, STAR, loc+414,      0, &pspec54 },
 // /*219: ucycom* at uhidev? reportid -1 */
@@ -3654,9 +3654,9 @@ static struct cfattach * const ukbd_cfattachinit[] = {
 static struct cfattach * const ums_cfattachinit[] = {
 	&ums_ca, NULL
 };
-// static struct cfattach * const uts_cfattachinit[] = {
-// 	&uts_ca, NULL
-// };
+/* static struct cfattach * const uts_cfattachinit[] = { */
+/* 	&uts_ca, NULL */
+/* }; */
 // static struct cfattach * const uep_cfattachinit[] = {
 // 	&uep_ca, NULL
 // };
@@ -4435,8 +4435,8 @@ const struct cfattachinit cfattachinit[] = {
 	{ "uhidev", uhidev_cfattachinit },
 	{ "uhid", uhid_cfattachinit },
 	{ "ukbd", ukbd_cfattachinit },
-	// { "ums", ums_cfattachinit },
-	// { "uts", uts_cfattachinit },
+	{ "ums", ums_cfattachinit },
+	/* { "uts", uts_cfattachinit }, */
 	// { "uep", uep_cfattachinit },
 	// { "ucycom", ucycom_cfattachinit },
 	// { "ulpt", ulpt_cfattachinit },

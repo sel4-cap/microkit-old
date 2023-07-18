@@ -151,7 +151,6 @@ CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
 static int
 uhidev_match(device_t parent, cfdata_t match, void *aux)
 {
-	printf("we in uhidev match\n");
 	struct usbif_attach_arg *uiaa = aux;
 
 	/* Game controllers in "XInput" mode */
@@ -421,10 +420,6 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 			dev = config_found(self, &uha, uhidevprint,
 			    CFARGS(.submatch = config_stdsubmatch,
 				   .locators = locs));
-            //XXX SEL4: just do the keyboard attach for now
-			device_t self_ukbd = kmem_alloc(sizeof(device_t), 0);
-			ums_attach(self_ukbd, self, &uha);
-			//ukbd_attach(self_ukbd, self, &uha);
 			sc->sc_subdevs[repid].sc_dev = self;
 			if (dev == NULL)
 				continue;
@@ -541,7 +536,6 @@ uhidev_detach(device_t self, int flags)
 void
 uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 {
-	printf("\nuhidev intr\n");
 	struct uhidev_softc *sc = addr;
 	struct uhidev *scd;
 	u_char *p;
@@ -598,12 +592,9 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 		return;
 	}
 	//rnd_add_uint32(&scd->sc_rndsource, (uintptr_t)(sc->sc_ibuf));
-#ifdef SEL4 //XXX just do the keyboard interrupt for now
-    //ukbd_intr(scd->sc_cookie, p, cc);
-	ums_intr(scd->sc_cookie, p, cc);
-#else
 	scd->sc_intr(scd->sc_cookie, p, cc);
-#endif
+    /* ukbd_intr(scd->sc_cookie, p, cc); */
+	// ums_intr(scd->sc_cookie, p, cc);
 }
 
 void

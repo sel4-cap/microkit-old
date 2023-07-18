@@ -53,6 +53,7 @@ struct usbd_pipe_methods *device_ctrl_pointer;
 struct usbd_pipe_methods *device_ctrl_pointer_other;
 struct usbd_pipe_methods *device_intr_pointer;
 struct usbd_pipe_methods *device_intr_pointer_other;
+struct intr_ptrs_holder *intr_ptrs;
 int cold = 1;
 
 void
@@ -112,6 +113,11 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
             usbd_status err = usbd_set_config_index(cfg->dev, cfg->confi, cfg->msg);
             printf("reached end of set_conf_index\n");
             return seL4_MessageInfo_new(err,1,0,0);
+        case 8:
+            intr_ptrs = kmem_alloc(sizeof(struct intr_ptrs_holder), 0);
+            intr_ptrs->ukbd = &ukbd_intr;
+            intr_ptrs->ums =  &ums_intr;
+            return seL4_MessageInfo_new((uint64_t) intr_ptrs, 1, 0, 0);
         default:
             printf("softintr unexpected channel %d\n", ch);
     }

@@ -114,7 +114,7 @@ Static int	uts_activate(device_t, enum devact);
 
 
 CFATTACH_DECL2_NEW(uts, sizeof(struct uts_softc), uts_match, uts_attach,
-    uts_detach, uts_activate, NULL, uts_childdet);
+    uts_detach, uts_activate, NULL, NULL);
 
 Static int
 uts_match(device_t parent, cfdata_t match, void *aux)
@@ -231,10 +231,10 @@ uts_attach(device_t parent, device_t self, void *aux)
 		sc->sc_loc_z.pos, sc->sc_loc_z.size));
 #endif
 
-	a.accessops = &uts_accessops;
+	// a.accessops = &uts_accessops;
 	a.accesscookie = sc;
 
-	sc->sc_wsmousedev = config_found(self, &a, wsmousedevprint, CFARGS_NONE);
+	sc->sc_wsmousedev = config_found(self, &a, NULL, CFARGS_NONE);
 
 	/* calibrate the touchscreen */
 	memset(&sc->sc_calibcoords, 0, sizeof(sc->sc_calibcoords));
@@ -275,7 +275,7 @@ uts_detach(device_t self, int flags)
 	__USE(sc);
 	DPRINTF(("uts_detach: sc=%p flags=%d\n", sc, flags));
 
-	error = config_detach_children(self, flags);
+	// error = config_detach_children(self, flags);
 	if (error)
 		return error;
 
@@ -360,6 +360,7 @@ uts_disable(void *v)
 // 	}
 
 // 	return EPASSTHROUGH;
+// 	return 0;
 // }
 
 Static void
@@ -391,11 +392,11 @@ uts_intr(void *cookie, void *ibuf, u_int len)
 		DPRINTFN(10,("uts_intr: x:%d y:%d z:%d buttons:%#x\n",
 		    dx, dy, dz, buttons));
 		sc->sc_buttons = buttons;
-		if (sc->sc_wsmousedev != NULL) {
-			s = spltty();
-			wsmouse_input(sc->sc_wsmousedev, buttons, dx, dy, dz, 0,
-			    flags);
-			splx(s);
-		}
+		// if (sc->sc_wsmousedev != NULL) {
+		// 	s = spltty();
+		// 	wsmouse_input(sc->sc_wsmousedev, buttons, dx, dy, dz, 0,
+		// 	    flags);
+		// 	splx(s);
+		// }
 	}
 }

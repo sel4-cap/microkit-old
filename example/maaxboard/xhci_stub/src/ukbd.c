@@ -563,10 +563,10 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 
 	aprint_naive("\n");
 
-	if (!pmf_device_register(self, NULL, NULL)) {
-		aprint_normal("\n");
-		aprint_error_dev(self, "couldn't establish power handler\n");
-	}
+	/* if (!pmf_device_register(self, NULL, NULL)) { */
+	/* 	aprint_normal("\n"); */
+	/* 	aprint_error_dev(self, "couldn't establish power handler\n"); */
+	/* } */
 
 	parseerr = ukbd_parse_desc(sc);
 	if (parseerr != NULL) {
@@ -644,7 +644,7 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	callout_reset(&sc->sc_ledreset, mstohz(400), ukbd_delayed_leds_off,
 	    sc);
 	usbd_delay_ms(0, 400);
-	ukbd_delayed_leds_off(&sc);
+	// ukbd_delayed_leds_off(&sc);
 
 	sc->sc_wskbddev = config_found(self, &a, NULL, CFARGS_NONE);
 
@@ -672,7 +672,7 @@ ukbd_enable(void *v, int on)
 	DPRINTF(("%s: sc=%p on=%d\n", __func__, sc, on));
 	if (on) {
 		sc->sc_flags |= FLAG_ENABLED;
-		return uhidev_open(sc->sc_hdev, &ukbd_intr, sc);
+		return uhidev_open(sc->sc_hdev, intr_ptrs->ukbd, sc);
 	} else {
 		sc->sc_flags &= ~FLAG_ENABLED;
 		uhidev_close(sc->sc_hdev);

@@ -70,6 +70,8 @@ uintptr_t ta_limit;
 uintptr_t timer_base;
 uintptr_t software_heap;
 
+struct intr_ptrs_holder *intr_ptrs;
+
 // TODO: put these in a header file so can change it in a single place for a platform
 int phy_setup() {
     printf("setting up phy (imx8)\n");
@@ -122,6 +124,8 @@ init(void) {
     device_intr_pointer = get_device_intr_methods();
     addr = sel4cp_ppcall(4, seL4_MessageInfo_new((uint64_t) device_intr_pointer,1,0,0));
     device_intr_pointer_other = (struct usbd_pipe_methods *) sel4cp_msginfo_get_label(addr);
+    addr = sel4cp_ppcall(8, seL4_MessageInfo_new(0,0,0,0));
+    intr_ptrs = (struct intr_ptrs_holder *) sel4cp_msginfo_get_label(addr);
     /* memcpy(&xhci_root_intr_pointer, get_root_intr_methods(), sizeof(struct usbd_pipe_methods)); */
     /* printf("xhci_stub received root_intr ptr %p\n", xhci_root_intr_pointer); */
 
@@ -169,7 +173,6 @@ init(void) {
     /* void *aux = aux_xhci; */
     /* ukbd_attach(self, parent, aux); */
     //printf("ready for keyboard press\n");
-    printf("ready for mouse \n");
 }
 
 

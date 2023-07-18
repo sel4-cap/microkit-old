@@ -123,6 +123,12 @@
         <end pd="hardware_interrupt" id="0"/>
         <end pd="xhci_stub" id="0"/>
     </channel>
+
+    <!--share interrupt functions with xhci_stub-->
+    <channel>
+        <end pd="software_interrupt" id="8"/>
+        <end pd="xhci_stub" id="8"/>
+    </channel>
     
     <!--share xhci_sc with software interrupt-->
     <channel>

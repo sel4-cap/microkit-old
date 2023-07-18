@@ -59,6 +59,7 @@ struct usbd_pipe_methods *device_ctrl_pointer;
 struct usbd_pipe_methods *device_ctrl_pointer_other;
 struct usbd_pipe_methods *device_intr_pointer;
 struct usbd_pipe_methods *device_intr_pointer_other;
+struct intr_ptrs_holder  *intr_ptrs = 0;
 int cold = 1;
 
 void

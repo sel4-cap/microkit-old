@@ -9,6 +9,7 @@
     <memory_region name="software_mem" size="0x200000"/>
     <memory_region name="pipe_heap_mem" size="0x200000"/>
     <memory_region name="dma_pool" size="0x2000000"/>
+    <memory_region name="ring_mem" size="0x2_000_000"/>
     <memory_region name="xhci_mem" size="0x10_000" phys_addr="0x38200000"/>
     <memory_region name="timer_mem" size="0x20_000" phys_addr="0x306c0000"/>
     <memory_region name="xhci_phys_mem" size="0x1000" phys_addr="0x382f0000"/> <!--won't let me specify the correct size or base address, but this encompasses the phy-->
@@ -33,6 +34,12 @@
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
         <map mr="xhci_phys_mem" vaddr="0x382f0000" perms="rw" cached="false" setvar_vaddr="xhci_phy_base"/>
         <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
+        
+        <!-- shared memory for ring buffer mechanism -->
+        <map mr="rx_free" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="rx_free" />
+        <map mr="rx_used" vaddr="0x4_200_000" perms="rw" cached="true" setvar_vaddr="rx_used" />
+        <map mr="tx_free" vaddr="0x4_400_000" perms="rw" cached="true" setvar_vaddr="tx_free" />
+        <map mr="tx_used" vaddr="0x4_600_000" perms="rw" cached="true" setvar_vaddr="tx_used" />
         <program_image path="xhci_stub.elf" />
 
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
@@ -69,6 +76,7 @@
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
         <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
+        <map mr="ring_mem" vaddr="0x6000_0000" perms="rw" cached="true" setvar_vaddr="ring_base"/>
         <program_image path="software.elf" />
 
         <map mr="hw_ring_buffer" vaddr="0x3_000_000" perms="rw" cached="false" setvar_vaddr="hw_ring_buffer_vaddr" />
@@ -85,15 +93,17 @@
         <setvar symbol="hw_ring_buffer_paddr" region_paddr="hw_ring_buffer" />
 
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
+        <setvar symbol="ring_cp_paddr" region_paddr="ring_mem" />
     </protection_domain>
 
-    <protection_domain name="kbd_logger" pp="true" priority="20">
+    <protection_domain name="kbd_logger" pp="true" priority="101">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
         <map mr="pipe_heap_mem" vaddr="0x56000000" perms="rw" cached="false" setvar_vaddr="pipe_heap_base"/>
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
         <map mr="xhci_mem" vaddr="0x38200000" perms="rw" cached="false" setvar_vaddr="xhci_base"/>
         <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
         <map mr="keyboard_mem" vaddr="0x403d0000" perms="rw" cached="false" setvar_vaddr="keyboard_base"/>
+        <map mr="ring_mem" vaddr="0x6000_0000" perms="rw" cached="true" setvar_vaddr="ring_base"/>
 
         <!-- shared memory for ring buffer mechanism -->
         <map mr="rx_free" vaddr="0x4_000_000" perms="rw" cached="true" setvar_vaddr="rx_free" />
@@ -104,6 +114,7 @@
 
         <setvar symbol="hw_ring_buffer_paddr" region_paddr="hw_ring_buffer" />
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
+        <setvar symbol="ring_cp_paddr" region_paddr="ring_mem" />
     </protection_domain>
 
     <!-- <protection_domain name="simulated_kbd" pp="true" priority="25">
@@ -182,6 +193,18 @@
         <end pd="mem_handler" id="22"/>
         <end pd="pipe_handler" id="32"/>
     </channel>
+    <channel>
+        <end pd="mem_handler" id="5"/>
+        <end pd="kbd_logger" id="30"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="6"/>
+        <end pd="kbd_logger" id="31"/>
+    </channel>
+    <channel>
+        <end pd="mem_handler" id="7"/>
+        <end pd="kbd_logger" id="32"/>
+    </channel>
 
 
     <!--bus method handlers-->
@@ -226,7 +249,15 @@
         <end pd="kbd_logger" id="42"/>
     </channel>
     <channel>
+        <end pd="xhci_stub" id="42"/>
+        <end pd="kbd_logger" id="44"/>
+    </channel>
+    <channel>
         <end pd="kbd_logger" id="43"/>
         <end pd="software_interrupt" id="43"/>
+    </channel>
+    <channel>
+        <end pd="kbd_logger" id="45"/>
+        <end pd="software_interrupt" id="45"/>
     </channel>
 </system>

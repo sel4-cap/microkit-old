@@ -17,6 +17,7 @@
 #include <sys/kmem.h>
 
 #include <timer.h>
+#include <shared_ringbuffer.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usbdi.h>
 #include <dev/usb/usbdivar.h>
@@ -38,12 +39,18 @@ bool int_once = false;
 struct xhci_softc *glob_xhci_sc	= NULL;
 struct usb_softc *glob_usb_sc 	= NULL;
 struct usbd_bus_methods *xhci_bus_methods_ptr;
-struct usbd_pipe_methods *xhci_root_intr_pointer;
-struct usbd_pipe_methods *xhci_root_intr_pointer_other;
-struct usbd_pipe_methods *device_ctrl_pointer;
-struct usbd_pipe_methods *device_ctrl_pointer_other;
-struct usbd_pipe_methods *device_intr_pointer;
-struct usbd_pipe_methods *device_intr_pointer_other;
+uintptr_t xhci_root_intr_pointer;
+uintptr_t xhci_root_intr_pointer_other;
+uintptr_t device_ctrl_pointer;
+uintptr_t device_ctrl_pointer_other;
+uintptr_t device_intr_pointer;
+uintptr_t device_intr_pointer_other;
+uintptr_t rx_free;
+uintptr_t rx_used;
+uintptr_t tx_free;
+uintptr_t tx_used;
+
+struct intr_ptrs_holder *intr_ptrs;
 bool pipe_thread;
 int cold = 1;
 
@@ -70,7 +77,8 @@ uintptr_t ta_limit;
 uintptr_t timer_base;
 uintptr_t software_heap;
 
-struct intr_ptrs_holder *intr_ptrs;
+/* Pointers to shared_ringbuffers */
+ring_handle_t *kbd_buffer_ring;
 
 // TODO: put these in a header file so can change it in a single place for a platform
 int phy_setup() {
@@ -135,6 +143,7 @@ init(void) {
     printf("dma init ok\n");
 
     device_t parent_xhci = NULL;
+    kbd_buffer_ring = kmem_alloc(sizeof(*kbd_buffer_ring), 0);
     printf("Allocing mem\n");
 
     phy_setup();

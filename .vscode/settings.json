@@ -1,7 +1,5 @@
 {
     "files.associations": {
-        "*.pl": "prolog",
-        "usbdi.h": "c",
         "ukbd.h": "c",
         "timer.h": "c",
         "kmem.h": "c",
@@ -13,6 +11,8 @@
         "sdt.h": "c",
         "callout.h": "c",
         "atomic.h": "c",
-        "systm.h": "c"
+        "systm.h": "c",
+        "*.pl": "prolog",
+        "usbdi.h": "c",
     }
 }

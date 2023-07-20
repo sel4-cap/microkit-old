@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2021, Breakaway Consulting Pty. Ltd.
+
+ SPDX-License-Identifier: BSD-2-Clause
+-->
+<system>
+    <memory_region name="keyboard_mem" size="0x10000"/>
+    <protection_domain name="kbd_logger" pp="true" priority="20">
+        <map mr="keyboard_mem" vaddr="0x403d0000" perms="rw" cached="false" setvar_vaddr="keyboard_base"/>
+        <program_image path="kbd_logger.elf" />
+    </protection_domain>
+
+    <protection_domain name="simulated_kbd" pp="true" priority="25">
+        <map mr="keyboard_mem" vaddr="0x403d0000" perms="rw" cached="false" setvar_vaddr="keyboard_base"/>
+        <program_image path="simulated_kbd.elf" />
+    </protection_domain>
+
+    <channel>
+        <end pd="kbd_logger" id="13"/>
+        <end pd="simulated_kbd" id="14"/>
+    </channel>
+    <channel>
+        <end pd="simulated_kbd" id="15"/>
+        <end pd="kbd_logger" id="16"/>
+    </channel>
+</system>

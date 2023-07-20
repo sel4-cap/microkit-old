@@ -104,8 +104,8 @@ static void ums_childdet(device_t, device_t);
 static int ums_detach(device_t, int);
 static int ums_activate(device_t, enum devact);
 
-// CFATTACH_DECL2_NEW(ums, sizeof(struct ums_softc), ums_match, ums_attach,
-//     ums_detach, ums_activate, NULL, ums_childdet);
+CFATTACH_DECL2_NEW(ums, sizeof(struct ums_softc), ums_match, ums_attach,
+    ums_detach, ums_activate, NULL, ums_childdet);
 
 static int
 ums_match(device_t parent, cfdata_t match, void *aux)
@@ -118,9 +118,12 @@ ums_match(device_t parent, cfdata_t match, void *aux)
 	 * Some (older) Griffin PowerMate knobs may masquerade as a
 	 * mouse, avoid treating them as such, they have only one axis.
 	 */
-	if (uha->uiaa->uiaa_vendor == USB_VENDOR_GRIFFIN &&
-	    uha->uiaa->uiaa_product == USB_PRODUCT_GRIFFIN_POWERMATE)
-		return UMATCH_NONE;
+    if (uha->uiaa) { //SEL4: added uiaa check to avoid crash
+        if (uha->uiaa->uiaa_vendor == USB_VENDOR_GRIFFIN &&
+                uha->uiaa->uiaa_product == USB_PRODUCT_GRIFFIN_POWERMATE) {
+            return UMATCH_NONE;
+        }
+    }
 
 	uhidev_get_report_desc(uha->parent, &desc, &size);
 	if (!hid_is_collection(desc, size, uha->reportid,
@@ -128,8 +131,9 @@ ums_match(device_t parent, cfdata_t match, void *aux)
 	    !hid_is_collection(desc, size, uha->reportid,
 			       HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_POINTER)) &&
 	    !hid_is_collection(desc, size, uha->reportid,
-			       HID_USAGE2(HUP_DIGITIZERS, 0x0002)))
+            HID_USAGE2(HUP_DIGITIZERS, 0x0002))) {
 		return UMATCH_NONE;
+    }
 
 	return UMATCH_IFACECLASS;
 }
@@ -137,8 +141,7 @@ ums_match(device_t parent, cfdata_t match, void *aux)
 void
 ums_attach(device_t parent, device_t self, void *aux)
 {
-	//struct ums_softc *sc = device_private(self);
-	struct ums_softc *sc = kmem_alloc(sizeof(struct ums_softc), 0);
+	struct ums_softc *sc = device_private(self);
 	struct uhidev_attach_arg *uha = aux;
 	struct hid_data *d;
 	struct hid_item item;
@@ -237,7 +240,7 @@ ums_attach(device_t parent, device_t self, void *aux)
 	hidms_attach(self, &sc->sc_ms, &ums_accessops);
 	ums_enable(sc); //SEL4: moved out to enble mouse
 	if (sc->sc_alwayson) {
-		error = uhidev_open(sc->sc_hdev, &ums_intr, sc);
+		error = uhidev_open(sc->sc_hdev, intr_ptrs->ums, sc);
 		if (error != 0) {
 			aprint_error_dev(self,
 			    "WARNING: couldn't open always-on device\n");
@@ -282,8 +285,8 @@ ums_detach(device_t self, int flags)
 		uhidev_close(sc->sc_hdev);
 
 	/* No need to do reference counting of ums, wsmouse has all the goo. */
-	if (sc->sc_ms.hidms_wsmousedev != NULL)
-		rv = config_detach(sc->sc_ms.hidms_wsmousedev, flags);
+	/* if (sc->sc_ms.hidms_wsmousedev != NULL) */
+	/* 	rv = config_detach(sc->sc_ms.hidms_wsmousedev, flags); */
 
 	pmf_device_deregister(self);
 
@@ -293,7 +296,6 @@ ums_detach(device_t self, int flags)
 void
 ums_intr(void *cookie, void *ibuf, u_int len)
 {
-	printf("\nmouse intr\n");
 	struct ums_softc *sc = cookie;
 
 	if (sc->sc_enabled)
@@ -303,6 +305,7 @@ ums_intr(void *cookie, void *ibuf, u_int len)
 Static int
 ums_enable(void *v)
 {
+    printf("enabling mouse\n");
 	struct ums_softc *sc = v;
 	int error = 0;
 
@@ -318,7 +321,7 @@ ums_enable(void *v)
 	sc->sc_ms.hidms_buttons = 0;
 
 	if (!sc->sc_alwayson) {
-		error = uhidev_open(sc->sc_hdev, &ums_intr, sc);
+		error = uhidev_open(sc->sc_hdev, intr_ptrs->ums, sc);
 		if (error)
 			sc->sc_enabled = 0;
 	}

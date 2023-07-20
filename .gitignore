@@ -9,3 +9,4 @@ tmp_build/
 *.elf
 *.o
 *.txt
+*.sh

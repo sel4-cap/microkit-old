@@ -18,6 +18,7 @@
 #include <sys/kmem.h>
 
 #include <timer.h>
+#include <shared_ringbuffer.h>
 #include <dev/usb/usb.h>
 #include <dev/usb/usb_quirks.h>
 #include <dev/usb/usbdi.h>
@@ -36,11 +37,22 @@
 
 uintptr_t xhci_base;
 uintptr_t dma_base;
+uintptr_t ring_base;
 uintptr_t heap_base;
 uintptr_t dma_cp_vaddr = 0x54000000;
 uintptr_t dma_cp_paddr;
+uintptr_t ring_cp_vaddr = 0x60000000;
+uintptr_t ring_cp_paddr;
 uintptr_t timer_base;
 uint64_t heap_size = 0x2000000;
+uintptr_t hw_ring_buffer_vaddr;
+uintptr_t hw_ring_buffer_paddr;
+uintptr_t rx_cookies;
+uintptr_t tx_cookies;
+uintptr_t rx_free;
+uintptr_t rx_used;
+uintptr_t tx_free;
+uintptr_t tx_used;
 
 bool pipe_thread;
 
@@ -53,7 +65,23 @@ struct usbd_pipe_methods *device_ctrl_pointer;
 struct usbd_pipe_methods *device_ctrl_pointer_other;
 struct usbd_pipe_methods *device_intr_pointer;
 struct usbd_pipe_methods *device_intr_pointer_other;
+struct intr_ptrs_holder *intr_ptrs;
 int cold = 1;
+
+/* Pointers to shared_ringbuffers */
+ring_handle_t *kbd_buffer_ring;
+
+typedef struct state {
+    /* Pointers to shared buffers */
+    ring_handle_t rx_ring;
+    ring_handle_t tx_ring;
+    /*
+    //  * Metadata associated with buffers
+    //  */
+    // ethernet_buffer_t buffer_metadata[NUM_BUFFERS * 2];
+} state_t;
+
+state_t state;
 
 void
 init(void) {
@@ -68,6 +96,9 @@ init(void) {
     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
     initialise_and_start_timer(timer_base);
     printf("Software up and running\n");
+
+    kbd_buffer_ring = kmem_alloc(sizeof(*kbd_buffer_ring), 0);
+    ring_init(kbd_buffer_ring, (ring_buffer_t *)rx_free, (ring_buffer_t *)rx_used, NULL, 0);
 }
 
 void
@@ -112,6 +143,14 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
             usbd_status err = usbd_set_config_index(cfg->dev, cfg->confi, cfg->msg);
             printf("reached end of set_conf_index\n");
             return seL4_MessageInfo_new(err,1,0,0);
+        case 8:
+            // pass interrupt structures so callback can be used without hardcoding
+            intr_ptrs = kmem_alloc(sizeof(struct intr_ptrs_holder), 0);
+            intr_ptrs->ukbd     = &ukbd_intr;
+            intr_ptrs->ums      = &ums_intr;
+            intr_ptrs->uhidev   = &uhidev_intr;
+            intr_ptrs->uhub     = &uhub_intr;
+            return seL4_MessageInfo_new((uint64_t) intr_ptrs, 1, 0, 0);
         default:
             printf("softintr unexpected channel %d\n", ch);
     }

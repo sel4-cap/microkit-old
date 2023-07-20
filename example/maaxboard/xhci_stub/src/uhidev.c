@@ -75,7 +75,7 @@ __KERNEL_RCSID(0, "$NetBSD: uhidev.c,v 1.94 2022/11/04 19:46:55 jmcneill Exp $")
 /* Report descriptor for Xbox One controllers */
 #include <dev/usb/x1input_rdesc.h>
 
-//#include "locators.h"
+#include "locators.h"
 
 struct uhidev_softc {
 	device_t sc_dev;		/* base device */
@@ -145,10 +145,9 @@ static int uhidev_match(device_t, cfdata_t, void *);
 static void uhidev_childdet(device_t, device_t);
 static int uhidev_detach(device_t, int);
 
-// CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
-//     uhidev_attach, uhidev_detach, NULL, NULL, uhidev_childdet);
+CFATTACH_DECL2_NEW(uhidev, sizeof(struct uhidev_softc), uhidev_match,
+    uhidev_attach, uhidev_detach, NULL, NULL, uhidev_childdet);
 
-#ifndef SEL4
 static int
 uhidev_match(device_t parent, cfdata_t match, void *aux)
 {
@@ -167,7 +166,6 @@ uhidev_match(device_t parent, cfdata_t match, void *aux)
 		return UMATCH_NONE;
 	return UMATCH_IFACECLASS_GENERIC;
 }
-#endif /* SEL4 */
 
 void
 uhidev_attach(device_t parent, device_t self, void *aux)
@@ -186,7 +184,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 	const void *descptr;
 	usbd_status err;
 	char *devinfop;
-	//int locs[UHIDBUSCF_NLOCS];
+	int locs[0];
 
 	sc->sc_dev = self;
 	sc->sc_udev = uiaa->uiaa_device;
@@ -422,10 +420,6 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 			dev = config_found(self, &uha, uhidevprint,
 			    CFARGS(.submatch = config_stdsubmatch,
 				   .locators = locs));
-            //XXX SEL4: just do the keyboard attach for now
-			device_t self_ukbd = kmem_alloc(sizeof(device_t), 0);
-			ums_attach(self_ukbd, self, &uha);
-			//ukbd_attach(self_ukbd, self, &uha);
 			sc->sc_subdevs[repid].sc_dev = self;
 			if (dev == NULL)
 				continue;
@@ -508,7 +502,7 @@ uhidev_detach(device_t self, int flags)
 	 * refusing detachment.  If they do detach, the pipes can no
 	 * longer be in use.
 	 */
-	rv = config_detach_children(self, flags);
+	// rv = config_detach_children(self, flags);
 	if (rv)
 		return rv;
 
@@ -542,7 +536,6 @@ uhidev_detach(device_t self, int flags)
 void
 uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 {
-	printf("\nuhidev intr\n");
 	struct uhidev_softc *sc = addr;
 	struct uhidev *scd;
 	u_char *p;
@@ -585,8 +578,8 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 	scd = &sc->sc_subdevs[rep];
 	DPRINTFN(5,("uhidev_intr: rep=%d, scd=%p state=%#x\n",
 		    rep, scd, scd->sc_state));
-	// if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN))
-	// 	return;
+	/* if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN)) */
+	/* 	return; */
 #ifdef UHIDEV_DEBUG
 	if (scd->sc_in_rep_size != cc) {
 		DPRINTF(("%s: expected %d bytes, got %d\n",
@@ -599,12 +592,9 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 		return;
 	}
 	//rnd_add_uint32(&scd->sc_rndsource, (uintptr_t)(sc->sc_ibuf));
-#ifdef SEL4 //XXX just do the keyboard interrupt for now
-    //ukbd_intr(scd->sc_cookie, p, cc);
-	ums_intr(scd->sc_cookie, p, cc);
-#else
 	scd->sc_intr(scd->sc_cookie, p, cc);
-#endif
+    /* ukbd_intr(scd->sc_cookie, p, cc); */
+	// ums_intr(scd->sc_cookie, p, cc);
 }
 
 void
@@ -725,7 +715,7 @@ uhidev_open_pipes(struct uhidev_softc *sc)
 
 	err = usbd_open_pipe_intr(sc->sc_iface, sc->sc_iep_addr,
 		  USBD_SHORT_XFER_OK, &sc->sc_ipipe, sc, sc->sc_ibuf,
-		  sc->sc_isize, uhidev_intr, USBD_DEFAULT_INTERVAL);
+		  sc->sc_isize, intr_ptrs->uhidev, USBD_DEFAULT_INTERVAL);
 	if (err != USBD_NORMAL_COMPLETION) {
 		DPRINTF(("uhidopen: usbd_open_pipe_intr failed, "
 		    "error=%d\n", err));

@@ -61,7 +61,7 @@ __KERNEL_RCSID(0, "$NetBSD: usb_subr.c,v 1.277 2022/04/06 22:01:45 mlelstv Exp $
 #include <dev/usb/usb_verbose.h>
 #include <dev/usb/usbhist.h>
 
-// #include "locators.h"
+#include "locators.h"
 
 #include <dev/usb/uhub.h>
 #include <config_methods.h>
@@ -1070,8 +1070,8 @@ usbd_attach_roothub(device_t parent, struct usbd_device *dev)
 	uaa->uaa_proto = dd->bDeviceProtocol;
 
 	KERNEL_LOCK(1, curlwp);
-	dv = config_found(parent, &uaa, NULL,
-	    CFARGS(.iattr = "usbroothubif"));
+	// dv = config_found(parent, &uaa, NULL,
+	//     CFARGS(.iattr = "usbroothubif"));
 	struct uhub_softc *uhub_sc = kmem_alloc(sizeof(struct uhub_softc), 0);
 	device_t self = kmem_alloc(sizeof(device_t), 0);
 	self->dv_private = uhub_sc;
@@ -1091,7 +1091,6 @@ usbd_attach_roothub(device_t parent, struct usbd_device *dev)
 static void
 usbd_properties(device_t dv, struct usbd_device *dev)
 {
-#ifndef SEL4
 	usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	prop_dictionary_t dict = device_properties(dv);
 	int class, subclass, release, proto, vendor, product;
@@ -1103,26 +1102,25 @@ usbd_properties(device_t dv, struct usbd_device *dev)
 	vendor = UGETW(dd->idVendor);
 	product = UGETW(dd->idProduct);
 
-	prop_dictionary_set_uint8(dict, "class", class);
-	prop_dictionary_set_uint8(dict, "subclass", subclass);
-	prop_dictionary_set_uint16(dict, "release", release);
-	prop_dictionary_set_uint8(dict, "proto", proto);
-	prop_dictionary_set_uint16(dict, "vendor-id", vendor);
-	prop_dictionary_set_uint16(dict, "product-id", product);
+	// prop_dictionary_set_uint8(dict, "class", class);
+	// prop_dictionary_set_uint8(dict, "subclass", subclass);
+	// prop_dictionary_set_uint16(dict, "release", release);
+	// prop_dictionary_set_uint8(dict, "proto", proto);
+	// prop_dictionary_set_uint16(dict, "vendor-id", vendor);
+	// prop_dictionary_set_uint16(dict, "product-id", product);
 
-	if (dev->ud_vendor) {
-		prop_dictionary_set_string(dict,
-		    "vendor-string", dev->ud_vendor);
-	}
-	if (dev->ud_product) {
-		prop_dictionary_set_string(dict,
-		    "product-string", dev->ud_product);
-	}
-	if (dev->ud_serial) {
-		prop_dictionary_set_string(dict,
-		    "serialnumber", dev->ud_serial);
-	}
-#endif
+	// if (dev->ud_vendor) {
+	// 	prop_dictionary_set_string(dict,
+	// 	    "vendor-string", dev->ud_vendor);
+	// }
+	// if (dev->ud_product) {
+	// 	prop_dictionary_set_string(dict,
+	// 	    "product-string", dev->ud_product);
+	// }
+	// if (dev->ud_serial) {
+	// 	prop_dictionary_set_string(dict,
+	// 	    "serialnumber", dev->ud_serial);
+	// }
 }
 
 static usbd_status
@@ -1181,7 +1179,7 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 {
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
 	struct usbif_attach_arg uiaa;
-	// int ilocs[USBIFIFCF_NLOCS];
+	int ilocs[USBIFIFCF_NLOCS];
 	usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	int nifaces;
 	struct usbd_interface **ifaces;
@@ -1208,14 +1206,13 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 	uiaa.uiaa_configno = dev->ud_cdesc->bConfigurationValue;
 	uiaa.uiaa_ifaces = ifaces;
 	uiaa.uiaa_nifaces = nifaces;
-	#ifndef SEL4
 	ilocs[USBIFIFCF_PORT] = uiaa.uiaa_port;
 	ilocs[USBIFIFCF_VENDOR] = uiaa.uiaa_vendor;
 	ilocs[USBIFIFCF_PRODUCT] = uiaa.uiaa_product;
 	ilocs[USBIFIFCF_RELEASE] = uiaa.uiaa_release;
 	ilocs[USBIFIFCF_CONFIGURATION] = uiaa.uiaa_configno;
-	#endif
 
+	printf("attach_interfaces time\n");
 	for (i = 0; i < nifaces; i++) {
 		if (!ifaces[i]) {
 			DPRINTF("interface %jd claimed", i, 0, 0, 0);
@@ -1231,7 +1228,6 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 		DPRINTF("class %jx subclass %jx proto %jx ifaceno %jd",
 		    uiaa.uiaa_class, uiaa.uiaa_subclass, uiaa.uiaa_proto,
 		    uiaa.uiaa_ifaceno);
-		#ifndef SEL4
 		ilocs[USBIFIFCF_INTERFACE] = uiaa.uiaa_ifaceno;
 		if (locators != NULL) {
 			loc = locators[USBIFIFCF_CONFIGURATION];
@@ -1244,18 +1240,20 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 				continue;
 		}
 		KERNEL_LOCK(1, curlwp);
+		printf("about to do the fabled config_found\n");
 		dv = config_found(parent, &uiaa, usbd_ifprint,
 				  CFARGS(.submatch = config_stdsubmatch,
 					 .iattr = "usbifif",
 					 .locators = ilocs));
-		KERNEL_UNLOCK_ONE(curlwp);
+		// KERNEL_UNLOCK_ONE(curlwp);
 		if (!dv)
 			continue;
-		#endif
 		
 		device_t self = kmem_alloc(sizeof(device_t), 0);
 		dv = self;
-		uhidev_attach(parent, self, &uiaa);
+
+		printf("ignoring uhidev attach\n");
+		// uhidev_attach(parent, self, &uiaa); //TODO: SEL4 hardcoded - generalise
 
 		usbd_properties(dv, dev);
 
@@ -1357,7 +1355,6 @@ usbd_status
 usbd_reattach_device(device_t parent, struct usbd_device *dev,
     int port, const int *locators)
 {
-#ifndef SEL4
 	int i, loc;
 
 	USBHIST_FUNC();
@@ -1399,7 +1396,6 @@ usbd_reattach_device(device_t parent, struct usbd_device *dev,
 	}
 	if (i >= dev->ud_subdevlen)
 		return USBD_NORMAL_COMPLETION;
-#endif
 	return usbd_attachinterfaces(parent, dev, port, locators);
 }
 

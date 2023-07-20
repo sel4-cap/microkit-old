@@ -249,8 +249,8 @@ hidms_attach(device_t self, struct hidms *ms,
 	a.accessops = ops;
 	a.accesscookie = device_private(self);
 
-	ms->hidms_wsmousedev = config_found(self, &a, wsmousedevprint,
-	    CFARGS_NONE);
+	/* ms->hidms_wsmousedev = config_found(self, &a, NULL, */
+	/*     CFARGS_NONE); */
 
 	return;
 }

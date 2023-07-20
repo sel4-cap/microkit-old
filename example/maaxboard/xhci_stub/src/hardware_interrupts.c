@@ -174,6 +174,9 @@ notified(sel4cp_channel ch) {
             }
             sel4cp_irq_ack(ch);
             break;
+            while (1) {
+                
+            }
     }
 }
 

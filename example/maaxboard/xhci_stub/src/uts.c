@@ -46,6 +46,7 @@ __KERNEL_RCSID(0, "$NetBSD: uts.c,v 1.16 2023/05/10 00:12:44 riastradh Exp $");
 #include <sys/device.h>
 #include <sys/ioctl.h>
 #include <sys/vnode.h>
+#include <sys/kmem.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -136,7 +137,9 @@ uts_match(device_t parent, cfdata_t match, void *aux)
 Static void
 uts_attach(device_t parent, device_t self, void *aux)
 {
-	struct uts_softc *sc = device_private(self);
+	printf("\nuts attach\n");
+	//struct uts_softc *sc = device_private(self);
+	struct uts_softc *sc = kmem_alloc(sizeof(struct uts_softc), 0);
 	struct uhidev_attach_arg *uha = aux;
 	struct wsmousedev_attach_args a;
 	int size;
@@ -262,6 +265,9 @@ uts_attach(device_t parent, device_t self, void *aux)
 	tpcalib_init(&sc->sc_tpcalib);
 //	tpcalib_ioctl(&sc->sc_tpcalib, WSMOUSEIO_SCALIBCOORDS,
 	 //   (void *)&sc->sc_calibcoords, 0, 0);
+
+	 //hidms_attach()
+	 //uts_enable();
 
 	return;
 }

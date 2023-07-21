@@ -25,7 +25,7 @@ device_private(device_t dev)
 
 const char*
 device_xname(device_t dev) {
-	return "TEMP_NAME"; //current implementation of device doesn't set name, so return this just in case
+	return dev->dv_xname;
 }
 
 int

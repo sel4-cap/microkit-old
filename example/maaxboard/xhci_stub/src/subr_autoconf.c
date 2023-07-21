@@ -677,7 +677,6 @@ config_cfdriver_lookup(const char *name)
 
 	LIST_FOREACH(cd, &allcfdrivers, cd_list) {
 		if (STREQ(cd->cd_name, name)) {
-			printf("SEL4: found %s\n");
 			return cd;
 		}
 	}
@@ -1265,9 +1264,10 @@ config_found(device_t parent, void *aux, cfprint_t print,
 	if (cf != NULL) {
 		return config_attach_internal(parent, cf, aux, print, args);
 	}
+	printf("didn't find a match\n");
 	if (print) {
 		if (config_do_twiddle && cold)
-			printf("twiddling\n");
+			printf("(not) twiddling\n");
 			// twiddle();
 
 		const int pret = (*print)(aux, device_xname(parent));

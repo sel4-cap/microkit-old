@@ -34,9 +34,11 @@ UTILS				:= 	tinyalloc.o printf.o util.o timer.o
 XHCI_STUB_OBJS 		:=  xhci_stub.o $(NETBSD_SRC) imx8mq_usbphy.o dwc3_fdt.o shared_ringbuffer.o $(UTILS)
 PIPE_HANDLE_OBJS 	:=  pipe_handler.o $(NETBSD_SRC) $(UTILS) shared_ringbuffer.o
 # TIMER_OBJS 		:=  timer.o subr_device.o imx8mq_usbphy.o usbdi_util.o usbdi.o usbroothub.o sel4_bus_funcs.o tinyalloc.o dwc3_fdt.o printf.o dma.o usb.o usb_quirks.o usb_subr.o xhci.o usb_mem.o util.o uhub.o
-SOFTWARE_OBJS 		:=  software_interrupts.o dev_verbose.o subr_device.o imx8mq_usbphy.o usbdi_util.o usbdi.o usbroothub.o sel4_bus_funcs.o tinyalloc.o dwc3_fdt.o printf.o dma.o usb.o usb_quirks.o usb_subr.o xhci.o usb_mem.o util.o uhub.o timer.o hid.o tpcalib.o hidms.o ums.o uts.o ukbd.o uhidev.o hidkbdmap.o umass.o umass_quirks.o
-HARDWARE_OBJS 		:=  hardware_interrupts.o sel4_bus_funcs.o tinyalloc.o printf.o util.o timer.o
-MEM_OBJS			:=  mem_handler.o tinyalloc.o tinyalloc.o printf.o
+SOFTWARE_OBJS 		:=  software_interrupts.o $(NETBSD_SRC) $(UTILS) shared_ringbuffer.o
+HARDWARE_OBJS 		:=  hardware_interrupts.o sel4_bus_funcs.o $(UTILS)
+MEM_OBJS			:=  mem_handler.o tinyalloc.o printf.o
+KBD_LOGGER_OBJS 	:=  kbd_logger.o hidkbdmap.o shared_ringbuffer.o printf.o tinyalloc.o
+SIMULATED_KBD_OBJS	:=  simulated_kbd.o printf.o tinyalloc.o
 
 BOARD_DIR := $(SEL4CP_SDK)/board/$(SEL4CP_BOARD)/$(SEL4CP_CONFIG)
 
@@ -44,7 +46,7 @@ IMAGES := xhci_stub.elf hardware.elf pipe_handler.elf software.elf mem_handler.e
 INC := $(BOARD_DIR)/include include/tinyalloc include/wrapper include/netbsd_include include/bus include/dma include/printf include/timer
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 WARNINGS := -Wall -Wno-comment -Wno-return-type -Wno-unused-function -Wno-unused-value -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-label -Wno-pointer-sign
-CFLAGS := -mcpu=$(CPU) -mstrict-align -ffreestanding -g3 -O3 $(WARNINGS) $(INC_PARAMS) -I$(BOARD_DIR)/include -DSEL4  # -DSEL4_USB_DEBUG
+CFLAGS := -mcpu=$(CPU) -mstrict-align -ffreestanding -g3 -O3 $(WARNINGS) $(INC_PARAMS) -I$(BOARD_DIR)/include -DSEL4  -DSEL4_USB_DEBUG
 LDFLAGS := -L$(BOARD_DIR)/lib
 LIBS := -lsel4cp -Tsel4cp.ld
 

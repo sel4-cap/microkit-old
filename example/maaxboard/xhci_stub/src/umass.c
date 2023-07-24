@@ -873,8 +873,8 @@ umass_detach(device_t self, int flags)
 
 	scbus = sc->bus;
 	if (scbus != NULL) {
-		if (scbus->sc_child != NULL)
-			rv = config_detach(scbus->sc_child, flags);
+		//if (scbus->sc_child != NULL)
+			//rv = config_detach(scbus->sc_child, flags);
 
 		switch (sc->sc_cmd) {
 		case UMASS_CPROTO_RBC:

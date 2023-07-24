@@ -1042,6 +1042,7 @@ struct intr_ptrs_holder {
 	void *ums;
 	void *ukbd;
 	void *uhidev;
+	void *umass;
 	void *uhub;
 };
 

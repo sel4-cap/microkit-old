@@ -9,3 +9,14 @@ tmp_build/
 *.elf
 *.o
 *.txt
+*a
+*.depend
+*.Doxyfile
+*.html
+*.gif
+*.in
+*.bin
+*.DS_Store
+*.bat
+*.sh
+*.log

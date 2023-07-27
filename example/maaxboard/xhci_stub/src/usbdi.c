@@ -60,6 +60,10 @@ __KERNEL_RCSID(0, "$NetBSD: usbdi.c,v 1.247 2022/09/13 10:32:58 riastradh Exp $"
 #include <pipe_methods.h>
 #include <sys/errno.h>
 
+#define try bool __HadError=false;
+#define catch(x) ExitJmp:if(__HadError)
+#define throw(x) {__HadError=true;goto ExitJmp;}
+
 extern struct usbd_pipe_methods *xhci_root_intr_pointer;
 extern struct usbd_pipe_methods *xhci_root_intr_pointer_other;
 extern struct usbd_pipe_methods *device_ctrl_pointer;
@@ -388,6 +392,7 @@ usbd_transfer(struct usbd_xfer *xfer)
 	KASSERT(xfer->ux_status == USBD_NOT_STARTED);
 	SDT_PROBE1(usb, device, xfer, start,  xfer);
 
+
 #ifdef USB_DEBUG
 	if (usbdebug > 5)
 		usbd_dump_queue(pipe);
@@ -420,6 +425,8 @@ usbd_transfer(struct usbd_xfer *xfer)
 			}
 		}
 	}
+
+	//printf("\nX\n");
 
 	usbd_lock_pipe(pipe);
 	if (pipe->up_aborting) {
@@ -454,7 +461,7 @@ usbd_transfer(struct usbd_xfer *xfer)
 		// pmr->pipe = pipe;
 		// pmr->xfer = xfer;
 		// pmr->method_ptr = TRANSFER;
-		// sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
+		//sel4cp_ppcall(PIPE_METHOD_CHANNEL, seL4_MessageInfo_new((uint64_t) pmr, 1, 0, 0));
 		if (pipe->up_methods == xhci_root_intr_pointer_other) {
             aprint_verbose("switch context root intr (upm_transfer)\n");
             pipe->up_methods = xhci_root_intr_pointer;
@@ -462,13 +469,17 @@ usbd_transfer(struct usbd_xfer *xfer)
             aprint_verbose("should probs switch context device (upm_transfer)\n");
             pipe->up_methods = device_ctrl_pointer;
         }
+		printf("ERROR HERE:	");
 		err = pipe->up_methods->upm_transfer(xfer);
+		printf("MADE IT PAST ERROR\n");
 	} while (0);
 	SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
-
 	usbd_unlock_pipe(pipe);
 
+	//printf("\nY\n");
+
 	if (err != USBD_IN_PROGRESS && err) {
+		//printf("T");
 		/*
 		 * The transfer made it onto the pipe queue, but didn't get
 		 * accepted by the HCD for some reason.  It needs removing
@@ -498,9 +509,13 @@ usbd_transfer(struct usbd_xfer *xfer)
 	if (err != USBD_IN_PROGRESS) {
 		USBHIST_LOG(usbdebug, "<- done xfer %#jx, sync (err %jd)",
 		    (uintptr_t)xfer, err, 0, 0);
+		//printf("<- done xfer %#jx, sync (err %jd)", (uintptr_t)xfer, err);
 		SDT_PROBE2(usb, device, xfer, done,  xfer, err);
+		//printf("\nK");
 		return err;
 	}
+
+	//printf("\nZ\n");
 
 	/* Sync transfer, wait for completion. */
 	usbd_lock_pipe(pipe);
@@ -530,6 +545,7 @@ usbd_transfer(struct usbd_xfer *xfer)
 			break;
 		}
 	}
+	//printf("\nW\n");
 	err = xfer->ux_status;
 	SDT_PROBE2(usb, device, xfer, done,  xfer, err);
 	usbd_unlock_pipe(pipe);
@@ -540,6 +556,7 @@ usbd_transfer(struct usbd_xfer *xfer)
 usbd_status
 usbd_sync_transfer(struct usbd_xfer *xfer)
 {
+	//printf("\nusbd_sync_transfer\n");
 	xfer->ux_flags |= USBD_SYNCHRONOUS;
 	return usbd_transfer(xfer);
 }
@@ -1258,9 +1275,9 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 			if (!(pipe->up_flags & USBD_MPSAFE))
 				KERNEL_LOCK(1, curlwp);
 		}
-
+		printf("\nUTS CRASH HERE");
 		xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
-
+		printf("\n2");
 		if (!polling) {
 			if (!(pipe->up_flags & USBD_MPSAFE))
 				KERNEL_UNLOCK_ONE(curlwp);
@@ -1352,6 +1369,9 @@ usbd_status
 usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
     size_t len, void *data, uint16_t flags, int *actlen, uint32_t timeout)
 {
+
+	//printf("\nusbd_do_request_len called");
+
 	struct usbd_xfer *xfer;
 	usbd_status err;
 
@@ -1377,6 +1397,7 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 	KASSERT(xfer->ux_pipe == dev->ud_pipe0);
 	err = usbd_sync_transfer(xfer);
 // #if defined(USB_DEBUG) || defined(DIAGNOSTIC)
+
 	if (xfer->ux_actlen > xfer->ux_length) {
 		USBHIST_LOG(usbdebug, "overrun addr = %jd type = 0x%02jx",
 		    dev->ud_addr, xfer->ux_request.bmRequestType, 0, 0);
@@ -1401,7 +1422,7 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 	if (err) {
 		USBHIST_LOG(usbdebug, "returning err = %jd", err, 0, 0, 0);
 	}
-	/* printf("do request len OK\n"); */
+	//printf("do request len OK\n"); 
 	return err;
 }
 

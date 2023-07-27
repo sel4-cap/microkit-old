@@ -1059,6 +1059,8 @@ usbd_attach_roothub(device_t parent, struct usbd_device *dev)
 	usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	device_t dv;
 
+	printf("doing attach roothub\n");
+
 	uaa->uaa_device = dev;
 	uaa->uaa_usegeneric = 0;
 	uaa->uaa_port = 0;
@@ -1127,7 +1129,6 @@ static usbd_status
 usbd_attachwholedevice(device_t parent, struct usbd_device *dev, int port,
     int usegeneric)
 {
-#ifndef SEL4
 	struct usb_attach_arg uaa;
 	usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	device_t dv;
@@ -1169,7 +1170,6 @@ usbd_attachwholedevice(device_t parent, struct usbd_device *dev, int port,
 		usbd_properties(dv, dev);
 	}
 	config_pending_decr(parent);
-#endif
 	return USBD_NORMAL_COMPLETION;
 }
 
@@ -1252,8 +1252,8 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 		device_t self = kmem_alloc(sizeof(device_t), 0);
 		dv = self;
 
-		printf("ignoring uhidev attach\n");
-		// uhidev_attach(parent, self, &uiaa); //TODO: SEL4 hardcoded - generalise
+		//printf("ignoring uhidev attach\n");
+		 uhidev_attach(parent, self, &uiaa); //TODO: SEL4 hardcoded - generalise
 
 		usbd_properties(dv, dev);
 

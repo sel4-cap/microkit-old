@@ -326,5 +326,6 @@ void uhub_intr(struct usbd_xfer *, void *, usbd_status);
 void uhidev_intr(struct usbd_xfer *, void *, usbd_status);
 void	ukbd_intr(void *, void *, u_int);
 void ums_intr(void *, void *, u_int);
-
+void uts_intr(void *, void *, u_int);
+void uhid_intr(void *, void *, u_int);
 #endif /* _USBDI_H_ */

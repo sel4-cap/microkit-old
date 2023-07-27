@@ -1036,14 +1036,19 @@ void	usb_event_thread(void *); //moved from usb.c
 void uhidev_attach(device_t, device_t, void *);
 void ukbd_attach(device_t, device_t, void *);
 void ums_attach(device_t, device_t, void *);
+void uts_attach(device_t, device_t, void *);
+void uhid_attach(device_t, device_t, void *);
+//void umass_attach()
 
 //SEL4: structure to hold memory addresses for interrupts
 struct intr_ptrs_holder {
 	void *ums;
+	void *uts;
 	void *ukbd;
 	void *uhidev;
 	void *umass;
 	void *uhub;
+	void *uhid;
 };
 
 extern struct intr_ptrs_holder *intr_ptrs;

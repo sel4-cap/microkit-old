@@ -420,6 +420,8 @@ hid_locate(const void *desc, int size, uint32_t u, uint8_t id, enum hid_kind k,
 	struct hid_data *d;
 	struct hid_item h;
 
+	//printf("\nhid locate");
+
 	h.report_ID = 0;
 	DPRINTFN(5,("hid_locate: enter usage=0x%x kind=%d id=%d\n", u, k, id));
 	for (d = hid_start_parse(desc, size, k); hid_get_item(d, &h); ) {

@@ -148,8 +148,10 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
             intr_ptrs = kmem_alloc(sizeof(struct intr_ptrs_holder), 0);
             intr_ptrs->ukbd     = &ukbd_intr;
             intr_ptrs->ums      = &ums_intr;
+            intr_ptrs->uts      = &uts_intr;
             intr_ptrs->uhidev   = &uhidev_intr;
             intr_ptrs->uhub     = &uhub_intr;
+            //intr_ptrs->uhid     = &uhid_intr;
             return seL4_MessageInfo_new((uint64_t) intr_ptrs, 1, 0, 0);
         default:
             printf("softintr unexpected channel %d\n", ch);

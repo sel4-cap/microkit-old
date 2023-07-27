@@ -146,10 +146,10 @@ struct uhid_softc {
 // 	.d_flag = D_OTHER
 // };
 
-static void uhid_intr(void *, void *, u_int);
+//static void uhid_intr(void *, void *, u_int);
 
 static int	uhid_match(device_t, cfdata_t, void *);
-static void	uhid_attach(device_t, device_t, void *);
+//static void	uhid_attach(device_t, device_t, void *);
 static int	uhid_detach(device_t, int);
 
 CFATTACH_DECL2_NEW(uhid, sizeof(struct uhid_softc), uhid_match, uhid_attach,
@@ -170,7 +170,8 @@ uhid_match(device_t parent, cfdata_t match, void *aux)
 		return UMATCH_IFACECLASS_GENERIC;
 }
 
-static void
+//static void
+void
 uhid_attach(device_t parent, device_t self, void *aux)
 {
 	printf("doing uhid attach (idk why)\n");
@@ -180,6 +181,7 @@ uhid_attach(device_t parent, device_t self, void *aux)
 	void *desc;
 
 	sc->sc_dev = self;
+
 	// sc->sc_hdev = uha->parent;
 	// sc->sc_udev = uha->uiaa->uiaa_device;
 	// sc->sc_report_id = uha->reportid;
@@ -233,9 +235,10 @@ uhid_detach(device_t self, int flags)
 	return 0;
 }
 
-static void
+void
 uhid_intr(void *cookie, void *data, u_int len)
 {
+	printf("\nuhid_intr");
 	struct uhid_softc *sc = cookie;
 
 #ifdef UHID_DEBUG

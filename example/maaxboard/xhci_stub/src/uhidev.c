@@ -601,7 +601,6 @@ void
 uhidev_get_report_desc(struct uhidev *scd, void **desc, int *size)
 {
 	struct uhidev_softc *sc = scd->sc_parent;
-
 	*desc = sc->sc_repdesc;
 	*size = sc->sc_repdesc_size;
 }
@@ -862,6 +861,7 @@ int
 uhidev_open(struct uhidev *scd, void (*intr)(void *, void *, u_int),
     void *cookie)
 {
+	printf("\nuhidev open\n");
 	struct uhidev_softc *sc = scd->sc_parent;
 	int error;
 
@@ -899,6 +899,7 @@ out:	if (error) {
 		    scd->sc_state & ~UHIDEV_OPEN);
 	}
 	mutex_exit(&sc->sc_lock);
+	//printf("\n1");
 	return error;
 }
 

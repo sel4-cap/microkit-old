@@ -559,6 +559,7 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 int
 ukbd_enable(void *v, int on)
 {
+	printf("\nukbd_enable");
 	struct ukbd_softc *sc = v;
 
 	if (on && sc->sc_dying)

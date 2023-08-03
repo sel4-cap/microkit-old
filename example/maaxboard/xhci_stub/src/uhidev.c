@@ -411,11 +411,11 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 		if (hid_report_size(desc, size, hid_input, repid) == 0 &&
 		    hid_report_size(desc, size, hid_output, repid) == 0 &&
 		    hid_report_size(desc, size, hid_feature, repid) == 0) {
-			;	/* already NULL in sc->sc_subdevs[repid] */
+			printf("rep %d null in sc_subdevs\n", repid);	/* already NULL in sc->sc_subdevs[repid] */
 		} else {
 			uha.parent = scd;
 			uha.reportid = repid;
-			//locs[UHIDBUSCF_REPORTID] = repid;
+			locs[UHIDBUSCF_REPORTID] = repid;
 
 			dev = config_found(self, &uha, uhidevprint,
 			    CFARGS(.submatch = config_stdsubmatch,
@@ -567,17 +567,25 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 	}
 
 	p = sc->sc_ibuf;
-	if (sc->sc_nrepid != 1)
+	//printf("\nnrepID: %d\n", sc->sc_nrepid);
+	if (sc->sc_nrepid != 1) {
 		rep = *p++, cc--;
-	else
+		if (rep == 0) {
+			aprint_debug("WARNING: rep manually set to 1 (touch screen?)");
+			rep = 1; //seL4 added nested if statement to make touchscreen avoid repid 0 and default to 1
+		}
+	}
+	else {
 		rep = 0;
+	}
 	if (rep >= sc->sc_nrepid) {
 		printf("uhidev_intr: bad repid %d\n", rep);
 		return;
 	}
+	//printf("repID: %d\n", rep);
 	scd = &sc->sc_subdevs[rep];
-	DPRINTFN(5,("uhidev_intr: rep=%d, scd=%p state=%#x\n",
-		    rep, scd, scd->sc_state));
+	// printf("uhidev_intr: rep=%d, scd=%p state=%#x\n",
+	// 	    rep, scd, scd->sc_state);
 	/* if (!(atomic_load_acquire(&scd->sc_state) & UHIDEV_OPEN)) */
 	/* 	return; */
 #ifdef UHIDEV_DEBUG
@@ -592,9 +600,9 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 		return;
 	}
 	//rnd_add_uint32(&scd->sc_rndsource, (uintptr_t)(sc->sc_ibuf));
+	//printf("going to intr: ");
+	//printf("%p\n", scd->sc_intr);
 	scd->sc_intr(scd->sc_cookie, p, cc);
-    /* ukbd_intr(scd->sc_cookie, p, cc); */
-	// ums_intr(scd->sc_cookie, p, cc);
 }
 
 void
@@ -879,6 +887,7 @@ uhidev_open(struct uhidev *scd, void (*intr)(void *, void *, u_int),
 		error = EBUSY;
 		goto out;
 	}
+	printf("setting intr for scd %p !!!! %p\n", scd, intr);
 	scd->sc_intr = intr;
 	scd->sc_cookie = cookie;
 	atomic_store_release(&scd->sc_state, scd->sc_state | UHIDEV_OPEN);

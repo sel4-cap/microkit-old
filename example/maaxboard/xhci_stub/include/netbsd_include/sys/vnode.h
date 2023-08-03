@@ -60,7 +60,7 @@
 #ifndef _SYS_VNODE_H_
 #define	_SYS_VNODE_H_
 
-//#include <sys/event.h>
+#include <sys/event.h>
 #include <sys/queue.h>
 #include <sys/condvar.h>
 //#include <sys/rwlock.h>
@@ -282,6 +282,8 @@ struct vattr {
  */
 #define	VA_UTIMES_NULL	0x01		/* utimes argument was NULL */
 #define	VA_EXCLUSIVE	0x02		/* exclusive create request */
+
+#define	IO_NDELAY	0x00100		/* FNDELAY flag set in file table */
 
 #ifdef _KERNEL
 

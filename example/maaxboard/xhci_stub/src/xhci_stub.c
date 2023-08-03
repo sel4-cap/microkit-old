@@ -179,10 +179,7 @@ init(void) {
     // printf("Attempted bus_space_read_4: %08x\n", response);
 	usb_sc->sc_bus->ub_needsexplore = 1;
     usb_discover(usb_sc);
-    /* void *aux = aux_xhci; */
-    /* ukbd_attach(self, parent, aux); */
-    //printf("ready for keyboard press\n");
-    printf("\nready");
+    printf("\nready\n");
 }
 
 

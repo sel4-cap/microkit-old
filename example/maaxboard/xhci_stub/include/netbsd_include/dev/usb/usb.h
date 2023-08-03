@@ -1046,7 +1046,6 @@ struct intr_ptrs_holder {
 	void *uts;
 	void *ukbd;
 	void *uhidev;
-	void *umass;
 	void *uhub;
 	void *uhid;
 };

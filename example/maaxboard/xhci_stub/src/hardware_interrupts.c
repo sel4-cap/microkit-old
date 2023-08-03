@@ -168,6 +168,7 @@ notified(sel4cp_channel ch) {
     switch (ch) {
         case 6:
             if (glob_xhci_sc != NULL) {
+				printf("!!HARD INTR!!\n");
                 xhci_intr(glob_xhci_sc);
             } else {
                 printf("FATAL: sc not defined");

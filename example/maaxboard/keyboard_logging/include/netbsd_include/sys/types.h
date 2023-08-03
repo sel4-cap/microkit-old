@@ -343,7 +343,7 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 //  * used in the same place that the structure is defined.
 //  */
 // struct	lwp;
-// typedef struct lwp lwp_t;
+typedef struct lwp lwp_t;
 // struct	__ucontext;
 // struct	proc;
 // typedef struct proc proc_t;

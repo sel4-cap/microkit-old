@@ -335,6 +335,9 @@ Static void umass_dump_buffer(struct umass_softc *, uint8_t *, int, int);
 static int
 umass_match(device_t parent, cfdata_t match, void *aux)
 {
+
+	printf("umass match attempt\n");
+
 	struct usbif_attach_arg *uiaa = aux;
 	const struct umass_quirk *quirk;
 
@@ -373,6 +376,7 @@ umass_match(device_t parent, cfdata_t match, void *aux)
 static void
 umass_attach(device_t parent, device_t self, void *aux)
 {
+	printf("\numass attach");
 	UMASSHIST_FUNC(); UMASSHIST_CALLED();
 	struct umass_softc *sc = device_private(self);
 	struct usbif_attach_arg *uiaa = aux;

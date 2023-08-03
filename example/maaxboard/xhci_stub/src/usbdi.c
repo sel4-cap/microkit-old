@@ -426,8 +426,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 		}
 	}
 
-	//printf("\nX\n");
-
 	usbd_lock_pipe(pipe);
 	if (pipe->up_aborting) {
 		/*
@@ -469,17 +467,12 @@ usbd_transfer(struct usbd_xfer *xfer)
             aprint_verbose("should probs switch context device (upm_transfer)\n");
             pipe->up_methods = device_ctrl_pointer;
         }
-		printf("ERROR HERE:	");
 		err = pipe->up_methods->upm_transfer(xfer);
-		printf("MADE IT PAST ERROR\n");
 	} while (0);
 	SDT_PROBE3(usb, device, pipe, transfer__done,  pipe, xfer, err);
 	usbd_unlock_pipe(pipe);
 
-	//printf("\nY\n");
-
 	if (err != USBD_IN_PROGRESS && err) {
-		//printf("T");
 		/*
 		 * The transfer made it onto the pipe queue, but didn't get
 		 * accepted by the HCD for some reason.  It needs removing
@@ -511,11 +504,8 @@ usbd_transfer(struct usbd_xfer *xfer)
 		    (uintptr_t)xfer, err, 0, 0);
 		//printf("<- done xfer %#jx, sync (err %jd)", (uintptr_t)xfer, err);
 		SDT_PROBE2(usb, device, xfer, done,  xfer, err);
-		//printf("\nK");
 		return err;
 	}
-
-	//printf("\nZ\n");
 
 	/* Sync transfer, wait for completion. */
 	usbd_lock_pipe(pipe);
@@ -545,7 +535,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 			break;
 		}
 	}
-	//printf("\nW\n");
 	err = xfer->ux_status;
 	SDT_PROBE2(usb, device, xfer, done,  xfer, err);
 	usbd_unlock_pipe(pipe);
@@ -556,7 +545,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 usbd_status
 usbd_sync_transfer(struct usbd_xfer *xfer)
 {
-	//printf("\nusbd_sync_transfer\n");
 	xfer->ux_flags |= USBD_SYNCHRONOUS;
 	return usbd_transfer(xfer);
 }
@@ -1275,9 +1263,7 @@ usb_transfer_complete(struct usbd_xfer *xfer)
 			if (!(pipe->up_flags & USBD_MPSAFE))
 				KERNEL_LOCK(1, curlwp);
 		}
-		printf("\nUTS CRASH HERE");
 		xfer->ux_callback(xfer, xfer->ux_priv, xfer->ux_status);
-		printf("\n2");
 		if (!polling) {
 			if (!(pipe->up_flags & USBD_MPSAFE))
 				KERNEL_UNLOCK_ONE(curlwp);

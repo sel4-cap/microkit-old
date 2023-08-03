@@ -342,11 +342,11 @@ typedef	int32_t		blksize_t;	/* fs optimal block size */
 //  * common structures that cross subsystem boundaries here; others are mostly
 //  * used in the same place that the structure is defined.
 //  */
-// struct	lwp;
-// typedef struct lwp lwp_t;
+ struct	lwp;
+ typedef struct lwp lwp_t;
 // struct	__ucontext;
-// struct	proc;
-// typedef struct proc proc_t;
+struct	proc;
+typedef struct proc proc_t;
 // struct	pgrp;
 // struct	rusage;
 // struct	file;

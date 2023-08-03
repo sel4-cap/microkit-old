@@ -46,7 +46,6 @@ __KERNEL_RCSID(0, "$NetBSD: uts.c,v 1.16 2023/05/10 00:12:44 riastradh Exp $");
 #include <sys/device.h>
 #include <sys/ioctl.h>
 #include <sys/vnode.h>
-#include <sys/kmem.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -79,8 +78,6 @@ struct uts_softc {
 	struct hid_location sc_loc_x, sc_loc_y, sc_loc_z;
 	struct hid_location sc_loc_btn;
 
-	bool	sc_alwayson;
-
 	int sc_enabled;
 
 	int flags;		/* device configuration */
@@ -99,13 +96,13 @@ struct uts_softc {
 //Static void	uts_intr(void *, void *, u_int);
 
 Static int	uts_enable(void *);
-//Static void	uts_disable(void *);
-//int	uts_ioctl(void *, u_long, void *, int, struct lwp *);
+Static void	uts_disable(void *);
+Static int	uts_ioctl(void *, u_long, void *, int, struct lwp *);
 
 Static const struct wsmouse_accessops uts_accessops = {
 	uts_enable,
-	//uts_ioctl,
-	//uts_disable,
+	uts_ioctl,
+	uts_disable,
 };
 
 Static int	uts_match(device_t, cfdata_t, void *);
@@ -114,8 +111,10 @@ Static void	uts_childdet(device_t, device_t);
 Static int	uts_detach(device_t, int);
 Static int	uts_activate(device_t, enum devact);
 
+
+
 CFATTACH_DECL2_NEW(uts, sizeof(struct uts_softc), uts_match, uts_attach,
-    uts_detach, uts_activate, NULL, NULL);
+    uts_detach, uts_activate, NULL, uts_childdet);
 
 Static int
 uts_match(device_t parent, cfdata_t match, void *aux)
@@ -134,39 +133,28 @@ uts_match(device_t parent, cfdata_t match, void *aux)
 	return UMATCH_IFACECLASS;
 }
 
-//Static void
+//Static 
 void
 uts_attach(device_t parent, device_t self, void *aux)
 {
-
-	printf("\nIn touch screen\n");
-
 	struct uts_softc *sc = device_private(self);
-	//struct uts_softc *sc = kmem_alloc(sizeof(struct uts_softc), 0)
 	struct uhidev_attach_arg *uha = aux;
 	struct wsmousedev_attach_args a;
-	int size, error;
+	int size;
 	void *desc;
 	uint32_t flags;
 	struct hid_data * d;
 	struct hid_item item;
 
-	aprint_normal("\n");
+	printf("uts attach, mem sc: %p\n", sc);
 
 	sc->sc_dev = self;
 	sc->sc_hdev = uha->parent;
 
-	sc->sc_alwayson = true;
-	//printf("\n1");
-
 	uhidev_get_report_desc(uha->parent, &desc, &size);
-
-	//printf("\n2");
 
 	if (!pmf_device_register(self, NULL, NULL))
 		aprint_error_dev(self, "couldn't establish power handler\n");
-
-	//printf("\n6");
 
 	/* requires HID usage Generic_Desktop:X */
 	if (!hid_locate(desc, size, HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_X),
@@ -175,9 +163,6 @@ uts_attach(device_t parent, device_t self, void *aux)
 		    "touchscreen has no X report\n");
 		return;
 	}
-
-	//printf("\n3");
-
 	switch (flags & TSCREEN_FLAGS_MASK) {
 	case 0:
 		sc->flags |= UTS_ABS;
@@ -190,8 +175,6 @@ uts_attach(device_t parent, device_t self, void *aux)
 		return;
 	}
 
-	//printf("\n4");
-
 	/* requires HID usage Generic_Desktop:Y */
 	if (!hid_locate(desc, size, HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_Y),
 		uha->reportid, hid_input, &sc->sc_loc_y, &flags)) {
@@ -199,9 +182,6 @@ uts_attach(device_t parent, device_t self, void *aux)
 		    "touchscreen has no Y report\n");
 		return;
 	}
-
-	//printf("\n5");
-
 	switch (flags & TSCREEN_FLAGS_MASK) {
 	case 0:
 		sc->flags |= UTS_ABS;
@@ -222,13 +202,10 @@ uts_attach(device_t parent, device_t self, void *aux)
 		return;
 	}
 
-	//printf("\n1");
-
 	/* requires HID usage Digitizer:In_Range */
 	if (!hid_locate(desc, size, HID_USAGE2(HUP_DIGITIZERS, HUD_IN_RANGE),
 		uha->reportid, hid_input, &sc->sc_loc_z, &flags)) {
 		if (uha->uiaa->uiaa_vendor == USB_VENDOR_ELAN) {
-			//printf("\nX");
 			/*
 			 * XXX
 			 * ELAN touchscreens error out here but still return
@@ -237,13 +214,12 @@ uts_attach(device_t parent, device_t self, void *aux)
 			aprint_debug_dev(sc->sc_dev,
 			    "ELAN touchscreen found, working around bug.\n");
 		} else {
-			//printf("ts exit?");
 			aprint_error_dev(sc->sc_dev,
 			    "touchscreen has no range report\n");
+            printf("Touchscreen has no Z\n");
 			//return;
 		}
 	}
-	//printf("\n2");
 
 	/* multi-touch support would need HUD_CONTACTID and HUD_CONTACTMAX */
 
@@ -257,15 +233,10 @@ uts_attach(device_t parent, device_t self, void *aux)
 		sc->sc_loc_z.pos, sc->sc_loc_z.size));
 #endif
 
-	//printf("\n3");
+	//a.accessops = &uts_accessops;
+	//a.accesscookie = sc;
 
-	//uhid_attach(parent, self, d );
-	uts_enable(sc); //SEL4: moved out to enble mouse
-
-	// a.accessops = &uts_accessops;
-	// a.accesscookie = sc;
-
-	// sc->sc_wsmousedev = config_found(self, &a, NULL, CFARGS_NONE);
+	//sc->sc_wsmousedev = config_found(self, &a, wsmousedevprint, CFARGS_NONE);
 
 	/* calibrate the touchscreen */
 	memset(&sc->sc_calibcoords, 0, sizeof(sc->sc_calibcoords));
@@ -290,36 +261,25 @@ uts_attach(device_t parent, device_t self, void *aux)
 		}
 		hid_end_parse(d);
 	}
-	//printf("\n4");
-	//tpcalib_init(&sc->sc_tpcalib);
-	//tpcalib_ioctl(&sc->sc_tpcalib, WSMOUSEIO_SCALIBCOORDS,
-	//    (void *)&sc->sc_calibcoords, 0, 0);
-	if (sc->sc_alwayson) {
-		printf("\nalways on");
-		error = uhidev_open(sc->sc_hdev, intr_ptrs->uts, sc);
-		if (error != 0) {
-			aprint_error_dev(self,
-				"WARNING: couldn't open always-on device\n");
-			sc->sc_alwayson = false;
-		}
-	}
-	printf("\nready for touchy touch\n");
+	tpcalib_init(&sc->sc_tpcalib);
+	// tpcalib_ioctl(&sc->sc_tpcalib, WSMOUSEIO_SCALIBCOORDS,
+	//     (void *)&sc->sc_calibcoords, 0, 0);
+    uts_enable(sc); //seL4: moved to enable touchscreen
 	return;
 }
 
 Static int
 uts_detach(device_t self, int flags)
 {
-	printf("UTS DETACH");
 	struct uts_softc *sc = device_private(self);
 	int error;
 
 	__USE(sc);
 	DPRINTF(("uts_detach: sc=%p flags=%d\n", sc, flags));
 
-	// error = config_detach_children(self, flags);
-	if (error)
-		return error;
+	//error = config_detach_children(self, flags);
+	//if (error)
+	//	return error;
 
 	pmf_device_deregister(self);
 	return 0;
@@ -351,9 +311,7 @@ uts_activate(device_t self, enum devact act)
 Static int
 uts_enable(void *v)
 {
-	printf("\nuts enable");
 	struct uts_softc *sc = v;
-	int error = 0;
 
 	DPRINTFN(1,("uts_enable: sc=%p\n", sc));
 
@@ -366,13 +324,7 @@ uts_enable(void *v)
 	sc->sc_enabled = 1;
 	sc->sc_buttons = 0;
 
-	if (!sc->sc_alwayson) {
-		error = uhidev_open(sc->sc_hdev, intr_ptrs->ums, sc);
-		if (error)
-			sc->sc_enabled = 0;
-	}
-
-	return error;
+	return uhidev_open(sc->sc_hdev, intr_ptrs->uts, sc);
 }
 
 Static void
@@ -395,7 +347,7 @@ uts_disable(void *v)
 Static int
 uts_ioctl(void *v, u_long cmd, void *data, int flag, struct lwp *l)
 {
-	// struct uts_softc *sc = v;
+	struct uts_softc *sc = v;
 
 	// switch (cmd) {
 	// case WSMOUSEIO_GTYPE:
@@ -409,14 +361,13 @@ uts_ioctl(void *v, u_long cmd, void *data, int flag, struct lwp *l)
 	// 	return tpcalib_ioctl(&sc->sc_tpcalib, cmd, data, flag, l);
 	// }
 
-	// return EPASSTHROUGH;
-	// return 0;
+	return EPASSTHROUGH;
 }
 
-//Static void
-void uts_intr(void *cookie, void *ibuf, u_int len)
+//Static 
+void
+uts_intr(void *cookie, void *ibuf, u_int len)
 {
-	printf("\nuts_intr");
 	struct uts_softc *sc = cookie;
 	int dx, dy, dz;
 	uint32_t buttons = 0;
@@ -443,11 +394,11 @@ void uts_intr(void *cookie, void *ibuf, u_int len)
 		printf("uts_intr: x:%d y:%d z:%d buttons:%#x\n",
 		    dx, dy, dz, buttons);
 		sc->sc_buttons = buttons;
-		if (sc->sc_wsmousedev != NULL) {
+		// if (sc->sc_wsmousedev != NULL) {
 		// 	s = spltty();
 		// 	wsmouse_input(sc->sc_wsmousedev, buttons, dx, dy, dz, 0,
 		// 	    flags);
 		// 	splx(s);
-		}
+		// }
 	}
 }

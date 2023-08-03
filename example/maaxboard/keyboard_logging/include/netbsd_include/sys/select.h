@@ -38,6 +38,8 @@
 #include <sys/featuretest.h>
 #include <sys/fd_set.h>
 
+void	selnotify(struct selinfo *, int, long);
+
 #ifdef _KERNEL
 #include <sys/selinfo.h>		/* for struct selinfo */
 #include <sys/signal.h>			/* for sigset_t */

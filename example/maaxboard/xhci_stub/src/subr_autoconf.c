@@ -1264,7 +1264,7 @@ config_found(device_t parent, void *aux, cfprint_t print,
 	if (cf != NULL) {
 		return config_attach_internal(parent, cf, aux, print, args);
 	}
-	printf("didn't find a match\n");
+	//printf("didn't find a match\n");
 	if (print) {
 		if (config_do_twiddle && cold)
 			printf("(not) twiddling\n");

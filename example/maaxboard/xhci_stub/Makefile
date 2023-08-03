@@ -28,7 +28,7 @@ LD := $(TOOLCHAIN)-ld
 AS := $(TOOLCHAIN)-as
 SEL4CP_TOOL ?= $(SEL4CP_SDK)/bin/sel4cp
 
-NETBSD_SRC			:=  dev_verbose.o subr_device.o subr_autoconf.o usbdi_util.o usbdi.o usbroothub.o sel4_bus_funcs.o dma.o usb.o usb_quirks.o usb_subr.o xhci.o usb_mem.o uhub.o hid.o uhidev.o ukbd.o ums.o uts.o hidms.o hidkbdmap.o ioconf.o tpcalib.o uhid.o umass.o umass_quirks.o
+NETBSD_SRC			:=  dev_verbose.o subr_device.o subr_autoconf.o usbdi_util.o usbdi.o usbroothub.o sel4_bus_funcs.o dma.o usb.o usb_quirks.o usb_subr.o xhci.o usb_mem.o tty_subr.o kern_event.o sys_select.o uhub.o hid.o uhidev.o ukbd.o ums.o uts.o hidms.o hidkbdmap.o ioconf.o tpcalib.o uhid.o umass.o umass_quirks.o
 UTILS				:= 	tinyalloc.o printf.o util.o timer.o
 
 XHCI_STUB_OBJS 		:=  xhci_stub.o $(NETBSD_SRC) imx8mq_usbphy.o dwc3_fdt.o shared_ringbuffer.o $(UTILS)

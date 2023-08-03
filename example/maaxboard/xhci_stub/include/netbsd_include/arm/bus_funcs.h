@@ -240,18 +240,18 @@
  */
 #define	bus_space_write_1(t, h, o, v) ({\
 	uint32_t *_GET_ADDR;												\
-	_GET_ADDR = (uint32_t*)(h + o);									\
-	(*(volatile uint8_t *)(_GET_ADDR) = (v));			\
+	_GET_ADDR = (uint32_t*)(h + o);										\
+	(*(volatile uint8_t *)(_GET_ADDR) = (v));							\
 })
 #define	bus_space_write_2(t, h, o, v)	({\
 	uint32_t *_GET_ADDR;												\
-	_GET_ADDR = (uint32_t*)(h + o);									\
-	(*(volatile uint16_t *)(_GET_ADDR) = (v));			\
+	_GET_ADDR = (uint32_t*)(h + o);										\
+	(*(volatile uint16_t *)(_GET_ADDR) = (v));							\
 })
 #define	bus_space_write_4(t, h, o, v)	({\
 	uint32_t *_GET_ADDR;												\
-	_GET_ADDR = (uint32_t*)(h + o);									\
-	(*(volatile uint32_t *)(_GET_ADDR) = (v));			\
+	_GET_ADDR = (uint32_t*)(h + o);										\
+	(*(volatile uint32_t *)(_GET_ADDR) = (v));							\
 })
 #ifdef __HAVE_BUS_SPACE_8
 #define	bus_space_write_8(t, h, o, v)	__bs_ws(8,(t),(h),(o),(v))

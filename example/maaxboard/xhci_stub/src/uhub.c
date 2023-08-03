@@ -209,6 +209,9 @@ int uhub_ubermatch = 0;
 static usbd_status
 usbd_get_hub_desc(struct usbd_device *dev, usb_hub_descriptor_t *hd, int speed)
 {
+
+	printf("\nusbd_get_hub_desc called\n");
+
 	usb_device_request_t req;
 	usbd_status err;
 	int nports;
@@ -226,12 +229,13 @@ usbd_get_hub_desc(struct usbd_device *dev, usb_hub_descriptor_t *hd, int speed)
 		USETW2(req.wValue, UDESC_SS_HUB, 0);
 		USETW(req.wIndex, 0);
 		USETW(req.wLength, USB_HUB_SS_DESCRIPTOR_SIZE);
-		DPRINTFN(1, "getting sshub descriptor", 0, 0, 0, 0);
+		//DPRINTFN(1, "getting sshub descriptor", 0, 0, 0, 0);
+		printf("\ngetting sshub descriptor");
 		err = usbd_do_request(dev, &req, hssd);
 		nports = hssd->bNbrPorts;
 		if (dev->ud_depth != 0 && nports > UHD_SS_NPORTS_MAX) {
-			DPRINTF("num of ports %jd exceeds maxports %jd",
-			    nports, UHD_SS_NPORTS_MAX, 0, 0);
+			printf("\nnum of ports %jd exceeds maxports %jd",
+			    nports, UHD_SS_NPORTS_MAX);
 			nports = hd->bNbrPorts = UHD_SS_NPORTS_MAX;
 		}
 		rmvlen = (nports + 7) / 8;
@@ -250,7 +254,7 @@ usbd_get_hub_desc(struct usbd_device *dev, usb_hub_descriptor_t *hd, int speed)
 		USETW2(req.wValue, UDESC_HUB, 0);
 		USETW(req.wIndex, 0);
 		USETW(req.wLength, USB_HUB_DESCRIPTOR_SIZE);
-		DPRINTFN(1, "getting hub descriptor", 0, 0, 0, 0);
+		printf("\ngetting hub descriptor");
 		err = usbd_do_request(dev, &req, hd);
 		nports = hd->bNbrPorts;
 		if (!err && nports > 7) {
@@ -303,7 +307,7 @@ uhub_match(device_t parent, cfdata_t match, void *aux)
 void
 uhub_attach(device_t parent, device_t self, void *aux)
 {
-	printf("uhub_attach called!\n");
+	printf("\nuhub_attach called!\n");
 	struct uhub_softc *sc = device_private(self);
 	struct usb_attach_arg *uaa = aux;
 	struct usbd_device *dev = uaa->uaa_device;
@@ -498,13 +502,14 @@ uhub_attach(device_t parent, device_t self, void *aux)
 	printf("trying to power ports\n");
 	//TODO: error is in this loop
 	for (port = 1; port <= nports; port++) {
+		printf("in error loop\n");
 		/* Turn the power on. */
 		err = usbd_set_port_feature(dev, port, UHF_PORT_POWER);
 		if (err)
-			aprint_error_dev(self, "port %d power on failed, %s\n",
+			printf("\nport %d power on failed, %s\n",
 			    port, usbd_errstr(err));
-		DPRINTF("uhub%jd turn on port %jd power", device_unit(self),
-		    port, 0, 0);
+		printf("uhub%jd turn on port %jd power\n", device_unit(self),
+		    port);
 	}
 
 	/* Wait for stable power if we are not a root hub */

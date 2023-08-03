@@ -14,5 +14,12 @@
         "systm.h": "c",
         "*.pl": "prolog",
         "usbdi.h": "c",
+        "wsksymvar.h": "c",
+        "sel4cp.h": "c",
+        "wskbdvar.h": "c",
+        "uhidev.h": "c",
+        "usbhid.h": "c",
+        "usb.h": "c",
+        "vnode.h": "c"
     }
 }

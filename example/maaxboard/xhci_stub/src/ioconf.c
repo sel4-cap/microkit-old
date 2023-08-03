@@ -2806,22 +2806,22 @@ struct cfdata cfdata[] = {
 //     { "ugenif",		"ugenif",	 0, STAR, loc+378,      0, &pspec55 },
 /*213: uhidev* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
     { "uhidev",		"uhidev",	 0, STAR, loc+384,      0, &pspec55 },
-// /*214: uhid* at uhidev? reportid -1 */
+/*214: uhid* at uhidev? reportid -1 */
     { "uhid",		"uhid",		 0, STAR, loc+549,      0, &pspec56 },
 /*215: ukbd* at uhidev? reportid -1 */
     { "ukbd",		"ukbd",		 0, STAR, loc+550,      0, &pspec56 },
 /*216: ums* at uhidev? reportid -1 */
     { "ums",		"ums",		 0, STAR, loc+551,      0, &pspec56 },
-// /*217: uts* at uhidev? reportid -1 */
-    /* { "uts",		"uts",		 0, STAR, loc+552,      0, &pspec56 }, */
+/*217: uts* at uhidev? reportid -1 */
+     { "uts",		"uts",		 0, STAR, loc+552,      0, &pspec56 }, 
 // /*218: uep* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "uep",		"uep",		 0, STAR, loc+414,      0, &pspec54 },
 // /*219: ucycom* at uhidev? reportid -1 */
 //     { "ucycom",		"ucycom",	 0, STAR, loc+553,      0, &pspec56 },
 // /*220: ulpt* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "ulpt",		"ulpt",		 0, STAR, loc+426,      0, &pspec55 },
-// /*221: umass* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
-//     { "umass",		"umass",	 0, STAR, loc+432,      0, &pspec55 },
+/*221: umass* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
+    { "umass",		"umass",	 0, STAR, loc+432,      0, &pspec55 },
 // /*222: uirda* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "uirda",		"uirda",	 0, STAR, loc+438,      0, &pspec55 },
 // /*223: stuirda* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
@@ -3654,9 +3654,9 @@ static struct cfattach * const ukbd_cfattachinit[] = {
 static struct cfattach * const ums_cfattachinit[] = {
 	&ums_ca, NULL
 };
-/* static struct cfattach * const uts_cfattachinit[] = { */
-/* 	&uts_ca, NULL */
-/* }; */
+static struct cfattach * const uts_cfattachinit[] = {
+	&uts_ca, NULL
+}; 
 // static struct cfattach * const uep_cfattachinit[] = {
 // 	&uep_ca, NULL
 // };
@@ -3666,9 +3666,9 @@ static struct cfattach * const ums_cfattachinit[] = {
 // static struct cfattach * const ulpt_cfattachinit[] = {
 // 	&ulpt_ca, NULL
 // };
-// static struct cfattach * const umass_cfattachinit[] = {
-// 	&umass_ca, NULL
-// };
+static struct cfattach * const umass_cfattachinit[] = {
+	&umass_ca, NULL
+};
 // static struct cfattach * const uirda_cfattachinit[] = {
 // 	&uirda_ca, NULL
 // };
@@ -4436,11 +4436,11 @@ const struct cfattachinit cfattachinit[] = {
 	{ "uhid", uhid_cfattachinit },
 	{ "ukbd", ukbd_cfattachinit },
 	{ "ums", ums_cfattachinit },
-	/* { "uts", uts_cfattachinit }, */
+	{ "uts", uts_cfattachinit },
 	// { "uep", uep_cfattachinit },
 	// { "ucycom", ucycom_cfattachinit },
 	// { "ulpt", ulpt_cfattachinit },
-	// { "umass", umass_cfattachinit },
+	{ "umass", umass_cfattachinit },
 	// { "uirda", uirda_cfattachinit },
 	// { "stuirda", stuirda_cfattachinit },
 	// { "ustir", ustir_cfattachinit },

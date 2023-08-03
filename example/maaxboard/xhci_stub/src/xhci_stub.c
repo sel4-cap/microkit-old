@@ -182,6 +182,7 @@ init(void) {
     /* void *aux = aux_xhci; */
     /* ukbd_attach(self, parent, aux); */
     //printf("ready for keyboard press\n");
+    printf("\nready");
 }
 
 

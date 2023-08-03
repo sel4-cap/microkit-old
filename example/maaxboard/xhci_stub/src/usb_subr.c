@@ -1252,8 +1252,8 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 		device_t self = kmem_alloc(sizeof(device_t), 0);
 		dv = self;
 
-		printf("ignoring uhidev attach\n");
-		// uhidev_attach(parent, self, &uiaa); //TODO: SEL4 hardcoded - generalise
+		//printf("ignoring uhidev attach\n");
+		 uhidev_attach(parent, self, &uiaa); //TODO: SEL4 hardcoded - generalise
 
 		usbd_properties(dv, dev);
 

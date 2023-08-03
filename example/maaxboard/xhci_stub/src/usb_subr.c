@@ -1055,32 +1055,32 @@ usbd_getnewaddr(struct usbd_bus *bus)
 usbd_status
 usbd_attach_roothub(device_t parent, struct usbd_device *dev)
 {
-	struct usb_attach_arg *uaa = kmem_alloc(sizeof(struct usb_attach_arg), 0);
+	struct usb_attach_arg uaa;
 	usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	device_t dv;
 
 	printf("doing attach roothub\n");
 
-	uaa->uaa_device = dev;
-	uaa->uaa_usegeneric = 0;
-	uaa->uaa_port = 0;
-	uaa->uaa_vendor = UGETW(dd->idVendor);
-	uaa->uaa_product = UGETW(dd->idProduct);
-	uaa->uaa_release = UGETW(dd->bcdDevice);
-	uaa->uaa_class = dd->bDeviceClass;
-	uaa->uaa_subclass = dd->bDeviceSubClass;
-	uaa->uaa_proto = dd->bDeviceProtocol;
+	uaa.uaa_device = dev;
+	uaa.uaa_usegeneric = 0;
+	uaa.uaa_port = 0;
+	uaa.uaa_vendor = UGETW(dd->idVendor);
+	uaa.uaa_product = UGETW(dd->idProduct);
+	uaa.uaa_release = UGETW(dd->bcdDevice);
+	uaa.uaa_class = dd->bDeviceClass;
+	uaa.uaa_subclass = dd->bDeviceSubClass;
+	uaa.uaa_proto = dd->bDeviceProtocol;
 
 	KERNEL_LOCK(1, curlwp);
-	// dv = config_found(parent, &uaa, NULL,
-	//     CFARGS(.iattr = "usbroothubif"));
-	struct uhub_softc *uhub_sc = kmem_alloc(sizeof(struct uhub_softc), 0);
-	device_t self = kmem_alloc(sizeof(device_t), 0);
-	self->dv_private = uhub_sc;
-	dv = self;
-	uhub_sc->sc_hub = kmem_alloc(sizeof(struct usbd_device),0);
-	uhub_sc->sc_ipipe = kmem_alloc(sizeof(struct usbd_pipe),0);
-	uhub_attach(parent, self, uaa);
+	dv = config_found(parent, &uaa, NULL,
+	    CFARGS(.iattr = "usbroothubif"));
+	// struct uhub_softc *uhub_sc = kmem_alloc(sizeof(struct uhub_softc), 0);
+	// device_t self = kmem_alloc(sizeof(device_t), 0);
+	// self->dv_private = uhub_sc;
+	// dv = self;
+	// uhub_sc->sc_hub = kmem_alloc(sizeof(struct usbd_device),0);
+	// uhub_sc->sc_ipipe = kmem_alloc(sizeof(struct usbd_pipe),0);
+	// uhub_attach(parent, self, uaa);
 	KERNEL_UNLOCK_ONE(curlwp);
 	if (dv) {
 		dev->ud_subdevs = kmem_alloc(sizeof(dv), KM_SLEEP);

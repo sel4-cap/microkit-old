@@ -138,11 +138,7 @@ uts_match(device_t parent, cfdata_t match, void *aux)
 void
 uts_attach(device_t parent, device_t self, void *aux)
 {
-
-	printf("\nIn touch screen\n");
-
 	struct uts_softc *sc = device_private(self);
-	//struct uts_softc *sc = kmem_alloc(sizeof(struct uts_softc), 0)
 	struct uhidev_attach_arg *uha = aux;
 	struct wsmousedev_attach_args a;
 	int size, error;
@@ -157,16 +153,11 @@ uts_attach(device_t parent, device_t self, void *aux)
 	sc->sc_hdev = uha->parent;
 
 	sc->sc_alwayson = true;
-	//printf("\n1");
 
 	uhidev_get_report_desc(uha->parent, &desc, &size);
 
-	//printf("\n2");
-
 	if (!pmf_device_register(self, NULL, NULL))
 		aprint_error_dev(self, "couldn't establish power handler\n");
-
-	//printf("\n6");
 
 	/* requires HID usage Generic_Desktop:X */
 	if (!hid_locate(desc, size, HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_X),
@@ -175,8 +166,6 @@ uts_attach(device_t parent, device_t self, void *aux)
 		    "touchscreen has no X report\n");
 		return;
 	}
-
-	//printf("\n3");
 
 	switch (flags & TSCREEN_FLAGS_MASK) {
 	case 0:
@@ -190,8 +179,6 @@ uts_attach(device_t parent, device_t self, void *aux)
 		return;
 	}
 
-	//printf("\n4");
-
 	/* requires HID usage Generic_Desktop:Y */
 	if (!hid_locate(desc, size, HID_USAGE2(HUP_GENERIC_DESKTOP, HUG_Y),
 		uha->reportid, hid_input, &sc->sc_loc_y, &flags)) {
@@ -199,8 +186,6 @@ uts_attach(device_t parent, device_t self, void *aux)
 		    "touchscreen has no Y report\n");
 		return;
 	}
-
-	//printf("\n5");
 
 	switch (flags & TSCREEN_FLAGS_MASK) {
 	case 0:
@@ -222,13 +207,10 @@ uts_attach(device_t parent, device_t self, void *aux)
 		return;
 	}
 
-	//printf("\n1");
-
 	/* requires HID usage Digitizer:In_Range */
 	if (!hid_locate(desc, size, HID_USAGE2(HUP_DIGITIZERS, HUD_IN_RANGE),
 		uha->reportid, hid_input, &sc->sc_loc_z, &flags)) {
 		if (uha->uiaa->uiaa_vendor == USB_VENDOR_ELAN) {
-			//printf("\nX");
 			/*
 			 * XXX
 			 * ELAN touchscreens error out here but still return
@@ -237,13 +219,11 @@ uts_attach(device_t parent, device_t self, void *aux)
 			aprint_debug_dev(sc->sc_dev,
 			    "ELAN touchscreen found, working around bug.\n");
 		} else {
-			//printf("ts exit?");
 			aprint_error_dev(sc->sc_dev,
 			    "touchscreen has no range report\n");
-			//return;
+			//return; SEL4: avoiding return as some touch screens don't need z
 		}
 	}
-	//printf("\n2");
 
 	/* multi-touch support would need HUD_CONTACTID and HUD_CONTACTMAX */
 
@@ -257,7 +237,6 @@ uts_attach(device_t parent, device_t self, void *aux)
 		sc->sc_loc_z.pos, sc->sc_loc_z.size));
 #endif
 
-	//printf("\n3");
 
 	//uhid_attach(parent, self, d );
 	uts_enable(sc); //SEL4: moved out to enble mouse
@@ -290,12 +269,10 @@ uts_attach(device_t parent, device_t self, void *aux)
 		}
 		hid_end_parse(d);
 	}
-	//printf("\n4");
 	//tpcalib_init(&sc->sc_tpcalib);
 	//tpcalib_ioctl(&sc->sc_tpcalib, WSMOUSEIO_SCALIBCOORDS,
 	//    (void *)&sc->sc_calibcoords, 0, 0);
 	if (sc->sc_alwayson) {
-		printf("\nalways on");
 		error = uhidev_open(sc->sc_hdev, intr_ptrs->uts, sc);
 		if (error != 0) {
 			aprint_error_dev(self,
@@ -303,14 +280,12 @@ uts_attach(device_t parent, device_t self, void *aux)
 			sc->sc_alwayson = false;
 		}
 	}
-	printf("\nready for touchy touch\n");
 	return;
 }
 
 Static int
 uts_detach(device_t self, int flags)
 {
-	printf("UTS DETACH");
 	struct uts_softc *sc = device_private(self);
 	int error;
 
@@ -351,7 +326,6 @@ uts_activate(device_t self, enum devact act)
 Static int
 uts_enable(void *v)
 {
-	printf("\nuts enable");
 	struct uts_softc *sc = v;
 	int error = 0;
 
@@ -416,7 +390,6 @@ uts_ioctl(void *v, u_long cmd, void *data, int flag, struct lwp *l)
 //Static void
 void uts_intr(void *cookie, void *ibuf, u_int len)
 {
-	printf("\nuts_intr");
 	struct uts_softc *sc = cookie;
 	int dx, dy, dz;
 	uint32_t buttons = 0;
@@ -440,7 +413,7 @@ void uts_intr(void *cookie, void *ibuf, u_int len)
 		buttons |= 1;
 
 	if (dx != 0 || dy != 0 || dz != 0 || buttons != sc->sc_buttons) {
-		printf("uts_intr: x:%d y:%d z:%d buttons:%#x\n",
+		aprint_debug("uts_intr: x:%d y:%d z:%d buttons:%#x\n",
 		    dx, dy, dz, buttons);
 		sc->sc_buttons = buttons;
 		if (sc->sc_wsmousedev != NULL) {

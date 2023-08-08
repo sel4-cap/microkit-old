@@ -174,7 +174,6 @@ uhid_match(device_t parent, cfdata_t match, void *aux)
 void
 uhid_attach(device_t parent, device_t self, void *aux)
 {
-	printf("doing uhid attach (idk why)\n");
 	struct uhid_softc *sc = kmem_zalloc(sizeof(struct uhid_softc), 0);
 	struct uhidev_attach_arg *uha = aux;
 	int size, repid;
@@ -238,7 +237,6 @@ uhid_detach(device_t self, int flags)
 void
 uhid_intr(void *cookie, void *data, u_int len)
 {
-	printf("\nuhid_intr");
 	struct uhid_softc *sc = cookie;
 
 #ifdef UHID_DEBUG

@@ -5,7 +5,7 @@
 
 uintptr_t heap_base;
 uint64_t heap_size = 0x2000000;
-int ta_blocks = 256;
+int ta_blocks = 512;
 int ta_thresh = 16;
 int ta_align = 64;
 uintptr_t ta_limit;
@@ -13,10 +13,9 @@ uintptr_t ta_limit;
 void
 init(void) {
     ta_limit = heap_base + heap_size;
-    printf("stack from %p to %p\n", heap_base, ta_limit);
+    printf("INFO: heap from %p to %p\n", heap_base, ta_limit);
     bool error = ta_init((void*)heap_base, (void*)ta_limit, ta_blocks, ta_thresh, ta_align);
-    printf("Init malloc: %d\n", error);
-    printf("mem_allocator up and running\n");
+    printf("PD Mem_handler init OK\n");
 }
 
 

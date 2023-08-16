@@ -22,6 +22,13 @@
     - Includes (incredibly) basic prototype: will output basic characters, no use of shift or ctrl (but the presses are actually registered).
 - Can send keypresses to separate PD using notifications and shared memory address
     - Other PD handles shift but not altgr
+- Mouse driver now included
+    - Buttons and direction
+- Touch screen driver now included
+    - Our device has no z input but should work for those devices that do
+- Autoconf to enable switching between devices (attempts to match and attaches to best match) - as opposed to harcoding for specific devices
+- USB Hub support in progress (mostly done but requires testing)
+- Mass storage support in progress (built but requires testing)
 
 ## TODO:
 - Neaten up code sooner rather than later
@@ -31,8 +38,8 @@
 - Setup condition variables
 - More devices:
     - Mass storage
-    - Touchscreen
-    - Root hub that isn't the pseudo device
+    - Touchscreen (Done)
+    - Root hub that isn't the pseudo device (in progress)
 - Simultaneous devices (scary!)
 
 ## Bugs/strange things/important changelog
@@ -49,6 +56,7 @@
     - Makes use of ioconf.c which is generated on build of netbsd - hardware (board) specific to a degree
     - Devices are uncommented as and when needed to reduce searching overhead
 - Hot plugging not 
+- RepID issue with touch screen - so prevented from becoming 0 (and crashing)
 
 ## Currently supported autoconf devices
 
@@ -56,11 +64,12 @@
 | --- | --- | --- |
 | USB | usb | General usb functions |
 | Roothub | uroothub | Enables root hub capabilities |
-| Roothub | uhub    | Identical to uroothub (not sure the difference?)
-| Human interface device | uhidev | General parent for any HIDs (keyboard, mouse, etc)
+| USB Hub | uhub    | Physical USB Hub |
+| Human interface device | uhidev | General parent for any HIDs (keyboard, mouse, etc) |
 | Keyboard | ukbd | Keyboard driver |
 | Mouse    | ums  | Mouse driver |
-| Touchscreen | uts | Touch screen driver (TENTATIVE: should work but not tested)
+| Touchscreen | uts | Touch screen driver |
+In Progress - umass, umass_scsipi (mass storage, scsi/atapi)
 
 To be updated as and when
 

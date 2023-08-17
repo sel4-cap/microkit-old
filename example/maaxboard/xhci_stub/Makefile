@@ -43,7 +43,7 @@ SIMULATED_KBD_OBJS	:=  simulated_kbd.o printf.o tinyalloc.o
 BOARD_DIR := $(SEL4CP_SDK)/board/$(SEL4CP_BOARD)/$(SEL4CP_CONFIG)
 
 IMAGES := xhci_stub.elf hardware.elf pipe_handler.elf software.elf mem_handler.elf kbd_logger.elf simulated_kbd.elf
-INC := $(BOARD_DIR)/include include/tinyalloc include/wrapper include/netbsd_include include/bus include/dma include/printf include/timer
+INC := $(BOARD_DIR)/include include/tinyalloc include/wrapper include/netbsd/src/sys include/bus include/dma include/printf include/timer
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 WARNINGS := -Wall -Wno-comment -Wno-return-type -Wno-unused-function -Wno-unused-value -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-label -Wno-pointer-sign
 CFLAGS := -mcpu=$(CPU) -mstrict-align -ffreestanding -g3 -O3 $(WARNINGS) $(INC_PARAMS) -I$(BOARD_DIR)/include -DSEL4  -DSEL4_USB_DEBUG
@@ -57,6 +57,82 @@ all: $(IMAGE_FILE)
 
 $(BUILD_DIR)/%.o: src/%.c Makefile
 	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/%.o: cap/%.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/usb.o: netbsd/src/sys/dev/usb/usb.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/usbdi.o: netbsd/src/sys/dev/usb/usbdi.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/usbdi_util.o: netbsd/src/sys/dev/usb/usbdi_util.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/usb_mem.o: netbsd/src/sys/dev/usb/usb_mem.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/usb_quirks.o: netbsd/src/sys/dev/usb/usb_quirks.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/usb_subr.o: netbsd/src/sys/dev/usb/usb_subr.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/usbroothub.o: netbsd/src/sys/dev/usb/usbroothub.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/uts.o: netbsd/src/sys/dev/usb/uts.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/uhid.o: netbsd/src/sys/dev/usb/uhid.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/uhidev.o: netbsd/src/sys/dev/usb/uhidev.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/uhub.o: netbsd/src/sys/dev/usb/uhub.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/ukbd.o: netbsd/src/sys/dev/usb/ukbd.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/ums.o: netbsd/src/sys/dev/usb/ums.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/xhci.o: netbsd/src/sys/dev/usb/xhci.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/subr_autoconf.o: netbsd/src/sys/kern/subr_autoconf.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/subr_device.o: netbsd/src/sys/kern/subr_device.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/kern_pmf.o: netbsd/src/sys/kern/kern_pmf.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/hid.o: netbsd/src/sys/dev/hid/hid.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/hidkbdmap.o: netbsd/src/sys/dev/hid/hidkbdmap.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/hidms.o: netbsd/src/sys/dev/hid/hidms.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/dev_verbose.o: netbsd/src/sys/dev/dev_verbose.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/dwc3_fdt.o: netbsd/src/sys/dev/fdt/dwc3_fdt.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/imx8mq_usbphy.o: netbsd/src/sys/arch/arm/nxp/imx8mq_usbphy.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/tpcalib.o: netbsd/src/sys/dev/wscons/tpcalib.c Makefile
+	$(CC) -c $(CFLAGS) $< -o $@
+
 	
 $(BUILD_DIR)/%.o: %.s Makefile
 	$(AS) -g3 -mcpu=$(CPU) $< -o $@

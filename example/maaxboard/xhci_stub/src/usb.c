@@ -1185,6 +1185,7 @@ usbkqfilter(dev_t dev, struct knote *kn)
 void
 usb_discover(struct usb_softc *sc)
 {
+	printf("usb discover\n");
 	struct usbd_bus *bus = sc->sc_bus;
 
 	USBHIST_FUNC(); USBHIST_CALLED(usbdebug);
@@ -1203,8 +1204,10 @@ usb_discover(struct usb_softc *sc)
 	 * Also, we now have bus->ub_lock held, and in combination
 	 * with ub_exploring, avoids interferring with polling.
 	 */
+	printf("does not early return\n");
 	SDT_PROBE1(usb, kernel, bus, discover__start,  bus);
 	while (bus->ub_needsexplore && !sc->sc_dying) {
+		printf("...........................................................In while loop\n");
 		bus->ub_needsexplore = 0;
 		mutex_exit(sc->sc_bus->ub_lock);
 		SDT_PROBE1(usb, kernel, bus, explore__start,  bus);
@@ -1212,6 +1215,7 @@ usb_discover(struct usb_softc *sc)
 		SDT_PROBE1(usb, kernel, bus, explore__done,  bus);
 		mutex_enter(bus->ub_lock);
 	}
+	printf("out of while loop\n");
 	SDT_PROBE1(usb, kernel, bus, discover__done,  bus);
 }
 

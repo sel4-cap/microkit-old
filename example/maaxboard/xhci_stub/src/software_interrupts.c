@@ -105,11 +105,13 @@ void
 notified(sel4cp_channel ch) {
     switch (ch) {
         case 7:
+            printf("software interrupt\n");
             if (glob_xhci_sc != NULL) {
                 xhci_softintr(&glob_xhci_sc->sc_bus);
             } else {
                 printf("FATAL: softintr sc not defined");
             }
+            printf("end of notified software interrupt\n");
             break;
     }
 }

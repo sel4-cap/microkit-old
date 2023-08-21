@@ -21,6 +21,9 @@ endif
 
 TOOLCHAIN := aarch64-none-elf
 
+NETBSD_DIR := /home/jfelmeden/cp/sel4cp/example/maaxboard/xhci_stub/netbsd
+# ddd: ${NETBSD_DIR}/src/sys/machine
+
 CPU := cortex-a53
 
 CC := $(TOOLCHAIN)-gcc
@@ -43,7 +46,7 @@ SIMULATED_KBD_OBJS	:=  simulated_kbd.o printf.o tinyalloc.o
 BOARD_DIR := $(SEL4CP_SDK)/board/$(SEL4CP_BOARD)/$(SEL4CP_CONFIG)
 
 IMAGES := xhci_stub.elf hardware.elf pipe_handler.elf software.elf mem_handler.elf kbd_logger.elf simulated_kbd.elf
-INC := $(BOARD_DIR)/include include/tinyalloc include/wrapper netbsd/src/sys include/bus include/dma include/printf include/timer src/
+INC := $(BOARD_DIR)/include include/tinyalloc include/wrapper netbsd/src/sys netbsd/src/mach_include include/bus include/dma include/printf include/timer src/
 INC_PARAMS=$(foreach d, $(INC), -I$d)
 WARNINGS := -Wall -Wno-comment -Wno-return-type -Wno-unused-function -Wno-unused-value -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-label -Wno-pointer-sign
 CFLAGS := -mcpu=$(CPU) -mstrict-align -ffreestanding -g3 -O3 $(WARNINGS) $(INC_PARAMS) -I$(BOARD_DIR)/include -DSEL4 -DSEL4_USB_DEBUG
@@ -53,7 +56,15 @@ LIBS := -lsel4cp -Tsel4cp.ld
 IMAGE_FILE = $(BUILD_DIR)/loader.img
 REPORT_FILE = $(BUILD_DIR)/report.txt
 
+all: includes
+
 all: $(IMAGE_FILE)
+
+includes:
+	@mkdir -p ${NETBSD_DIR}/src/mach_include/machine
+	@ln -fs ${NETBSD_DIR}/src/sys/arch/evbarm/include/* netbsd/src/mach_include/machine/
+	@mkdir -p ${NETBSD_DIR}/src/mach_include/arm
+	@ln -fs ${NETBSD_DIR}/src/sys/arch/arm/include/* netbsd/src/mach_include/arm/
 
 $(BUILD_DIR)/%.o: src/%.c Makefile
 	$(CC) -c $(CFLAGS) $< -o $@

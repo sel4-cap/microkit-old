@@ -1,7 +1,7 @@
 #include <sel4cp.h>
 #include <printf.h>
 
-#include <evbarm/bus_funcs.h>
+#include <machine/bus_funcs.h>
 
 #include <dev/usb/xhcivar.h>
 
@@ -26,7 +26,7 @@
 #include <dev/usb/xhcireg.h>
 #include <dev/usb/xhcivar.h>
 #include <sys/device.h>
-#include <evbarm/types.h>
+#include <machine/types.h>
 #include <sel4_bus_funcs.h>
 
 #include <lib/libkern/libkern.h>

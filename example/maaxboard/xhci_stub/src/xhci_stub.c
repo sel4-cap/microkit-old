@@ -178,6 +178,9 @@ init(void) {
     // int response  = bus_space_read_4(0, 0x38200020, 4);
     // printf("Attempted bus_space_read_4: %08x\n", response);
 	usb_sc->sc_bus->ub_needsexplore = 1;
+    printf("delaying\n");
+    ms_delay(3000);
+    printf("waited 3 secs\n");
     usb_discover(usb_sc);
     printf("\nready\n");
 }

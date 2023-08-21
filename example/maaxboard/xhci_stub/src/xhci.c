@@ -2659,6 +2659,7 @@ static void
 xhci_handle_event(struct xhci_softc * const sc,
     const struct xhci_trb * const trb)
 {
+	printf("xhci handle event\n");
 	uint64_t trb_0;
 	uint32_t trb_2, trb_3;
 
@@ -2719,8 +2720,10 @@ xhci_softintr(void *v)
 	j = er->xr_cs;
 
 	XHCIHIST_CALLARGS("er: xr_ep %jd xr_cs %jd", i, j, 0, 0);
+	printf("er: xr_ep %jd xr_cs %jd\n", i, j);
 
 	while (1) {
+		printf("In while loop\n");
 		usb_syncmem(&er->xr_dma, XHCI_TRB_SIZE * i, XHCI_TRB_SIZE,
 		    BUS_DMASYNC_POSTREAD);
 		trb = &er->xr_trb[i];

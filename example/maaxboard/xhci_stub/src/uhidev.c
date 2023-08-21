@@ -170,6 +170,7 @@ uhidev_match(device_t parent, cfdata_t match, void *aux)
 void
 uhidev_attach(device_t parent, device_t self, void *aux)
 {
+	printf("uhidev attach\n");
 	struct uhidev_softc *sc = kmem_alloc(sizeof(struct uhidev_softc), 0);
 	struct usbif_attach_arg *uiaa = aux;
 	struct usbd_interface *iface = uiaa->uiaa_iface;
@@ -420,7 +421,7 @@ uhidev_attach(device_t parent, device_t self, void *aux)
 			dev = config_found(self, &uha, uhidevprint,
 			    CFARGS(.submatch = config_stdsubmatch,
 				   .locators = locs));
-			sc->sc_subdevs[repid].sc_dev = self;
+			sc->sc_subdevs[repid].sc_dev = dev; //changed from self - supposed to be dev
 			if (dev == NULL)
 				continue;
 			/*
@@ -567,7 +568,7 @@ uhidev_intr(struct usbd_xfer *xfer, void *addr, usbd_status status)
 	}
 
 	p = sc->sc_ibuf;
-	//printf("\nnrepID: %d\n", sc->sc_nrepid);
+	printf("\nnrepID: %d\n", sc->sc_nrepid);
 	if (sc->sc_nrepid != 1) {
 		rep = *p++, cc--;
 		if (rep == 0) {

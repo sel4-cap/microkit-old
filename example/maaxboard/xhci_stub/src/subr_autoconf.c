@@ -355,6 +355,7 @@ frob_cfattachvec(const struct cfattachinit *cfattachv,
 void
 config_init(void)
 {
+	printf("config init\n");
 
 	KASSERT(config_initialized == false);
 
@@ -690,6 +691,7 @@ config_cfdriver_lookup(const char *name)
 int
 config_cfattach_attach(const char *driver, struct cfattach *ca)
 {
+	printf("config attach\n");
 	struct cfattach *lca;
 	struct cfdriver *cd;
 
@@ -749,6 +751,7 @@ config_cfattach_attach(const char *driver, struct cfattach *ca)
 static struct cfattach *
 config_cfattach_lookup_cd(struct cfdriver *cd, const char *atname)
 {
+	printf("Finding devices\n");
 	struct cfattach *ca;
 
 	LIST_FOREACH(ca, &cd->cd_attach, ca_list) {

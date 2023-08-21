@@ -283,7 +283,6 @@ usbd_set_hub_depth(struct usbd_device *dev, int depth)
 static int
 uhub_match(device_t parent, cfdata_t match, void *aux)
 {
-	printf("doing a little uhub_match\n");
 	struct usb_attach_arg *uaa = aux;
 	int matchvalue;
 
@@ -588,16 +587,17 @@ uhub_explore(struct usbd_device *dev)
 	}
 
 	if (PORTSTAT_ISSET(sc, 0)) { /* hub status change */
-		usb_hub_status_t hs;
+		usb_hub_status_t *hs;
+		hs = kmem_zalloc(sizeof(*hs), 0);
 
-		err = usbd_get_hub_status(dev, &hs);
+		err = usbd_get_hub_status(dev, hs);
 		if (err) {
 			DPRINTF("uhub%jd get hub status failed, err %jd",
 			    device_unit(sc->sc_dev), err, 0, 0);
 		} else {
 			/* just acknowledge */
-			status = UGETW(hs.wHubStatus);
-			change = UGETW(hs.wHubChange);
+			status = UGETW(hs->wHubStatus);
+			change = UGETW(hs->wHubChange);
 			SDT_PROBE5(usb, hub, explore, portstat,
 			    dev, /*portno*/0, status, change, /*reattach*/0);
 			DPRINTF("uhub%jd s/c=%jx/%jx", device_unit(sc->sc_dev),

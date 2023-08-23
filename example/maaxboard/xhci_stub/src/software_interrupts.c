@@ -111,7 +111,7 @@ notified(sel4cp_channel ch) {
             } else {
                 printf("FATAL: softintr sc not defined");
             }
-            printf("end of notified software interrupt\n");
+            //printf("end of notified software interrupt\n");
             break;
     }
 }

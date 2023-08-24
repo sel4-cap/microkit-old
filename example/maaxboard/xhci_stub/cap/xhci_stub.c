@@ -163,6 +163,7 @@ init(void) {
 
     printf("Starting fdt_attach\n");
     dwc3_fdt_attach(parent_xhci,self_xhci,aux_xhci);
+    printf("finished\n");
 
     struct usb_softc *usb_sc = kmem_alloc(sizeof(struct usb_softc),0);
     struct usbd_bus *sc_bus = kmem_alloc(sizeof(struct usbd_bus),0);

@@ -65,6 +65,8 @@ includes:
 	@ln -fs ${NETBSD_DIR}/src/sys/arch/evbarm/include/* netbsd/src/mach_include/machine/
 	@mkdir -p ${NETBSD_DIR}/src/mach_include/arm
 	@ln -fs ${NETBSD_DIR}/src/sys/arch/arm/include/* netbsd/src/mach_include/arm/
+	@mkdir -p ${NETBSD_DIR}/src/mach_include/aarch64
+	@ln -fs ${NETBSD_DIR}/src/sys/arch/arm/include/* netbsd/src/mach_include/aarch64/
 
 $(BUILD_DIR)/%.o: src/%.c Makefile
 	$(CC) -c $(CFLAGS) $< -o $@

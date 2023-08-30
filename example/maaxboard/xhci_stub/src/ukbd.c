@@ -426,7 +426,6 @@ CFATTACH_DECL2_NEW(ukbd, sizeof(struct ukbd_softc), ukbd_match, ukbd_attach,
 int
 ukbd_match(device_t parent, cfdata_t match, void *aux)
 {
-	printf("we in ukbd match\n");
 	struct uhidev_attach_arg *uha = aux;
 	int size;
 	void *desc;
@@ -546,9 +545,9 @@ ukbd_attach(device_t parent, device_t self, void *aux)
 	sc->sc_attached = true;
 
     /* Set up shared memory regions */
-	printf("Allocing kbd_buffer_ring\n");
+	// printf("Allocing kbd_buffer_ring\n");
     kbd_buffer_ring = kmem_alloc(sizeof(*kbd_buffer_ring), 0);
-	printf("about to go into ring init\n");
+	// printf("about to go into ring init\n");
     ring_init(kbd_buffer_ring, (ring_buffer_t *)rx_free, (ring_buffer_t *)rx_used, NULL, 1);
 	// printf("rx_free is %p\n", rx_free);
 	// printf("free_ring is %p\n", kbd_buffer_ring->free_ring);

@@ -146,7 +146,7 @@ uts_attach(device_t parent, device_t self, void *aux)
 	struct hid_data * d;
 	struct hid_item item;
 
-	printf("uts attach, mem sc: %p\n", sc);
+	//printf("uts attach, mem sc: %p\n", sc);
 
 	sc->sc_dev = self;
 	sc->sc_hdev = uha->parent;
@@ -216,7 +216,7 @@ uts_attach(device_t parent, device_t self, void *aux)
 		} else {
 			aprint_error_dev(sc->sc_dev,
 			    "touchscreen has no range report\n");
-            printf("Touchscreen has no Z\n");
+            //printf("Touchscreen has no Z\n");
 			//return;
 		}
 	}

@@ -1059,8 +1059,6 @@ usbd_attach_roothub(device_t parent, struct usbd_device *dev)
 	usb_device_descriptor_t *dd = &dev->ud_ddesc;
 	device_t dv;
 
-	printf("doing attach roothub\n");
-
 	uaa.uaa_device = dev;
 	uaa.uaa_usegeneric = 0;
 	uaa.uaa_port = 0;
@@ -1212,7 +1210,6 @@ usbd_attachinterfaces(device_t parent, struct usbd_device *dev,
 	ilocs[USBIFIFCF_RELEASE] = uiaa.uiaa_release;
 	ilocs[USBIFIFCF_CONFIGURATION] = uiaa.uiaa_configno;
 
-	printf("attach_interfaces time\n");
 	for (i = 0; i < nifaces; i++) {
 		if (!ifaces[i]) {
 			DPRINTF("interface %jd claimed", i, 0, 0, 0);

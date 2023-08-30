@@ -502,7 +502,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 	if (err != USBD_IN_PROGRESS) {
 		USBHIST_LOG(usbdebug, "<- done xfer %#jx, sync (err %jd)",
 		    (uintptr_t)xfer, err, 0, 0);
-		//printf("<- done xfer %#jx, sync (err %jd)", (uintptr_t)xfer, err);
 		SDT_PROBE2(usb, device, xfer, done,  xfer, err);
 		return err;
 	}
@@ -1356,8 +1355,6 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
     size_t len, void *data, uint16_t flags, int *actlen, uint32_t timeout)
 {
 
-	//printf("\nusbd_do_request_len called");
-
 	struct usbd_xfer *xfer;
 	usbd_status err;
 
@@ -1408,7 +1405,6 @@ usbd_do_request_len(struct usbd_device *dev, usb_device_request_t *req,
 	if (err) {
 		USBHIST_LOG(usbdebug, "returning err = %jd", err, 0, 0, 0);
 	}
-	//printf("do request len OK\n"); 
 	return err;
 }
 

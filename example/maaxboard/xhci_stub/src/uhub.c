@@ -210,8 +210,6 @@ static usbd_status
 usbd_get_hub_desc(struct usbd_device *dev, usb_hub_descriptor_t *hd, int speed)
 {
 
-	printf("\nusbd_get_hub_desc called\n");
-
 	usb_device_request_t req;
 	usbd_status err;
 	int nports;
@@ -230,11 +228,10 @@ usbd_get_hub_desc(struct usbd_device *dev, usb_hub_descriptor_t *hd, int speed)
 		USETW(req.wIndex, 0);
 		USETW(req.wLength, USB_HUB_SS_DESCRIPTOR_SIZE);
 		//DPRINTFN(1, "getting sshub descriptor", 0, 0, 0, 0);
-		printf("\ngetting sshub descriptor");
 		err = usbd_do_request(dev, &req, hssd);
 		nports = hssd->bNbrPorts;
 		if (dev->ud_depth != 0 && nports > UHD_SS_NPORTS_MAX) {
-			printf("\nnum of ports %jd exceeds maxports %jd",
+			aprint_debug("num of ports %jd exceeds maxports %jd",
 			    nports, UHD_SS_NPORTS_MAX);
 			nports = hd->bNbrPorts = UHD_SS_NPORTS_MAX;
 		}
@@ -254,7 +251,6 @@ usbd_get_hub_desc(struct usbd_device *dev, usb_hub_descriptor_t *hd, int speed)
 		USETW2(req.wValue, UDESC_HUB, 0);
 		USETW(req.wIndex, 0);
 		USETW(req.wLength, USB_HUB_DESCRIPTOR_SIZE);
-		printf("\ngetting hub descriptor");
 		err = usbd_do_request(dev, &req, hd);
 		nports = hd->bNbrPorts;
 		if (!err && nports > 7) {
@@ -298,7 +294,6 @@ uhub_match(device_t parent, cfdata_t match, void *aux)
 	 * The subclass for hubs seems to be 0 for some and 1 for others,
 	 * so we just ignore the subclass.
 	 */
-	printf("class is %d\n", uaa->uaa_class);
 	if (uaa->uaa_class == UDCLASS_HUB)
 		return matchvalue;
 	return UMATCH_NONE;
@@ -307,7 +302,6 @@ uhub_match(device_t parent, cfdata_t match, void *aux)
 void
 uhub_attach(device_t parent, device_t self, void *aux)
 {
-	printf("\nuhub_attach called!\n");
 	struct uhub_softc *sc = device_private(self);
 	struct usb_attach_arg *uaa = aux;
 	struct usbd_device *dev = uaa->uaa_device;
@@ -432,7 +426,6 @@ uhub_attach(device_t parent, device_t self, void *aux)
 		  USBD_SHORT_XFER_OK|USBD_MPSAFE, &sc->sc_ipipe, sc,
 		  sc->sc_statusbuf, sc->sc_statuslen,
 		  intr_ptrs->uhub, USBD_DEFAULT_INTERVAL);
-	printf("after open intr\n");
 	if (err) {
 		aprint_error_dev(self, "cannot open interrupt pipe\n");
 		goto bad;
@@ -442,7 +435,6 @@ uhub_attach(device_t parent, device_t self, void *aux)
 	if (dev->ud_powersrc->up_parent != NULL)
 		usbd_delay_ms(dev, USB_POWER_DOWN_TIME);
 
-	printf("before drv intr\n");
 	usbd_add_drv_event(USB_EVENT_DRIVER_ATTACH, dev, sc->sc_dev);
 
 	/*
@@ -499,21 +491,17 @@ uhub_attach(device_t parent, device_t self, void *aux)
 
 	pwrdly = dev->ud_hub->uh_hubdesc.bPwrOn2PwrGood * UHD_PWRON_FACTOR
 	    + USB_EXTRA_POWER_UP_TIME;
-	printf("trying to power ports\n");
-	//TODO: error is in this loop
 	for (port = 1; port <= nports; port++) {
-		printf("in error loop\n");
 		/* Turn the power on. */
 		err = usbd_set_port_feature(dev, port, UHF_PORT_POWER);
 		if (err)
-			printf("\nport %d power on failed, %s\n",
+			aprint_error("\nport %d power on failed, %s\n",
 			    port, usbd_errstr(err));
-		printf("uhub%jd turn on port %jd power\n", device_unit(self),
+		aprint_debug("uhub%jd turn on port %jd power\n", device_unit(self),
 		    port);
 	}
 
 	/* Wait for stable power if we are not a root hub */
-	printf("wait for power\n");
 	if (dev->ud_powersrc->up_parent != NULL)
 		usbd_delay_ms(dev, pwrdly);
 
@@ -521,8 +509,8 @@ uhub_attach(device_t parent, device_t self, void *aux)
 	sc->sc_running = true;
 	sc->sc_first_explore = true;
 
-	if (!pmf_device_register(self, NULL, NULL))
-		aprint_error_dev(self, "couldn't establish power handler\n");
+	// if (!pmf_device_register(self, NULL, NULL))
+	// 	aprint_error_dev(self, "couldn't establish power handler\n");
 
 	return;
 
@@ -553,7 +541,6 @@ uhub_explore(struct usbd_device *dev)
 	int port;
 	int change, status, reconnect, rescan;
 
-	printf("explore called\n");
 	UHUBHIST_FUNC();
 	UHUBHIST_CALLARGS("uhub%jd dev=%#jx addr=%jd speed=%ju",
 	    device_unit(sc->sc_dev), (uintptr_t)dev, dev->ud_addr,
@@ -1018,8 +1005,9 @@ uhub_childdet(device_t self, device_t child)
 	KASSERT(KERNEL_LOCKED_P());
 
 	if (!devhub->ud_hub)
+		printf("hub not fully initialised, but child deleted?");
+		// panic("hub not fully initialised, but child deleted?");
 		/* should never happen; children are only created after init */
-		panic("hub not fully initialised, but child deleted?");
 
 	nports = devhub->ud_hub->uh_hubdesc.bNbrPorts;
 	for (port = 1; port <= nports; port++) {

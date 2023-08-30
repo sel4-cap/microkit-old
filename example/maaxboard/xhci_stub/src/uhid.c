@@ -239,7 +239,6 @@ uhid_detach(device_t self, int flags)
 void
 uhid_intr(void *cookie, void *data, u_int len)
 {
-	printf("\nuhid_intr");
 	struct uhid_softc *sc = cookie;
 
 #ifdef UHID_DEBUG

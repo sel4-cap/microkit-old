@@ -2820,8 +2820,8 @@ struct cfdata cfdata[] = {
 //     { "ucycom",		"ucycom",	 0, STAR, loc+553,      0, &pspec56 },
 // /*220: ulpt* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "ulpt",		"ulpt",		 0, STAR, loc+426,      0, &pspec55 },
-/*221: umass* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
-    { "umass",		"umass",	 0, STAR, loc+432,      0, &pspec55 },
+/*/1*221: umass* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 *1/ */
+/*    { "umass",		"umass",	 0, STAR, loc+432,      0, &pspec55 }, */
 // /*222: uirda* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "uirda",		"uirda",	 0, STAR, loc+438,      0, &pspec55 },
 // /*223: stuirda* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
@@ -4440,7 +4440,7 @@ const struct cfattachinit cfattachinit[] = {
 	// { "uep", uep_cfattachinit },
 	// { "ucycom", ucycom_cfattachinit },
 	// { "ulpt", ulpt_cfattachinit },
-	{ "umass", umass_cfattachinit },
+	/* { "umass", umass_cfattachinit }, */
 	// { "uirda", uirda_cfattachinit },
 	// { "stuirda", stuirda_cfattachinit },
 	// { "ustir", ustir_cfattachinit },

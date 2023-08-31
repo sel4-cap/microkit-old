@@ -93,7 +93,9 @@ struct uts_softc {
 
 #define TSCREEN_FLAGS_MASK (HIO_CONST|HIO_RELATIVE)
 
-//Static void	uts_intr(void *, void *, u_int);
+#ifndef SEL4
+Static void	uts_intr(void *, void *, u_int);
+#endif
 
 Static int	uts_enable(void *);
 Static void	uts_disable(void *);
@@ -106,7 +108,9 @@ Static const struct wsmouse_accessops uts_accessops = {
 };
 
 Static int	uts_match(device_t, cfdata_t, void *);
-//Static void	uts_attach(device_t, device_t, void *);
+#ifndef SEL4
+Static void	uts_attach(device_t, device_t, void *);
+#endif
 Static void	uts_childdet(device_t, device_t);
 Static int	uts_detach(device_t, int);
 Static int	uts_activate(device_t, enum devact);
@@ -116,8 +120,7 @@ Static int	uts_activate(device_t, enum devact);
 CFATTACH_DECL2_NEW(uts, sizeof(struct uts_softc), uts_match, uts_attach,
     uts_detach, uts_activate, NULL, uts_childdet);
 
-Static int
-uts_match(device_t parent, cfdata_t match, void *aux)
+Static int uts_match(device_t parent, cfdata_t match, void *aux)
 {
 	struct uhidev_attach_arg *uha = aux;
 	int size;
@@ -133,9 +136,10 @@ uts_match(device_t parent, cfdata_t match, void *aux)
 	return UMATCH_IFACECLASS;
 }
 
-//Static 
-void
-uts_attach(device_t parent, device_t self, void *aux)
+#ifndef SEL4
+Static 
+#endif
+void uts_attach(device_t parent, device_t self, void *aux)
 {
 	struct uts_softc *sc = device_private(self);
 	struct uhidev_attach_arg *uha = aux;
@@ -146,7 +150,7 @@ uts_attach(device_t parent, device_t self, void *aux)
 	struct hid_data * d;
 	struct hid_item item;
 
-	//printf("uts attach, mem sc: %p\n", sc);
+	printf("SEL4 debug: uts attach, mem sc: %p\n", sc);
 
 	sc->sc_dev = self;
 	sc->sc_hdev = uha->parent;
@@ -216,8 +220,10 @@ uts_attach(device_t parent, device_t self, void *aux)
 		} else {
 			aprint_error_dev(sc->sc_dev,
 			    "touchscreen has no range report\n");
-            //printf("Touchscreen has no Z\n");
-			//return;
+            printf("SEL4 debug: Touchscreen has no Z\n");
+			#ifndef SEL4
+			return;
+			#endif
 		}
 	}
 
@@ -233,10 +239,12 @@ uts_attach(device_t parent, device_t self, void *aux)
 		sc->sc_loc_z.pos, sc->sc_loc_z.size));
 #endif
 
-	//a.accessops = &uts_accessops;
-	//a.accesscookie = sc;
+	#ifndef SEL4
+	a.accessops = &uts_accessops;
+	a.accesscookie = sc;
 
-	//sc->sc_wsmousedev = config_found(self, &a, wsmousedevprint, CFARGS_NONE);
+	sc->sc_wsmousedev = config_found(self, &a, wsmousedevprint, CFARGS_NONE);
+	#endif
 
 	/* calibrate the touchscreen */
 	memset(&sc->sc_calibcoords, 0, sizeof(sc->sc_calibcoords));
@@ -262,8 +270,10 @@ uts_attach(device_t parent, device_t self, void *aux)
 		hid_end_parse(d);
 	}
 	tpcalib_init(&sc->sc_tpcalib);
-	// tpcalib_ioctl(&sc->sc_tpcalib, WSMOUSEIO_SCALIBCOORDS,
-	//     (void *)&sc->sc_calibcoords, 0, 0);
+	#ifndef SEL4
+	tpcalib_ioctl(&sc->sc_tpcalib, WSMOUSEIO_SCALIBCOORDS,
+	    (void *)&sc->sc_calibcoords, 0, 0);
+	#endif
     uts_enable(sc); //seL4: moved to enable touchscreen
 	return;
 }
@@ -277,9 +287,11 @@ uts_detach(device_t self, int flags)
 	__USE(sc);
 	DPRINTF(("uts_detach: sc=%p flags=%d\n", sc, flags));
 
-	//error = config_detach_children(self, flags);
-	//if (error)
-	//	return error;
+	#ifndef SEL4
+	error = config_detach_children(self, flags);
+	if (error)
+		return error;
+	#endif
 
 	pmf_device_deregister(self);
 	return 0;
@@ -349,24 +361,27 @@ uts_ioctl(void *v, u_long cmd, void *data, int flag, struct lwp *l)
 {
 	struct uts_softc *sc = v;
 
-	// switch (cmd) {
-	// case WSMOUSEIO_GTYPE:
-	// 	if (sc->flags & UTS_ABS)
-	// 		*(u_int *)data = WSMOUSE_TYPE_TPANEL;
-	// 	else
-	// 		*(u_int *)data = WSMOUSE_TYPE_USB;
-	// 	return 0;
-	// case WSMOUSEIO_SCALIBCOORDS:
-	// case WSMOUSEIO_GCALIBCOORDS:
-	// 	return tpcalib_ioctl(&sc->sc_tpcalib, cmd, data, flag, l);
-	// }
+	#ifndef SEL4
+	switch (cmd) {
+	case WSMOUSEIO_GTYPE:
+		if (sc->flags & UTS_ABS)
+			*(u_int *)data = WSMOUSE_TYPE_TPANEL;
+		else
+			*(u_int *)data = WSMOUSE_TYPE_USB;
+		return 0;
+	case WSMOUSEIO_SCALIBCOORDS:
+	case WSMOUSEIO_GCALIBCOORDS:
+		return tpcalib_ioctl(&sc->sc_tpcalib, cmd, data, flag, l);
+	}
+	#endif
 
 	return EPASSTHROUGH;
 }
 
-//Static 
-void
-uts_intr(void *cookie, void *ibuf, u_int len)
+#ifndef SEL4
+Static 
+#endif
+void uts_intr(void *cookie, void *ibuf, u_int len)
 {
 	struct uts_softc *sc = cookie;
 	int dx, dy, dz;
@@ -391,14 +406,16 @@ uts_intr(void *cookie, void *ibuf, u_int len)
 		buttons |= 1;
 
 	if (dx != 0 || dy != 0 || dz != 0 || buttons != sc->sc_buttons) {
-		printf("uts_intr: x:%d y:%d z:%d buttons:%#x\n",
+		printf("SEL4 debug: uts_intr: x:%d y:%d z:%d buttons:%#x\n",
 		    dx, dy, dz, buttons);
 		sc->sc_buttons = buttons;
-		// if (sc->sc_wsmousedev != NULL) {
-		// 	s = spltty();
-		// 	wsmouse_input(sc->sc_wsmousedev, buttons, dx, dy, dz, 0,
-		// 	    flags);
-		// 	splx(s);
-		// }
+		#ifndef SEL4
+		if (sc->sc_wsmousedev != NULL) {
+			s = spltty();
+			wsmouse_input(sc->sc_wsmousedev, buttons, dx, dy, dz, 0,
+			    flags);
+			splx(s);
+		}
+		#endif
 	}
 }

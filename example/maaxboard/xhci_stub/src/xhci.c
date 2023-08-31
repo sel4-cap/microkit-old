@@ -2659,6 +2659,7 @@ static void
 xhci_handle_event(struct xhci_softc * const sc,
     const struct xhci_trb * const trb)
 {
+	//printf("xhci handle event\n");
 	uint64_t trb_0;
 	uint32_t trb_2, trb_3;
 
@@ -2719,8 +2720,10 @@ xhci_softintr(void *v)
 	j = er->xr_cs;
 
 	XHCIHIST_CALLARGS("er: xr_ep %jd xr_cs %jd", i, j, 0, 0);
+	//printf("er: xr_ep %jd xr_cs %jd\n", i, j);
 
 	while (1) {
+		//printf("In while loop\n");
 		usb_syncmem(&er->xr_dma, XHCI_TRB_SIZE * i, XHCI_TRB_SIZE,
 		    BUS_DMASYNC_POSTREAD);
 		trb = &er->xr_trb[i];
@@ -3009,10 +3012,10 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 		/* 4.8.2.1 */
 		if (USB_IS_SS(speed)) {
 			if (dd->bMaxPacketSize != 9) {
-				printf("%s: invalid mps 2^%u for SS ep0,"
-				    " using 512\n",
-				    device_xname(sc->sc_dev),
-				    dd->bMaxPacketSize);
+				// printf("%s: invalid mps 2^%u for SS ep0,"
+				//     " using 512\n",
+				//     device_xname(sc->sc_dev),
+				//     dd->bMaxPacketSize);
 				dd->bMaxPacketSize = 9;
 			}
 			USETW(dev->ud_ep0desc.wMaxPacketSize,
@@ -3020,7 +3023,7 @@ xhci_new_device(device_t parent, struct usbd_bus *bus, int depth,
 		} else {
 			// USETW(dev->ud_ep0desc.wMaxPacketSize,
 			//     dd->bMaxPacketSize);
-			printf("WARNING: avoiding setting maxpacketsize for now\n");
+			//printf("WARNING: avoiding setting maxpacketsize for now\n");
 		}
 		DPRINTFN(4, "bMaxPacketSize %ju", dd->bMaxPacketSize, 0, 0, 0);
 		err = xhci_update_ep0_mps(sc, xs,
@@ -3774,7 +3777,7 @@ xhci_setup_route(struct usbd_pipe *pipe, uint32_t *cp)
 				goto found;
 			}
 		}
-		printf("%s: cannot find HS port", __func__);
+		//printf("%s: cannot find HS port", __func__);
 	found:
 		DPRINTFN(4, "high speed port %jd", p, 0, 0, 0);
 	} else {

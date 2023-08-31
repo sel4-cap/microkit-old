@@ -132,24 +132,25 @@ xhci_intr1(struct xhci_softc * const sc)
 int
 xhci_intr(void *v)
 {
+	printf("xhci intr\n");
 	struct xhci_softc * const sc = v;
 	int ret = 0;
-
+	//printf("sc: %d\n", sc);
 	if (sc == NULL)
 		return 0;
-
+	//printf("sc not null\n");
 	mutex_spin_enter(&sc->sc_intr_lock);
 
     if (sc->sc_dying) {
         goto done;
 	}
-
 	ret = xhci_intr1(sc);
 	if (ret) {
 		sel4cp_notify(7); 
 	}
 done:
 	mutex_spin_exit(&sc->sc_intr_lock);
+	//printf("returning ret: %d\n", ret);
 	return ret;
 }
 
@@ -168,16 +169,20 @@ notified(sel4cp_channel ch) {
     switch (ch) {
         case 6:
             if (glob_xhci_sc != NULL) {
+				printf("hardware intr\n");
                 xhci_intr(glob_xhci_sc);
+				//printf("Back from xhci_intr\n");
             } else {
                 printf("FATAL: sc not defined");
             }
             sel4cp_irq_ack(ch);
+			//printf("exits irq\n");
             break;
             while (1) {
                 
             }
     }
+	//printf("break\n");
 }
 
 sel4cp_msginfo

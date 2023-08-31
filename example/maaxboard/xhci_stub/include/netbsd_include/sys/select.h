@@ -37,6 +37,10 @@
 #include <sys/cdefs.h>
 #include <sys/featuretest.h>
 #include <sys/fd_set.h>
+#include <sys/selinfo.h>		/* for struct selinfo */
+
+void	selinit(struct selinfo *);
+void	selnotify(struct selinfo *, int, long);
 
 #ifdef _KERNEL
 #include <sys/selinfo.h>		/* for struct selinfo */

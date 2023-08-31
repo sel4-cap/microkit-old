@@ -426,8 +426,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 		}
 	}
 
-	//printf("\nX\n");
-
 	usbd_lock_pipe(pipe);
 	if (pipe->up_aborting) {
 		/*
@@ -508,8 +506,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 		return err;
 	}
 
-	//printf("\nZ\n");
-
 	/* Sync transfer, wait for completion. */
 	usbd_lock_pipe(pipe);
 	while (!xfer->ux_done) {
@@ -548,7 +544,6 @@ usbd_transfer(struct usbd_xfer *xfer)
 usbd_status
 usbd_sync_transfer(struct usbd_xfer *xfer)
 {
-	//printf("\nusbd_sync_transfer\n");
 	xfer->ux_flags |= USBD_SYNCHRONOUS;
 	return usbd_transfer(xfer);
 }

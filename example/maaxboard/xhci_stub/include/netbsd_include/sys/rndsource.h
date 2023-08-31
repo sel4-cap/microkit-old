@@ -33,7 +33,7 @@
 #define	_SYS_RNDSOURCE_H
 
 #ifndef _KERNEL			/* XXX */
-#error <sys/rndsource.h> is meant for kernel consumers only.
+//#error <sys/rndsource.h> is meant for kernel consumers only.
 #endif
 
 #include <sys/types.h>

@@ -105,11 +105,13 @@ void
 notified(sel4cp_channel ch) {
     switch (ch) {
         case 7:
+            printf("software interrupt\n");
             if (glob_xhci_sc != NULL) {
                 xhci_softintr(&glob_xhci_sc->sc_bus);
             } else {
                 printf("FATAL: softintr sc not defined");
             }
+            //printf("end of notified software interrupt\n");
             break;
     }
 }
@@ -151,7 +153,7 @@ protected(sel4cp_channel ch, sel4cp_msginfo msginfo) {
             intr_ptrs->uts      = &uts_intr;
             intr_ptrs->uhidev   = &uhidev_intr;
             intr_ptrs->uhub     = &uhub_intr;
-            //intr_ptrs->uhid     = &uhid_intr;
+            intr_ptrs->uhid     = &uhid_intr;
             return seL4_MessageInfo_new((uint64_t) intr_ptrs, 1, 0, 0);
         default:
             printf("softintr unexpected channel %d\n", ch);

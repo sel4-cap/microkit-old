@@ -391,7 +391,13 @@ __END_DECLS
 #define atomic_cas_uint(...) 0
 #endif
 
-
+// #define	atomic_load_relaxed(p)						      \
+// ({									      \
+// 	const volatile __typeof__(*(p)) *__al_ptr = (p);		      \
+// 	__ATOMIC_PTR_CHECK(__al_ptr);					      \
+// 	__BEGIN_ATOMIC_LOAD(__al_ptr, __al_val);			      \
+// 	__END_ATOMIC_LOAD(__al_val);					      \
+// })
 
 #ifdef _KERNEL
 

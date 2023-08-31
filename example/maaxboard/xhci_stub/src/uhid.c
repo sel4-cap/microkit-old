@@ -59,8 +59,8 @@ __KERNEL_RCSID(0, "$NetBSD: uhid.c,v 1.126 2022/09/24 11:06:41 riastradh Exp $")
 #include <sys/select.h>
 // #include <sys/signalvar.h>
 #include <sys/systm.h>
-// #include <sys/tty.h>
-// #include <sys/vnode.h>
+#include <sys/tty.h>
+#include <sys/vnode.h>
 
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
@@ -91,7 +91,7 @@ struct uhid_softc {
 	uint8_t sc_report_id;
 
 	kmutex_t sc_lock;
-	// kcondvar_t sc_cv;
+	kcondvar_t sc_cv;
 
 	int sc_isize;
 	int sc_osize;
@@ -99,9 +99,9 @@ struct uhid_softc {
 
 	u_char *sc_obuf;
 
-	// struct clist sc_q;	/* protected by sc_lock */
-	// struct selinfo sc_rsel;
-	// proc_t *sc_async;	/* process that wants SIGIO */
+	struct clist sc_q;	/* protected by sc_lock */
+	 struct selinfo sc_rsel;
+	proc_t *sc_async;	/* process that wants SIGIO */
 	void *sc_sih;
 	volatile uint32_t sc_state;	/* driver state */
 #define UHID_IMMED	0x02	/* return read data immediately */
@@ -174,36 +174,38 @@ uhid_match(device_t parent, cfdata_t match, void *aux)
 void
 uhid_attach(device_t parent, device_t self, void *aux)
 {
-	struct uhid_softc *sc = kmem_zalloc(sizeof(struct uhid_softc), 0);
+	struct uhid_softc *sc = device_private(self);
+	printf("\nuhid attach, mem sc uhid: %p\n", sc);
 	struct uhidev_attach_arg *uha = aux;
 	int size, repid;
 	void *desc;
 
 	sc->sc_dev = self;
 
-	// sc->sc_hdev = uha->parent;
-	// sc->sc_udev = uha->uiaa->uiaa_device;
-	// sc->sc_report_id = uha->reportid;
+	sc->sc_hdev = uha->parent;
+	//sc->sc_udev = uha->uiaa->uiaa_device;
+	sc->sc_report_id = uha->reportid;
 
-	// selinit(&sc->sc_rsel);
+	selinit(&sc->sc_rsel);
 
-	// uhidev_get_report_desc(uha->parent, &desc, &size);
-	// repid = uha->reportid;
-	// sc->sc_isize = hid_report_size(desc, size, hid_input,   repid);
-	// sc->sc_osize = hid_report_size(desc, size, hid_output,  repid);
-	// sc->sc_fsize = hid_report_size(desc, size, hid_feature, repid);
-	// sc->sc_raw =  hid_is_collection(desc, size, uha->reportid,
-	//     HID_USAGE2(HUP_FIDO, HUF_U2FHID));
+	uhidev_get_report_desc(uha->parent, &desc, &size);
 
-	// aprint_naive("\n");
-	// aprint_normal(": input=%d, output=%d, feature=%d\n",
-	//        sc->sc_isize, sc->sc_osize, sc->sc_fsize);
+	repid = uha->reportid;
+	sc->sc_isize = hid_report_size(desc, size, hid_input,   repid);
+	sc->sc_osize = hid_report_size(desc, size, hid_output,  repid);
+	sc->sc_fsize = hid_report_size(desc, size, hid_feature, repid);
+	sc->sc_raw =  hid_is_collection(desc, size, uha->reportid,
+	    HID_USAGE2(HUP_FIDO, HUF_U2FHID));
 
-	// mutex_init(&sc->sc_lock, MUTEX_DEFAULT, IPL_SOFTUSB);
-	// cv_init(&sc->sc_cv, "uhidrea");
+	aprint_naive("\n");
+	aprint_normal(": input=%d, output=%d, feature=%d\n",
+	       sc->sc_isize, sc->sc_osize, sc->sc_fsize);
 
-	// if (!pmf_device_register(self, NULL, NULL))
-	// 	aprint_error_dev(self, "couldn't establish power handler\n");
+	mutex_init(&sc->sc_lock, MUTEX_DEFAULT, IPL_SOFTUSB);
+	cv_init(&sc->sc_cv, "uhidrea");
+
+	if (!pmf_device_register(self, NULL, NULL))
+		aprint_error_dev(self, "couldn't establish power handler\n");
 
 	return;
 }
@@ -219,7 +221,7 @@ uhid_detach(device_t self, int flags)
 	pmf_device_deregister(self);
 
 	/* locate the major number */
-	// maj = cdevsw_lookup_major(&uhid_cdevsw);
+	 //maj = cdevsw_lookup_major(&uhid_cdevsw);
 
 	/* Nuke the vnodes for any open instances (calls close). */
 	mn = device_unit(self);
@@ -227,9 +229,9 @@ uhid_detach(device_t self, int flags)
 
 	KASSERTMSG(sc->sc_open == UHID_CLOSED, "open=%d", (int)sc->sc_open);
 
-	// cv_destroy(&sc->sc_cv);
+	 cv_destroy(&sc->sc_cv);
 	mutex_destroy(&sc->sc_lock);
-	// seldestroy(&sc->sc_rsel);
+	 seldestroy(&sc->sc_rsel);
 
 	return 0;
 }
@@ -251,11 +253,11 @@ uhid_intr(void *cookie, void *data, u_int len)
 #endif
 
 	mutex_enter(&sc->sc_lock);
-	// (void)b_to_q(data, len, &sc->sc_q);
+	(void)b_to_q(data, len, &sc->sc_q);
 
 	DPRINTFN(5, ("uhid_intr: waking %p\n", &sc->sc_q));
-	// cv_broadcast(&sc->sc_cv);
-	// selnotify(&sc->sc_rsel, 0, NOTE_SUBMIT);
+	cv_broadcast(&sc->sc_cv);
+	selnotify(&sc->sc_rsel, 0, NOTE_SUBMIT);
 	// if (atomic_load_relaxed(&sc->sc_async) != NULL) {
 	// 	mutex_enter(&proc_lock);
 	// 	if (sc->sc_async != NULL) {
@@ -268,74 +270,77 @@ uhid_intr(void *cookie, void *data, u_int len)
 	mutex_exit(&sc->sc_lock);
 }
 
-// static int
-// uhidopen(dev_t dev, int flag, int mode, struct lwp *l)
-// {
-// 	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
-// 	int error;
+static int
+uhidopen(dev_t dev, int flag, int mode, struct lwp *l)
+{
+	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
+	int error;
 
-// 	DPRINTF(("uhidopen: sc=%p\n", sc));
-// 	if (sc == NULL)
-// 		return ENXIO;
+	DPRINTF(("uhidopen: sc=%p\n", sc));
+	if (sc == NULL)
+		return ENXIO;
 
-// 	/*
-// 	 * Try to open.  If closing in progress, give up.  If already
-// 	 * open (or opening), fail -- opens are exclusive.
-// 	 */
-// 	mutex_enter(&sc->sc_lock);
-// 	if (sc->sc_open != UHID_CLOSED || sc->sc_closing) {
-// 		mutex_exit(&sc->sc_lock);
-// 		return EBUSY;
-// 	}
-// 	sc->sc_open = UHID_OPENING;
-// 	atomic_store_relaxed(&sc->sc_state, 0);
-// 	mutex_exit(&sc->sc_lock);
+	/*
+	 * Try to open.  If closing in progress, give up.  If already
+	 * open (or opening), fail -- opens are exclusive.
+	 */
+	mutex_enter(&sc->sc_lock);
+	if (sc->sc_open != UHID_CLOSED || sc->sc_closing) {
+		mutex_exit(&sc->sc_lock);
+		return EBUSY;
+	}
+	sc->sc_open = UHID_OPENING;
+	atomic_store_relaxed(&sc->sc_state, 0);
+	mutex_exit(&sc->sc_lock);
 
-// 	/* uhid interrupts aren't enabled yet, so setup sc_q now */
-// 	if (clalloc(&sc->sc_q, UHID_BSIZE, 0) == -1) {
-// 		error = ENOMEM;
-// 		goto fail0;
-// 	}
+	/* uhid interrupts aren't enabled yet, so setup sc_q now */
+	if (clalloc(&sc->sc_q, UHID_BSIZE, 0) == -1) {
+		error = ENOMEM;
+		goto fail0;
+	}
 
-// 	/* Allocate an output buffer if needed.  */
-// 	if (sc->sc_osize > 0)
-// 		sc->sc_obuf = kmem_alloc(sc->sc_osize, KM_SLEEP);
-// 	else
-// 		sc->sc_obuf = NULL;
+	/* Allocate an output buffer if needed.  */
+	if (sc->sc_osize > 0)
+	{
+		sc->sc_obuf = kmem_alloc(sc->sc_osize, KM_SLEEP);
+	}
+	else {
+		sc->sc_obuf = NULL;
+	}
 
-// 	/* Paranoia: reset SIGIO before enabling interrputs.  */
-// 	mutex_enter(&proc_lock);
-// 	atomic_store_relaxed(&sc->sc_async, NULL);
-// 	mutex_exit(&proc_lock);
+	/* Paranoia: reset SIGIO before enabling interrputs.  */
+	mutex_enter(&proc_lock);
+	atomic_store_relaxed(&sc->sc_async, NULL);
+	mutex_exit(&proc_lock);
 
-// 	/* Open the uhidev -- after this point we can get interrupts.  */
-// 	error = uhidev_open(sc->sc_hdev, &uhid_intr, sc);
-// 	if (error)
-// 		goto fail1;
+	/* Open the uhidev -- after this point we can get interrupts.  */
+	error = uhidev_open(sc->sc_hdev, intr_ptrs->uhid, sc);
+	if (error)
+		goto fail1;
 
-// 	/* We are open for business.  */
-// 	mutex_enter(&sc->sc_lock);
-// 	sc->sc_open = UHID_OPEN;
-// 	mutex_exit(&sc->sc_lock);
+	/* We are open for business.  */
+	mutex_enter(&sc->sc_lock);
+	sc->sc_open = UHID_OPEN;
+	mutex_exit(&sc->sc_lock);
 
-// 	return 0;
+	return 0;
 
-// fail1:	selnotify(&sc->sc_rsel, POLLHUP, 0);
-// 	mutex_enter(&proc_lock);
-// 	atomic_store_relaxed(&sc->sc_async, NULL);
-// 	mutex_exit(&proc_lock);
-// 	if (sc->sc_osize > 0) {
-// 		kmem_free(sc->sc_obuf, sc->sc_osize);
-// 		sc->sc_obuf = NULL;
-// 	}
-// 	clfree(&sc->sc_q);
-// fail0:	mutex_enter(&sc->sc_lock);
-// 	KASSERT(sc->sc_open == UHID_OPENING);
-// 	sc->sc_open = UHID_CLOSED;
-// 	atomic_store_relaxed(&sc->sc_state, 0);
-// 	mutex_exit(&sc->sc_lock);
-// 	return error;
-// }
+fail1:	selnotify(&sc->sc_rsel, POLLHUP, 0);
+	mutex_enter(&proc_lock);
+	atomic_store_relaxed(&sc->sc_async, NULL);
+	mutex_exit(&proc_lock);
+	if (sc->sc_osize > 0) {
+		kmem_free(sc->sc_obuf, sc->sc_osize);
+		sc->sc_obuf = NULL;
+	}
+	clfree(&sc->sc_q);
+fail0:	mutex_enter(&sc->sc_lock);
+	KASSERT(sc->sc_open == UHID_OPENING);
+	sc->sc_open = UHID_CLOSED;
+	atomic_store_relaxed(&sc->sc_state, 0);
+	mutex_exit(&sc->sc_lock);
+	return error;
+}
 
 // static int
 // uhidcancel(dev_t dev, int flag, int mode, struct lwp *l)
@@ -409,108 +414,108 @@ uhid_intr(void *cookie, void *data, u_int len)
 // 	return 0;
 // }
 
-// static int
-// uhidread(dev_t dev, struct uio *uio, int flag)
-// {
-// 	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
-// 	int error = 0;
-// 	int extra;
-// 	size_t length;
-// 	u_char buffer[UHID_CHUNK];
-// 	usbd_status err;
+static int
+uhidread(dev_t dev, struct uio *uio, int flag)
+{
+	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
+	int error = 0;
+	int extra;
+	size_t length;
+	u_char buffer[UHID_CHUNK];
+	usbd_status err;
 
-// 	DPRINTFN(1, ("uhidread\n"));
-// 	if (atomic_load_relaxed(&sc->sc_state) & UHID_IMMED) {
-// 		DPRINTFN(1, ("uhidread immed\n"));
-// 		extra = sc->sc_report_id != 0;
-// 		if (sc->sc_isize + extra > sizeof(buffer))
-// 			return ENOBUFS;
-// 		err = uhidev_get_report(sc->sc_hdev, UHID_INPUT_REPORT,
-// 					buffer, sc->sc_isize + extra);
-// 		if (err)
-// 			return EIO;
-// 		return uiomove(buffer+extra, sc->sc_isize, uio);
-// 	}
+	DPRINTFN(1, ("uhidread\n"));
+	if (atomic_load_relaxed(&sc->sc_state) & UHID_IMMED) {
+		DPRINTFN(1, ("uhidread immed\n"));
+		extra = sc->sc_report_id != 0;
+		if (sc->sc_isize + extra > sizeof(buffer))
+			return ENOBUFS;
+		err = uhidev_get_report(sc->sc_hdev, UHID_INPUT_REPORT,
+					buffer, sc->sc_isize + extra);
+		if (err)
+			return EIO;
+		return uiomove(buffer+extra, sc->sc_isize, uio);
+	}
 
-// 	mutex_enter(&sc->sc_lock);
-// 	while (sc->sc_q.c_cc == 0) {
-// 		if (flag & IO_NDELAY) {
-// 			mutex_exit(&sc->sc_lock);
-// 			return EWOULDBLOCK;
-// 		}
-// 		if (sc->sc_closing) {
-// 			mutex_exit(&sc->sc_lock);
-// 			return EIO;
-// 		}
-// 		DPRINTFN(5, ("uhidread: sleep on %p\n", &sc->sc_q));
-// 		error = cv_wait_sig(&sc->sc_cv, &sc->sc_lock);
-// 		DPRINTFN(5, ("uhidread: woke, error=%d\n", error));
-// 		if (error) {
-// 			break;
-// 		}
-// 	}
+	mutex_enter(&sc->sc_lock);
+	while (sc->sc_q.c_cc == 0) {
+		if (flag & IO_NDELAY) {
+			mutex_exit(&sc->sc_lock);
+			return EWOULDBLOCK;
+		}
+		if (sc->sc_closing) {
+			mutex_exit(&sc->sc_lock);
+			return EIO;
+		}
+		DPRINTFN(5, ("uhidread: sleep on %p\n", &sc->sc_q));
+		error = cv_wait_sig(&sc->sc_cv, &sc->sc_lock);
+		DPRINTFN(5, ("uhidread: woke, error=%d\n", error));
+		if (error) {
+			break;
+		}
+	}
 
-// 	/* Transfer as many chunks as possible. */
-// 	while (sc->sc_q.c_cc > 0 && uio->uio_resid > 0 && !error) {
-// 		length = uimin(sc->sc_q.c_cc, uio->uio_resid);
-// 		if (length > sizeof(buffer))
-// 			length = sizeof(buffer);
+	/* Transfer as many chunks as possible. */
+	// while (sc->sc_q.c_cc > 0 && uio->uio_resid > 0 && !error) {
+	// 	length = uimin(sc->sc_q.c_cc, uio->uio_resid);
+	// 	if (length > sizeof(buffer))
+	// 		length = sizeof(buffer);
 
-// 		/* Remove a small chunk from the input queue. */
-// 		(void) q_to_b(&sc->sc_q, buffer, length);
-// 		DPRINTFN(5, ("uhidread: got %lu chars\n", (u_long)length));
+	// 	/* Remove a small chunk from the input queue. */
+	// 	(void) q_to_b(&sc->sc_q, buffer, length);
+	// 	DPRINTFN(5, ("uhidread: got %lu chars\n", (u_long)length));
 
-// 		/* Copy the data to the user process. */
-// 		mutex_exit(&sc->sc_lock);
-// 		if ((error = uiomove(buffer, length, uio)) != 0)
-// 			return error;
-// 		mutex_enter(&sc->sc_lock);
-// 	}
+	// 	/* Copy the data to the user process. */
+	// 	mutex_exit(&sc->sc_lock);
+	// 	if ((error = uiomove(buffer, length, uio)) != 0)
+	// 		return error;
+	// 	mutex_enter(&sc->sc_lock);
+	// }
 
-// 	mutex_exit(&sc->sc_lock);
-// 	return error;
-// }
+	mutex_exit(&sc->sc_lock);
+	return error;
+}
 
-// static int
-// uhidwrite(dev_t dev, struct uio *uio, int flag)
-// {
-// 	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
-// 	int error;
-// 	int size;
-// 	usbd_status err;
+static int
+uhidwrite(dev_t dev, struct uio *uio, int flag)
+{
+	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
+	int error;
+	int size;
+	usbd_status err;
 
-// 	DPRINTFN(1, ("uhidwrite\n"));
+	DPRINTFN(1, ("uhidwrite\n"));
 
-// 	size = sc->sc_osize;
-// 	if (uio->uio_resid != size || size == 0)
-// 		return EINVAL;
-// 	error = uiomove(sc->sc_obuf, size, uio);
-// #ifdef UHID_DEBUG
-// 	if (uhiddebug > 5) {
-// 		uint32_t i;
+	size = sc->sc_osize;
+	// if (uio->uio_resid != size || size == 0)
+	// 	return EINVAL;
+	error = uiomove(sc->sc_obuf, size, uio);
+#ifdef UHID_DEBUG
+	if (uhiddebug > 5) {
+		uint32_t i;
 
-// 		DPRINTF(("%s: outdata[%d] =", device_xname(sc->sc_dev),
-// 		    error));
-// 		for (i = 0; i < size; i++)
-// 			DPRINTF((" %02x", sc->sc_obuf[i]));
-// 		DPRINTF(("\n"));
-// 	}
-// #endif
-// 	if (!error) {
-// 		if (sc->sc_raw)
-// 			err = uhidev_write(sc->sc_hdev, sc->sc_obuf, size);
-// 		else
-// 			err = uhidev_set_report(sc->sc_hdev,
-// 			    UHID_OUTPUT_REPORT, sc->sc_obuf, size);
-// 		if (err) {
-// 			DPRINTF(("%s: err = %d\n",
-// 			    device_xname(sc->sc_dev), err));
-// 			error = EIO;
-// 		}
-// 	}
+		DPRINTF(("%s: outdata[%d] =", device_xname(sc->sc_dev),
+		    error));
+		for (i = 0; i < size; i++)
+			DPRINTF((" %02x", sc->sc_obuf[i]));
+		DPRINTF(("\n"));
+	}
+#endif
+	if (!error) {
+		if (sc->sc_raw)
+			err = uhidev_write(sc->sc_hdev, sc->sc_obuf, size);
+		else
+			err = uhidev_set_report(sc->sc_hdev,
+			    UHID_OUTPUT_REPORT, sc->sc_obuf, size);
+		if (err) {
+			DPRINTF(("%s: err = %d\n",
+			    device_xname(sc->sc_dev), err));
+			error = EIO;
+		}
+	}
 
-// 	return error;
-// }
+	return error;
+}
 
 // static int
 // uhidioctl(dev_t dev, u_long cmd, void *addr, int flag, struct lwp *l)
@@ -694,79 +699,79 @@ uhid_intr(void *cookie, void *data, u_int len)
 static int
 uhidpoll(dev_t dev, int events, struct lwp *l)
 {
-	// struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
-	// int revents = 0;
+	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
+	int revents = 0;
 
-	// mutex_enter(&sc->sc_lock);
-	// if (events & (POLLOUT | POLLWRNORM))
-	// 	revents |= events & (POLLOUT | POLLWRNORM);
-	// if (events & (POLLIN | POLLRDNORM)) {
-	// 	if (sc->sc_q.c_cc > 0)
-	// 		revents |= events & (POLLIN | POLLRDNORM);
-	// 	else
-	// 		selrecord(l, &sc->sc_rsel);
-	// }
-	// mutex_exit(&sc->sc_lock);
+	mutex_enter(&sc->sc_lock);
+	if (events & (POLLOUT | POLLWRNORM))
+		revents |= events & (POLLOUT | POLLWRNORM);
+	if (events & (POLLIN | POLLRDNORM)) {
+		if (sc->sc_q.c_cc > 0)
+			revents |= events & (POLLIN | POLLRDNORM);
+		else
+			selrecord(l, &sc->sc_rsel);
+	}
+	mutex_exit(&sc->sc_lock);
 
-	// return revents;
+	return revents;
 }
 
-// static void
-// filt_uhidrdetach(struct knote *kn)
-// {
-// 	struct uhid_softc *sc = kn->kn_hook;
+static void
+filt_uhidrdetach(struct knote *kn)
+{
+	struct uhid_softc *sc = kn->kn_hook;
 
-// 	mutex_enter(&sc->sc_lock);
-// 	// selremove_knote(&sc->sc_rsel, kn);
-// 	mutex_exit(&sc->sc_lock);
-// }
+	mutex_enter(&sc->sc_lock);
+	// selremove_knote(&sc->sc_rsel, kn);
+	mutex_exit(&sc->sc_lock);
+}
 
-// static int
-// filt_uhidread(struct knote *kn, long hint)
-// {
-// 	struct uhid_softc *sc = kn->kn_hook;
+static int
+filt_uhidread(struct knote *kn, long hint)
+{
+	struct uhid_softc *sc = kn->kn_hook;
 
-// 	if (hint == NOTE_SUBMIT)
-// 		KASSERT(mutex_owned(&sc->sc_lock));
-// 	else
-// 		mutex_enter(&sc->sc_lock);
+	if (hint == NOTE_SUBMIT)
+		KASSERT(mutex_owned(&sc->sc_lock));
+	else
+		mutex_enter(&sc->sc_lock);
 
-// 	kn->kn_data = sc->sc_q.c_cc;
+	kn->kn_data = sc->sc_q.c_cc;
 
-// 	if (hint == NOTE_SUBMIT)
-// 		KASSERT(mutex_owned(&sc->sc_lock));
-// 	else
-// 		mutex_exit(&sc->sc_lock);
+	if (hint == NOTE_SUBMIT)
+		KASSERT(mutex_owned(&sc->sc_lock));
+	else
+		mutex_exit(&sc->sc_lock);
 
-// 	return kn->kn_data > 0;
-// }
+	return kn->kn_data > 0;
+}
 
-// static const struct filterops uhidread_filtops = {
-// 	.f_flags = FILTEROP_ISFD,
-// 	.f_attach = NULL,
-// 	.f_detach = filt_uhidrdetach,
-// 	.f_event = filt_uhidread,
-// };
+static const struct filterops uhidread_filtops = {
+	.f_flags = FILTEROP_ISFD,
+	.f_attach = NULL,
+	.f_detach = filt_uhidrdetach,
+	.f_event = filt_uhidread,
+};
 
-// static int
-// uhidkqfilter(dev_t dev, struct knote *kn)
-// {
-// 	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
+static int
+uhidkqfilter(dev_t dev, struct knote *kn)
+{
+	struct uhid_softc *sc = device_lookup_private(&uhid_cd, UHIDUNIT(dev));
 
-// 	switch (kn->kn_filter) {
-// 	case EVFILT_READ:
-// 		kn->kn_fop = &uhidread_filtops;
-// 		kn->kn_hook = sc;
-// 		mutex_enter(&sc->sc_lock);
-// 		// selrecord_knote(&sc->sc_rsel, kn);
-// 		mutex_exit(&sc->sc_lock);
-// 		return 0;
+	switch (kn->kn_filter) {
+	case EVFILT_READ:
+		kn->kn_fop = &uhidread_filtops;
+		kn->kn_hook = sc;
+		mutex_enter(&sc->sc_lock);
+		// selrecord_knote(&sc->sc_rsel, kn);
+		mutex_exit(&sc->sc_lock);
+		return 0;
 
-// 	case EVFILT_WRITE:
-// 		kn->kn_fop = &seltrue_filtops;
-// 		return 0;
+	case EVFILT_WRITE:
+		kn->kn_fop = &seltrue_filtops;
+		return 0;
 
-// 	default:
-// 		return EINVAL;
-// 	}
-// }
+	default:
+		return EINVAL;
+	}
+}

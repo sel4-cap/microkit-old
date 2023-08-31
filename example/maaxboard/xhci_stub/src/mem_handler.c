@@ -5,7 +5,7 @@
 
 uintptr_t heap_base;
 uint64_t heap_size = 0x2000000;
-int ta_blocks = 512;
+int ta_blocks = 1024;
 int ta_thresh = 16;
 int ta_align = 64;
 uintptr_t ta_limit;

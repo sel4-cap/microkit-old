@@ -1,7 +1,7 @@
 #include <sel4cp.h>
 #include <printf.h>
 
-#include <evbarm/bus_funcs.h>
+#include <machine/bus_funcs.h>
 
 #include <dev/usb/xhcivar.h>
 
@@ -26,7 +26,7 @@
 #include <dev/usb/xhcireg.h>
 #include <dev/usb/xhcivar.h>
 #include <sys/device.h>
-#include <evbarm/types.h>
+#include <machine/types.h>
 #include <sel4_bus_funcs.h>
 
 #include <lib/libkern/libkern.h>
@@ -156,6 +156,7 @@ init(void) {
     self_xhci->dv_private = sc_xhci;
 
     dwc3_fdt_attach(parent_xhci,self_xhci,aux_xhci);
+    printf("finished\n");
 
     struct usb_softc *usb_sc = kmem_alloc(sizeof(struct usb_softc),0);
     struct usbd_bus *sc_bus = kmem_alloc(sizeof(struct usbd_bus),0);

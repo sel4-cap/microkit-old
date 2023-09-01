@@ -2820,8 +2820,8 @@ struct cfdata cfdata[] = {
 //     { "ucycom",		"ucycom",	 0, STAR, loc+553,      0, &pspec56 },
 // /*220: ulpt* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "ulpt",		"ulpt",		 0, STAR, loc+426,      0, &pspec55 },
-/*/1*221: umass* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 *1/ */
-/*    { "umass",		"umass",	 0, STAR, loc+432,      0, &pspec55 }, */
+/*221: umass* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
+    /* { "umass",		"umass",	 0, STAR, loc+432,      0, &pspec55 }, */
 // /*222: uirda* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
 //     { "uirda",		"uirda",	 0, STAR, loc+438,      0, &pspec55 },
 // /*223: stuirda* at uhub? port -1 configuration -1 interface -1 vendor -1 product -1 release -1 */
@@ -3666,9 +3666,9 @@ static struct cfattach * const uts_cfattachinit[] = {
 // static struct cfattach * const ulpt_cfattachinit[] = {
 // 	&ulpt_ca, NULL
 // };
-static struct cfattach * const umass_cfattachinit[] = {
-	&umass_ca, NULL
-};
+/* static struct cfattach * const umass_cfattachinit[] = { */
+/* 	&umass_ca, NULL */
+/* }; */
 // static struct cfattach * const uirda_cfattachinit[] = {
 // 	&uirda_ca, NULL
 // };

@@ -2,7 +2,7 @@
 #pragma once
 
 #include <io.h>
-#include <evbarm/bus_defs.h>
+#include <machine/bus_defs.h>
 #include <stdint.h>
 #include <stddef.h>
 

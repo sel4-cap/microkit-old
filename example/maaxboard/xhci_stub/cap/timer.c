@@ -30,7 +30,7 @@
 #include <dev/usb/xhcireg.h>
 #include <dev/usb/xhcivar.h>
 #include <sys/device.h>
-#include <evbarm/types.h>
+#include <machine/types.h>
 #include <sel4_bus_funcs.h>
 #include <sel4cp.h>
 

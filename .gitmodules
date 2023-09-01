@@ -1,0 +1,3 @@
+[submodule "example/maaxboard/xhci_stub/netbsd"]
+	path = example/maaxboard/xhci_stub/netbsd
+	url = git@github.com:sel4-cap/netbsd.git

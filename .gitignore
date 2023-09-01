@@ -10,3 +10,4 @@ tmp_build/
 *.o
 *.txt
 *.sh.venv/
+.venv/

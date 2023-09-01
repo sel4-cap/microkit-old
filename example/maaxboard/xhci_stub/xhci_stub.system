@@ -5,7 +5,7 @@
  SPDX-License-Identifier: BSD-2-Clause
 -->
 <system>
-    <memory_region name="heap_mem" size="0x200000"/>
+    <memory_region name="heap_mem" size="0x2000000"/>
     <memory_region name="dma_pool" size="0x2000000"/>
     <memory_region name="ring_mem" size="0x2_000_000"/>
     <memory_region name="xhci_mem" size="0x10_000" phys_addr="0x38200000"/>

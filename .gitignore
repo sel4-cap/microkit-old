@@ -9,3 +9,6 @@ tmp_build/
 *.elf
 *.o
 *.txt
+*.sh.venv/
+.venv/
+example/maaxboard/xhci_stub

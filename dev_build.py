@@ -1,3 +1,6 @@
+# Copyright 2021, Breakaway Consulting Pty. Ltd.
+# SPDX-License-Identifier: BSD-2-Clause
+
 """Build a specific example during development.
 
 This is designed to make it easy to build and run examples during development.
@@ -12,7 +15,7 @@ from sys import executable
 CWD = Path.cwd()
 BUILD_DIR = CWD / "tmp_build"
 
-sel4cp_config = "debug"
+microkit_config = "debug"
 
 
 def find_releases():
@@ -20,7 +23,7 @@ def find_releases():
     for f in (CWD / "release").iterdir():
         if not f.is_dir():
             continue
-        if not f.name.startswith("sel4cp-sdk-"):
+        if not f.name.startswith("microkit-sdk-"):
             # All directories in here should match this, but
             # skip just iun case someone added junk
             continue
@@ -77,9 +80,9 @@ def main():
 
     make_env = environ.copy()
     make_env["BUILD_DIR"] = str(BUILD_DIR.absolute())
-    make_env["SEL4CP_BOARD"] = args.board
-    make_env["SEL4CP_CONFIG"] = sel4cp_config
-    make_env["SEL4CP_SDK"] = str(release)
+    make_env["MICROKIT_BOARD"] = args.board
+    make_env["MICROKIT_CONFIG"] = microkit_config
+    make_env["MICROKIT_SDK"] = str(release)
 
     # Choose the makefile based on the `--example-from-sdk` command line flag
     makefile_directory = (
@@ -90,7 +93,7 @@ def main():
 
     if not args.tool_from_sdk:
         make_env["PYTHONPATH"] = str(CWD / "tool")
-        make_env["SEL4CP_TOOL"] = f"{executable} -m sel4coreplat"
+        make_env["MICROKIT_TOOL"] = f"{executable} -m microkit"
 
     cmd = ["make", "-C", makefile_directory]
 

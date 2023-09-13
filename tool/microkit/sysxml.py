@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 
 from typing import Dict, Iterable, Optional, Set, Tuple
 
-from sel4coreplat.util import str_to_bool, UserError
+from microkit.util import str_to_bool, UserError
 
 MIN_PAGE_SIZE = 0x1000 # FIXME: This shouldn't be here
 
@@ -255,6 +255,10 @@ def xml2pd(pd_xml: ET.Element) -> ProtectionDomain:
                 mr = checked_lookup(child, "mr")
                 vaddr = int(checked_lookup(child, "vaddr"), base=0)
                 perms = child.attrib.get("perms", "rw")
+                # On all architectures, the kernel does not allow write-only mappings
+                if perms == "w":
+                    raise ValueError("perms must not be 'w', write-only mappings are not allowed")
+
                 cached = str_to_bool(child.attrib.get("cached", "true"))
                 maps.append(SysMap(mr, vaddr, perms, cached, child))
 

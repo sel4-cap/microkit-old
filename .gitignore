@@ -12,3 +12,4 @@ tmp_build/
 *.sh.venv/
 .venv/
 example/maaxboard/xhci_stub
+.vscode/*

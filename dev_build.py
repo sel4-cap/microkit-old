@@ -83,6 +83,8 @@ def main():
     make_env["MICROKIT_BOARD"] = args.board
     make_env["MICROKIT_CONFIG"] = microkit_config
     make_env["MICROKIT_SDK"] = str(release)
+    make_env["MICROKIT_DIR"] = CWD
+    make_env["UBOOT_DIR"] = CWD / "example" / "maaxboard" / "display_driver" / "uboot-imx"
 
     # Choose the makefile based on the `--example-from-sdk` command line flag
     makefile_directory = (

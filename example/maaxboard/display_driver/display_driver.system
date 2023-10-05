@@ -1,0 +1,20 @@
+<system>
+    <memory_region name="heap_mem" size="0x2000000"/>
+    <memory_region name="dma_pool" size="0x2000000"/>
+
+    <memory_region name="display_controller_1" size="0x2d000" phys_addr="0x32e00000"/>
+    <memory_region name="display_controller_2" size="0x1000" phys_addr="0x32e2f000"/>
+
+
+    <protection_domain name="display_controller" pp="true" priority="100">
+        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
+        <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
+
+        <map mr="display_controller_1" vaddr="0x32e00000" perms="rw" cached="false" setvar_vaddr="display_controller_1_base"/>
+        <map mr="display_controller_2" vaddr="0x32e2f000" perms="rw" cached="false" setvar_vaddr="display_controller_2_base"/>
+
+        <program_image path="display_controller.elf" />
+
+        <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
+    </protection_domain>
+</system>

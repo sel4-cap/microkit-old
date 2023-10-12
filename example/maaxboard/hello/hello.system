@@ -8,4 +8,7 @@
     <protection_domain name="hello" priority="254">
         <program_image path="hello.elf" />
     </protection_domain>
+    <protection_domain name="hello2" priority="253">
+        <program_image path="hello2.elf" />
+    </protection_domain>
 </system>

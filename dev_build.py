@@ -97,6 +97,8 @@ def main():
 
     cmd = ["make", "-C", makefile_directory]
 
+    print("running " + str(cmd));
+    print(make_env)
     run(cmd, env=make_env)
 
 

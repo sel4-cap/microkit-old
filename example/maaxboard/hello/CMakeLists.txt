@@ -18,14 +18,6 @@ set(PYTHONPATH /home/jfelmeden/mk-manifest/microkit/tool)
 set(MICROKIT_TOOL "python -m microkit")
 #}
 
-set($ENV{MICROKIT_SDK}/home/jfelmeden/mk-manifest/microkit/release/microkit-sdk-1.2.6)
-set($ENV{MICROKIT_BOARD} maaxboard)
-set($ENV{MICROKIT_CONFIG} debug)
-# set python variables
-set(PYTHONPATH /home/jfelmeden/mk-manifest/microkit/tool)
-set(MICROKIT_TOOL "python -m microkit")
-
-
 set(BOARD_DIR ${MICROKIT_SDK}/board/${MICROKIT_BOARD}/${MICROKIT_CONFIG})
 
 set(CFLAGS -mcpu=${CPU} -mstrict-align -nostdlib -ffreestanding -g3 -O3 -Wall  -Wno-unused-function -Werror)
@@ -36,9 +28,11 @@ set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/hello-build)
 set(IMAGE_FILE ${BUILD_DIR}/loader.img)
 set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
-add_custom_target(make-img ALL COMMAND bash -c
-    "${MICROKIT_TOOL} ../hello.system --search-path ${BUILD_DIR} --board ${MICROKIT_BOARD} --config ${MICROKIT_CONFIG} -o ${IMAGE_FILE} -r ${REPORT_FILE}")
+add_custom_target(make-img 
+    ALL COMMAND bash -c
+    "PYTHONPATH=${PYTHONPATH} MICROKIT_SDK=${MICROKIT_SDK} ${MICROKIT_TOOL} ../hello.system --search-path ${BUILD_DIR} --board ${MICROKIT_BOARD} --config ${MICROKIT_CONFIG} -o ${IMAGE_FILE} -r ${REPORT_FILE}")
 
+    # COMMAND ${CMAKE_COMMAND} -E env "MICROKIT_SDK=${MICROKIT_SDK} MICROKIT_BOARD=${MICROKIT_BOARD} MICROKIT_CONFIG=debug PYTHONPATH=${PYTHONPATH} MICROKIT_TOOL=${MICROKIT_TOOL}"
 add_executable(hello.elf hello.c) 
 add_executable(hello2.elf hello2.c) 
 

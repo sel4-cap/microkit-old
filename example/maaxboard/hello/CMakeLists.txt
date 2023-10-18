@@ -31,6 +31,7 @@ set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
 #include printf library
 add_subdirectory(printf)
+add_subdirectory(libubootdrivers)
 
 add_custom_target(make-img 
     ALL COMMAND bash -c

@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.7.2)
 
-project(hello-microkit LANGUAGES C)
-
 set(CPU cortex-a53)
 set(TOOLCHAIN aarch64-none-elf)
 set(CMAKE_C_COMPILER ${TOOLCHAIN}-gcc)
+set(CMAKE_C_COMPILER_WORKS 1)
+project(hello-microkit LANGUAGES C)
+
 set(LD ${TOOLCHAIN}-ld)
 set(CMAKE_ASM_COMPILER ${TOOLCHAIN}-as)
 
@@ -28,18 +29,24 @@ set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/hello-build)
 set(IMAGE_FILE ${BUILD_DIR}/loader.img)
 set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
+#include printf library
+add_subdirectory(printf)
+
 add_custom_target(make-img 
     ALL COMMAND bash -c
     "PYTHONPATH=${PYTHONPATH} MICROKIT_SDK=${MICROKIT_SDK} ${MICROKIT_TOOL} ../hello.system --search-path ${BUILD_DIR} --board ${MICROKIT_BOARD} --config ${MICROKIT_CONFIG} -o ${IMAGE_FILE} -r ${REPORT_FILE}")
-
+    
     # COMMAND ${CMAKE_COMMAND} -E env "MICROKIT_SDK=${MICROKIT_SDK} MICROKIT_BOARD=${MICROKIT_BOARD} MICROKIT_CONFIG=debug PYTHONPATH=${PYTHONPATH} MICROKIT_TOOL=${MICROKIT_TOOL}"
+
 add_executable(hello.elf hello.c) 
 add_executable(hello2.elf hello2.c) 
 
 # linker
 target_link_options(hello.elf PRIVATE ${LDFLAGS})
 target_compile_options(hello.elf PRIVATE ${CFLAGS})
-target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
+target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include "${PROJECT_SOURCE_DIR}/printf/include")
+# target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
+target_link_libraries(hello.elf PUBLIC printf)
 target_link_libraries(hello.elf PRIVATE ${LIBS})
 
 target_link_options(hello2.elf PRIVATE ${LDFLAGS})

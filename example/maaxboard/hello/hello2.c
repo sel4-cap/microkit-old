@@ -5,12 +5,11 @@
  */
 #include <stdint.h>
 #include <microkit.h>
-#include <printf.h>
 
 void
 init(void)
 {
-    printf("hello, world printf style\n");
+    microkit_dbg_puts("hello, world 2\n");
 }
 
 void

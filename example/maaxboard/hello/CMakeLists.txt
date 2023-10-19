@@ -30,8 +30,8 @@ set(IMAGE_FILE ${BUILD_DIR}/loader.img)
 set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
 #include printf library
-add_subdirectory(printf)
-add_subdirectory(libubootdrivers)
+add_subdirectory(libmicrokit)
+# add_subdirectory(libubootdrivers)
 
 add_custom_target(make-img 
     ALL COMMAND bash -c
@@ -45,7 +45,7 @@ add_executable(hello2.elf hello2.c)
 # linker
 target_link_options(hello.elf PRIVATE ${LDFLAGS})
 target_compile_options(hello.elf PRIVATE ${CFLAGS})
-target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include "${PROJECT_SOURCE_DIR}/printf/include")
+target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include "${PROJECT_SOURCE_DIR}/libmicrokit/include")
 # target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
 target_link_libraries(hello.elf PUBLIC printf)
 target_link_libraries(hello.elf PRIVATE ${LIBS})

@@ -4,14 +4,14 @@
 #include <sys/bus.h>
 #include <sys/device.h>
 
-#include <sys/condvar.h>
-#include <dev/usb/usb.h>
-#include <dev/usb/usbdi.h>
-#include <dev/usb/usbdivar.h>
-#include <dev/usb/xhcireg.h>
-#include <dev/usb/xhcivar.h>
+// #include <sys/condvar.h>
+// #include <dev/usb/usb.h>
+// #include <dev/usb/usbdi.h>
+// #include <dev/usb/usbdivar.h>
+// #include <dev/usb/xhcireg.h>
+// #include <dev/usb/xhcivar.h>
 
-#include <dev/fdt/fdtvar.h>
+// #include <dev/fdt/fdtvar.h>
 
 struct usb_softc {
 #if 0

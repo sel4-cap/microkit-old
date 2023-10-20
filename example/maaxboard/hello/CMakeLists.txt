@@ -45,7 +45,10 @@ add_executable(hello2.elf hello2.c)
 # linker
 target_link_options(hello.elf PRIVATE ${LDFLAGS})
 target_compile_options(hello.elf PRIVATE ${CFLAGS})
-target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include "${PROJECT_SOURCE_DIR}/libmicrokit/include")
+target_include_directories(hello.elf PRIVATE 
+    "${BOARD_DIR}/include" 
+    "libmicrokit/include" 
+    "libmicrokit/include/dma/")
 # target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
 target_link_libraries(hello.elf PUBLIC printf)
 target_link_libraries(hello.elf PRIVATE ${LIBS})

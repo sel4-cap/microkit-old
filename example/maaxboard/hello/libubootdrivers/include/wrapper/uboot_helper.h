@@ -81,6 +81,7 @@ typedef long off_t;
 /* Helper macros to wrap U-Boot 'print' routines on to seL4 equivalents */
 #include <uboot_print.h>
 
+
 /* Undefine the macros defined by seL4 / muslc to allow U-Boot code to redefine */
 #undef ALIGN
 #undef stdin
@@ -93,7 +94,7 @@ typedef long off_t;
 #define stderr  2
 
 /* Include headers expected by all U-Boot source code */
-#include <linux/kernel.h>
+// #include <linux/kernel.h>
 #include <linux/kconfig.h>
 #include <sel4_dma.h>
 #include <sel4_io_map.h>

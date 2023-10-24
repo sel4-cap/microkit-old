@@ -9,7 +9,7 @@
  * to implement the timing functions expected by the U-Boot codebase */
 
 #include <common.h>
-#include <asm/arch/imx-regs.h>
+#include <asm/arch-imx8m/imx-regs.h>
 #include <asm/io.h>
 #include <hang.h>
 

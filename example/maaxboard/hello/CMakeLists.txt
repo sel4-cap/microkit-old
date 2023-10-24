@@ -29,9 +29,12 @@ set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/hello-build)
 set(IMAGE_FILE ${BUILD_DIR}/loader.img)
 set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
-#include printf library
+
+
+#Add libraries 
 add_subdirectory(libmicrokit)
-# add_subdirectory(libubootdrivers)
+add_subdirectory(libubootdrivers)
+add_subdirectory(libutils)
 
 add_custom_target(make-img 
     ALL COMMAND bash -c
@@ -48,9 +51,10 @@ target_compile_options(hello.elf PRIVATE ${CFLAGS})
 target_include_directories(hello.elf PRIVATE 
     "${BOARD_DIR}/include" 
     "libmicrokit/include" 
-    "libmicrokit/include/dma/")
+    "libmicrokit/include/dma/"
+    "libubootdrivers/include/public_api/")
 # target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
-target_link_libraries(hello.elf PUBLIC printf)
+target_link_libraries(hello.elf PUBLIC printf ubootdrivers utils)
 target_link_libraries(hello.elf PRIVATE ${LIBS})
 
 target_link_options(hello2.elf PRIVATE ${LDFLAGS})

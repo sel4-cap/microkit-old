@@ -5,7 +5,7 @@
  *
  */
 
-#include <platsupport/delay.h>
+// #include <platsupport/delay.h>
 
 void udelay(unsigned long usec)
 {

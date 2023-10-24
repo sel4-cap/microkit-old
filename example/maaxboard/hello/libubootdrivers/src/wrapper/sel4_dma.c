@@ -5,7 +5,7 @@
  *
  */
 
-#include <sel4platsupport/io.h>
+#include <io.h>
 #include <linux/dma-direction.h>
 
 #define MAX_DMA_ALLOCS 256
@@ -163,7 +163,7 @@ void sel4_dma_flush_range(void *start, void *stop)
         flush_size = (size_t) (stop - start);
     else if (stop == start)
         /* Default to flushing one cache line */
-        flush_size = (size_t) CONFIG_SYS_CACHELINE_SIZE;
+        flush_size = (size_t) CONFIG_SYS_CBSIZE;
     else
         return;
 
@@ -206,7 +206,7 @@ void sel4_dma_invalidate_range(void *start, void *stop)
         inval_size = (size_t) (stop - start);
     else if (stop == start)
         /* Default to flushing one cache line */
-        inval_size = (size_t) CONFIG_SYS_CACHELINE_SIZE;
+        inval_size = (size_t) CONFIG_SYS_CBSIZE;
     else
         return;
 
@@ -306,7 +306,7 @@ void* sel4_dma_memalign(size_t align, size_t size)
 void* sel4_dma_malloc(size_t size)
 {
     /* Default to alignment on cacheline boundaries */
-    return sel4_dma_memalign(CONFIG_SYS_CACHELINE_SIZE, size);
+    return sel4_dma_memalign(CONFIG_SYS_CBSIZE, size);
 }
 
 void sel4_dma_initialise(ps_dma_man_t *dma_manager)

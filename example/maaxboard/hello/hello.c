@@ -8,7 +8,9 @@
 #include <printf.h>
 #include <tinyalloc.h>
 #include <dma.h>
+#include <uboot_drivers.h>
 
+// fdt initialise 
 #define STR(x) #x
 #define INCBIN_SECTION ".rodata"
 #define INCBIN(name, file) \
@@ -36,6 +38,8 @@ init(void)
     printf("end = %p\n", &incbin_device_tree_end);
     printf("size = %zu\n", (char*)&incbin_device_tree_end - (char*)&incbin_device_tree_start);
     printf("first byte = 0x%02hhx\n", incbin_device_tree_start[0]);
+
+    run_uboot_command("dm tree");
 }
 
 void

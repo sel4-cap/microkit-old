@@ -8,7 +8,7 @@
 /* Wrappers around U-Boot print string routines */
 
 #include <utils/zf_log.h>
-#include <stdio.h>
+// #include <stdio.h>
 #include <log.h>
 
 /* Define U-Boot debug_xxx macros */

@@ -213,7 +213,9 @@ int initialise_uboot_drivers(
     // Create a copy of the FDT for U-Boot to use. We do this using
     // 'fdt_open_into' to open the FDT into a larger buffer to allow
     // us extra space to make modifications as required.
-    void* orig_fdt_blob = ps_io_fdt_get(&io_ops->io_fdt);
+
+    // void* orig_fdt_blob = ps_io_fdt_get(&io_ops->io_fdt);
+
     if (orig_fdt_blob == NULL) {
         ZF_LOGE("Unable to access FDT");
         return -1;

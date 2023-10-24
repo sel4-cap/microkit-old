@@ -22,6 +22,10 @@
 #include <command.h>
 #include <sel4_timer.h>
 
+//libmicrokit
+#include <printf.h>
+#include <tinyalloc.h>
+
 // Global declaration of global_data.
 struct global_data* gd;
 
@@ -74,7 +78,7 @@ int initialise_uboot_wrapper(char* fdt_blob)
     initialise_driver_data();
 
     // Allocation of global_data.
-    gd = malloc(sizeof(gd_t));
+    gd = ta_alloc(sizeof(gd_t));
     if (gd == NULL)
         return -ENOMEM;
 
@@ -169,7 +173,7 @@ int initialise_uboot_wrapper(char* fdt_blob)
 
 error:
     // Failed to initialise library, clean up and return error code.
-    free(gd);
+    ta_free(gd);
     gd = NULL;
     return -1;
 }
@@ -200,7 +204,7 @@ void shutdown_uboot_wrapper(void)
     shutdown_timer();
 
     // Delete persistant state.
-    free(gd);
+    ta_free(gd);
     gd = NULL;
 
     return;

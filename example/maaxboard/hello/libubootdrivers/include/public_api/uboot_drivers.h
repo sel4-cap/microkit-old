@@ -5,7 +5,7 @@
  * 
  */
 
-#include <sel4platsupport/io.h>
+// #include <sel4platsupport/io.h>
 
 /*
  * initialise_uboot_drivers() - initialise the u-boot driver library.
@@ -22,7 +22,7 @@
  */
 
 int initialise_uboot_drivers(
-    ps_io_ops_t *io_ops,
+    // ps_io_ops_t *io_ops,
     const char **reg_paths,
     uint32_t reg_count,
     const char **dev_paths,

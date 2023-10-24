@@ -256,7 +256,7 @@ static size_t count_blocks(Block *ptr) {
     return num;
 }
 
-size_t ta_num_free() {
+size_t ta_num_ta_free() {
     return count_blocks(heap->free);
 }
 
@@ -269,5 +269,5 @@ size_t ta_num_fresh() {
 }
 
 bool ta_check() {
-    return heap_max_blocks == ta_num_free() + ta_num_used() + ta_num_fresh();
+    return heap_max_blocks == ta_num_ta_free() + ta_num_used() + ta_num_fresh();
 }

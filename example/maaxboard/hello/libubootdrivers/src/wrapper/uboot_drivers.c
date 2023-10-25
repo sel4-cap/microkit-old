@@ -12,7 +12,7 @@
  * is called to continue within the U-Boot 'world'.
  */
 
-#include <sel4platsupport/io.h>
+// #include <sel4platsupport/io.h>
 
 #include <libfdt.h>
 #include <uboot_wrapper.h>
@@ -125,7 +125,7 @@ static int map_required_device_resources(const char **device_paths, uint32_t dev
     // Allocate resources and modify addresses in the device tree for each device.
     for (int dev_index=0; dev_index < device_count; dev_index++) {
         if (map_device_resources(device_paths[dev_index]) != 0) {
-            free(uboot_fdt_pointer);
+            ta_free(uboot_fdt_pointer);
             uboot_fdt_pointer = NULL;
             return -1;
         }
@@ -208,7 +208,7 @@ int initialise_uboot_drivers(
     sel4_dma_initialise(&io_ops->dma_manager);
 
     // Initialise the IO mapping management.
-    sel4_io_map_initialise(&io_ops->io_mapper);
+    // sel4_io_map_initialise(&io_ops->io_mapper);
 
     // Create a copy of the FDT for U-Boot to use. We do this using
     // 'fdt_open_into' to open the FDT into a larger buffer to allow
@@ -222,7 +222,7 @@ int initialise_uboot_drivers(
     }
 
     int fdt_size = fdt_totalsize(orig_fdt_blob) + EXTRA_FDT_BUFFER_SIZE;
-    uboot_fdt_pointer = malloc(fdt_size);
+    uboot_fdt_pointer = ta_alloc(fdt_size);
     if (uboot_fdt_pointer == NULL) {
         return -ENOMEM;
     }
@@ -250,14 +250,14 @@ int initialise_uboot_drivers(
 
 error:
     // Failed to initialise library, clean up and return error code.
-    free(uboot_fdt_pointer);
+    ta_free(uboot_fdt_pointer);
     uboot_fdt_pointer = NULL;
     return -1;
 }
 
 void shutdown_uboot_drivers(void) {
     if (uboot_fdt_pointer != NULL) {
-        free(uboot_fdt_pointer);
+        ta_free(uboot_fdt_pointer);
         uboot_fdt_pointer = NULL;
     }
 

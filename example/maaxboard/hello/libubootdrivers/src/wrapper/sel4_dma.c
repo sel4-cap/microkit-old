@@ -229,7 +229,7 @@ void sel4_dma_invalidate_range(void *start, void *stop)
             dma_alloc[alloc_index].size);
 }
 
-void sel4_dma_free(void *vaddr)
+void sel4_dma_ta_free(void *vaddr)
 {
     assert(sel4_dma_manager != NULL);
 
@@ -303,7 +303,7 @@ void* sel4_dma_memalign(size_t align, size_t size)
     return mapped_vaddr;
 }
 
-void* sel4_dma_malloc(size_t size)
+void* sel4_dma_ta_alloc(size_t size)
 {
     /* Default to alignment on cacheline boundaries */
     return sel4_dma_memalign(CONFIG_SYS_CBSIZE, size);
@@ -322,7 +322,7 @@ void sel4_dma_shutdown(void)
     // Deallocate any currently allocated DMA.
     for (int x = 0; x < MAX_DMA_ALLOCS; x++)
         if (dma_alloc[x].in_use)
-            sel4_dma_free(dma_alloc[x].public_vaddr);
+            sel4_dma_ta_free(dma_alloc[x].public_vaddr);
 
     // Clear the pointer to the DMA routines.
     sel4_dma_manager = NULL;
@@ -339,7 +339,7 @@ void *sel4_dma_map_single(void* public_vaddr, size_t size, enum dma_data_directi
     }
 
     /* Start by creating a DMA allocation */
-    void* mapped_vaddr = sel4_dma_malloc(size);
+    void* mapped_vaddr = sel4_dma_ta_alloc(size);
     if (mapped_vaddr == NULL)
         return NULL;
 
@@ -379,7 +379,7 @@ void sel4_dma_unmap_single(void* paddr)
     sel4_dma_flush_range(public_vaddr, public_vaddr + size);
 
     /* Now free the DAM allocation (which also clears the mapping) */
-    sel4_dma_free(public_vaddr);
+    sel4_dma_ta_free(public_vaddr);
 }
 
 /* Map data cache requests on to DMA requests. Note that U-Boot code that is

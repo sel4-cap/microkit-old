@@ -1,6 +1,6 @@
 /* This work is Crown Copyright NCSC, 2023. */
 #include <evbarm/bus_defs.h>
-#include <io.h>
+// #include <io.h>
 
 int sel4_dma_malloc_new(size_t, size_t, bus_dma_segment_t *);
 int sel4_dma_free_new(void *);

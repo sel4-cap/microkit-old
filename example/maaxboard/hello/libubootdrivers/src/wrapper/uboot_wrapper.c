@@ -215,29 +215,29 @@ unsigned long uboot_monotonic_timer_get_us(void)
     return timer_get_us();
 }
 
-int uboot_stdin_tstc(void)
-{
-    // Return immediately if library not initialised .
-    if (!library_initialised)
-        return -1;
+// int uboot_stdin_tstc(void)
+// {
+//     // Return immediately if library not initialised .
+//     if (!library_initialised)
+//         return -1;
 
-    if (NULL == stdio_devices[stdin])
-        return 0;
+//     if (NULL == stdio_devices[stdin])
+//         return 0;
 
-    return stdio_devices[stdin]->tstc(stdio_devices[stdin]);
-}
+//     return stdio_devices[stdin]->tstc(stdio_devices[stdin]);
+// }
 
-int uboot_stdin_getc(void)
-{
-    // Return immediately if library not initialised .
-    if (!library_initialised)
-        return -1;
+// int uboot_stdin_getc(void)
+// {
+//     // Return immediately if library not initialised .
+//     if (!library_initialised)
+//         return -1;
 
-    if (NULL == stdio_devices[stdin])
-        return 0;
+//     if (NULL == stdio_devices[stdin])
+//         return 0;
 
-    return stdio_devices[stdin]->getc(stdio_devices[stdin]);
-}
+//     return stdio_devices[stdin]->getc(stdio_devices[stdin]);
+// }
 
 #ifdef CONFIG_DM_ETH
 

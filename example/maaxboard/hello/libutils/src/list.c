@@ -111,7 +111,7 @@ static int remove(list_t *l, void *data, int (*cmp)(void *, void *),
                 prev->next = n->next;
             }
             if (should_free) {
-                free(n);
+                ta_free(n);
             }
             return 0;
         }
@@ -129,7 +129,7 @@ int list_remove_all(list_t *l)
     assert(l != NULL);
     for (node_t *n = l->head; n != NULL;) {
         node_t *temp = n->next;
-        free(n);
+        ta_free(n);
         n = temp;
     }
     l->head = NULL;

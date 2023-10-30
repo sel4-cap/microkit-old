@@ -29,6 +29,8 @@ set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/hello-build)
 set(IMAGE_FILE ${BUILD_DIR}/loader.img)
 set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
+set(libUbootPlatform "maaxboard")
+
 
 
 #Add libraries 
@@ -47,6 +49,7 @@ add_executable(hello2.elf hello2.c)
 
 # linker
 target_link_options(hello.elf PRIVATE ${LDFLAGS})
+message(STATUS "DAGETEAETETE ${CFLAGS}")
 target_compile_options(hello.elf PRIVATE ${CFLAGS})
 target_include_directories(hello.elf PRIVATE 
     "${BOARD_DIR}/include" 

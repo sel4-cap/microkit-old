@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: BSD-2-Clause
  */
 #include <stdint.h>
-#include <microkit.h>
-#include <printf.h>
-#include <tinyalloc.h>
+#include <stdio.h>
+#include <stdlib.h>
+// #include <microkit.h>
 #include <dma.h>
 #include <uboot_drivers.h>
 
@@ -38,6 +38,9 @@ init(void)
     printf("end = %p\n", &incbin_device_tree_end);
     printf("size = %zu\n", (char*)&incbin_device_tree_end - (char*)&incbin_device_tree_start);
     printf("first byte = 0x%02hhx\n", incbin_device_tree_start[0]);
+
+    // initialise tinyalloc
+    //  initialise uboot library
 
     run_uboot_command("dm tree");
 }

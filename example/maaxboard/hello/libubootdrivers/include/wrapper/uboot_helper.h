@@ -94,7 +94,7 @@ typedef long off_t;
 #define stderr  2
 
 /* Include headers expected by all U-Boot source code */
-// #include <linux/kernel.h>
+#include <linux/kernel.h>
 #include <linux/kconfig.h>
 #include <sel4_dma.h>
 // #include <sel4_io_map.h>

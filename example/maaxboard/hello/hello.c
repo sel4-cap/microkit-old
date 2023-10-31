@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-// #include <microkit.h>
+#include <microkit.h>
 #include <dma.h>
 #include <uboot_drivers.h>
 

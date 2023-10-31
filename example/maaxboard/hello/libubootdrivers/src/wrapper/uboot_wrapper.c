@@ -23,8 +23,8 @@
 #include <sel4_timer.h>
 
 //libmicrokit
-#include <printf.h>
-#include <tinyalloc.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // Global declaration of global_data.
 struct global_data* gd;

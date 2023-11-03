@@ -67,8 +67,8 @@
 #define pr_cont(fmt, ...)		log_cont(fmt, ##__VA_ARGS__)
 
 /* Define miscellaneous logging routines */
-#define putc(CHAR)          printf("%c", CHAR)
-#define puts(...)           printf(__VA_ARGS__)
+// #define putc(FILE, CHAR)          printf("%c", CHAR)
+// #define puts(...)           printf(__VA_ARGS__)
 #define fprintf(FILE, ...)	printf(__VA_ARGS__)
 
 /* Define non spl logging routines */

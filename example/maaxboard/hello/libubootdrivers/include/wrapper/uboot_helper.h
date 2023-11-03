@@ -13,6 +13,7 @@
  * to cleanly compile the U-Boot source files.
  */
 
+
 /* Enable seL4 specific code modifications to the U-Boot source files */
 #define CONFIG_SEL4
 
@@ -94,6 +95,8 @@ typedef long off_t;
 #define stderr  2
 
 /* Include headers expected by all U-Boot source code */
+
+
 #include <linux/kernel.h>
 #include <linux/kconfig.h>
 #include <sel4_dma.h>
@@ -109,6 +112,9 @@ typedef long off_t;
 #include <linux/libfdt_env.h>
 #include <linux/libfdt.h>
 
+#undef __KERNEL_STRICT_NAMES
+
+
 /* Replace uses of U-Boot's lldiv function with the equivalent from muslc */
-#define __ldiv_t_defined
-#define lldiv(A, B)     lldiv(A, B).quot
+// #define __ldiv_t_defined
+// #define lldiv(A, B)     lldiv(A, B).quot

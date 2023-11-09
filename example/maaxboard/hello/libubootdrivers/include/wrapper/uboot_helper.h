@@ -90,9 +90,9 @@ typedef long off_t;
 #undef stderr
 
 /* Provide default indexes for the stdin / stdout / stderr 'files' */
-// #define stdin   0
-// #define stdout  1
-// #define stderr  2
+#define stdin   0
+#define stdout  1
+#define stderr  2
 
 /* Include headers expected by all U-Boot source code */
 

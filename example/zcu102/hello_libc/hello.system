@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright 2021, Breakaway Consulting Pty. Ltd.
+
+ SPDX-License-Identifier: BSD-2-Clause
+-->
+<system>
+    <memory_region name="heap_mem" size="0x2000000"/>
+    <memory_region name="heap_end" size="0x1000"/>
+    <memory_region name="heap_mem2" size="0x2000000"/>
+    <protection_domain name="hello" priority="254">
+        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="__heap_start"/>
+        <map mr="heap_end" vaddr="0x52000000" perms="rw" cached="false" setvar_vaddr="__heap_end"/>
+        <program_image path="hello.elf" />  
+    </protection_domain>
+    <!-- <protection_domain name="mem_handler" pp="true" priority="252">
+        <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>
+        <program_image path="mem_handler.elf" />
+    </protection_domain> -->
+    <protection_domain name="hello2" priority="253">
+        <map mr="heap_mem2" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="__heap_start"/>
+        <map mr="heap_end" vaddr="0x52000000" perms="rw" cached="false" setvar_vaddr="__heap_end"/>
+        <program_image path="hello2.elf" />  
+    </protection_domain>
+
+    <channel>
+        <end pd="hello" id="0"/>
+        <end pd="hello2" id="30"/>
+    </channel>
+
+    
+</system>
+

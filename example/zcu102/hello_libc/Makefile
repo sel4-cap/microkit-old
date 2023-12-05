@@ -37,7 +37,7 @@ BOARD_DIR := $(MICROKIT_SDK)/board/$(MICROKIT_BOARD)/$(MICROKIT_CONFIG)
 IMAGES := hello.elf hello2.elf
 CFLAGS := -mcpu=$(CPU) -mstrict-align -nostdlib -nolibc -ffreestanding -g3 -O3 -Wall -Wno-unused-function -Werror --specs=/home/dstorer/mk-manifest/microkit/example/maaxboard/hello_libc/picolibc/build-aarch64-linux-elf_nocrt2/picolibc.specs -I$(BOARD_DIR)/include  
 LDFLAGS := -L$(BOARD_DIR)/lib
-LIBS := /home/dstorer/mk-manifest/microkit/example/maaxboard/hello_libc/picolibc/build-aarch64-linux-elf_nocrt2/newlib/libm.a  /home/dstorer/mk-manifest/microkit/example/maaxboard/hello_libc/picolibc/build-aarch64-linux-elf_nocrt2/newlib/libc.a -lmicrokit -Tmicrokit.ld # /usr/lib/gcc-cross/aarch64-linux-gnu/10/libgcc.a
+LIBS := ${PICOLIBC_DIR}/lib/libm.a  ${PICOLIBC_DIR}/lib/libc.a -lmicrokit -Tmicrokit.ld # /usr/lib/gcc-cross/aarch64-linux-gnu/10/libgcc.a
 
 
 IMAGE_FILE = $(BUILD_DIR)/loader.img

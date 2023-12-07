@@ -11,7 +11,7 @@
 
 #include <linux/errno.h>
 
-extern _Thread_local int errno;
+extern int errno;
 
 #define __set_errno(val) do { errno = val; } while (0)
 

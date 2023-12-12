@@ -24,9 +24,9 @@ static int console_setfile(int file, struct stdio_dev * dev)
 		return -1;
 
 	switch (file) {
-	case stdin:
-	case stdout:
-	case stderr:
+	case stdin_uboot:
+	case stdout_uboot:
+	case stderr_uboot:
 		/* Assign the new device */
 		stdio_devices[file] = dev;
 		break;
@@ -73,24 +73,24 @@ void stdio_print_current_devices(void)
 {
 	/* Print information */
 	puts("In:    ");
-	if (stdio_devices[stdin] == NULL) {
+	if (stdio_devices[stdin_uboot] == NULL) {
 		puts("No input devices available!\n");
 	} else {
-		printf ("%s\n", stdio_devices[stdin]->name);
+		printf ("%s\n", stdio_devices[stdin_uboot]->name);
 	}
 
 	puts("Out:   ");
-	if (stdio_devices[stdout] == NULL) {
+	if (stdio_devices[stdout_uboot] == NULL) {
 		puts("No output devices available!\n");
 	} else {
-		printf ("%s\n", stdio_devices[stdout]->name);
+		printf ("%s\n", stdio_devices[stdout_uboot]->name);
 	}
 
 	puts("Err:   ");
-	if (stdio_devices[stderr] == NULL) {
+	if (stdio_devices[stderr_uboot] == NULL) {
 		puts("No error devices available!\n");
 	} else {
-		printf ("%s\n", stdio_devices[stderr]->name);
+		printf ("%s\n", stdio_devices[stderr_uboot]->name);
 	}
 }
 

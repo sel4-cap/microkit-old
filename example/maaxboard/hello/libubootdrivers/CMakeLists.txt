@@ -645,12 +645,11 @@ if(LibUBOOT)
     # file(GLOB_RECURSE wrapper_deps src/wrapper/*.c)
     list(APPEND uboot_deps src/wrapper/uboot_wrapper.c)
     list(APPEND uboot_deps src/wrapper/unimplemented.c)
+    # list(APPEND uboot_deps src/wrapper/sel4_io_map.c)
     # list(APPEND uboot_deps src/wrapper/uboot_drivers.c)
     # list(APPEND uboot_deps src/wrapper/sel4_dma.c)
-    # list(APPEND uboot_deps src/wrapper/sel4_delay.c)
+    list(APPEND uboot_deps src/wrapper/sel4_delay.c)
     file(GLOB_RECURSE plat_deps src/plat/${KernelPlatform}/*.c)
-    # Need libc for this file
-    # list(APPEND uboot_deps uboot/common/console.c)
 
     # For all U-Boot source code we:
     # - Add the 'uboot_helper.h' include to provide required includes and configuration.
@@ -672,7 +671,7 @@ if(LibUBOOT)
         # U-Boot includes (Include 'stub' first to ensure they override U-Boot includes)
         uboot_stub/include
         uboot/include
-        uboot/include/linux
+        uboot/scripts/dtc/libfdt
         uboot_stub/arch/${KernelArch}/include
         uboot/arch/${KernelArch}/include
         uboot/lib
@@ -680,15 +679,14 @@ if(LibUBOOT)
         include/wrapper
         # Platform specific includes
         include/plat/${KernelPlatform}
-        ../libmicrokit/include/
-        ../libmicrokit/include/public_api
+        "${BOARD_DIR}/include"
     )
 
     # Declare the public interface to the library.
     target_include_directories(ubootdrivers INTERFACE ../libmicrokit/include/public_api ../libmicrokit/include/)
 
     # target_link_libraries(ubootdrivers sel4 muslc sel4platsupport utils)
-    target_link_libraries(ubootdrivers printf utils)
+    target_link_libraries(ubootdrivers utils printf)
 
     #########################
     # Manage logging levels #

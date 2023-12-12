@@ -5,7 +5,7 @@
  *
  */
 
-#include <io.h>
+#include <sel4platsupport/io.h>
 
 #define MAX_IO_MAPS 64
 

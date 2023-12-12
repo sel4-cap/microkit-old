@@ -27,9 +27,10 @@ list(SORT deps)
 # add_config_library(utils "${configure_string}")
 
 add_library(utils STATIC EXCLUDE_FROM_ALL ${deps})
-target_include_directories(utils
-    PUBLIC
-        include
-        arch_include/${KernelArch}
+target_include_directories(utils PUBLIC
+    "${PICOLIBC_DIR}/include/"
+    "include"
+    "arch_include/${KernelArch}"
+    
 )
 # target_link_libraries(utils muslc utils_Config sel4_autoconf)

@@ -5,7 +5,7 @@
  *
  */
 
-#include <io.h>
+#include <sel4platsupport/io.h>
 #include <linux/dma-direction.h>
 
 #define MAX_DMA_ALLOCS 256

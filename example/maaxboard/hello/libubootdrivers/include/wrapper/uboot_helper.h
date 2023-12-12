@@ -90,9 +90,9 @@ typedef long off_t;
 #undef stderr
 
 /* Provide default indexes for the stdin / stdout / stderr 'files' */
-#define stdin   0
-#define stdout  1
-#define stderr  2
+#define stdin_uboot   0
+#define stdout_uboot  1
+#define stderr_uboot  2
 
 /* Include headers expected by all U-Boot source code */
 
@@ -115,6 +115,6 @@ typedef long off_t;
 #undef __KERNEL_STRICT_NAMES
 
 
-/* Replace uses of U-Boot's lldiv function with the equivalent from muslc */
-// #define __ldiv_t_defined
-// #define lldiv(A, B)     lldiv(A, B).quot
+/* Replace uses of U-Boot's lldiv function with the equivalent from picolibc */
+#define __ldiv_t_defined
+#define lldiv(A, B)     lldiv(A, B).quot

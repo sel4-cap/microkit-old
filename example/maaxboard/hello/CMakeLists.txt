@@ -37,8 +37,6 @@ set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
 set(libUbootPlatform "maaxboard")
 
-
-
 #Add libraries 
 add_subdirectory(libmicrokit)
 add_subdirectory(libubootdrivers)
@@ -61,6 +59,7 @@ target_include_directories(hello.elf PRIVATE
     "${BOARD_DIR}/include" 
     "libmicrokit/include/dma/"
     "libubootdrivers/include/public_api/"
+    "libmicrokit/include/public_api/"
     "${PICOLIBC_DIR}/include/")
 # target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
 target_link_libraries(hello.elf PUBLIC ubootdrivers utils printf)

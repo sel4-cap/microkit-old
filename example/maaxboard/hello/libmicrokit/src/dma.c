@@ -6,11 +6,12 @@
  */
 /* Author: alex.kroh@nicta.com.au */
 
-#include <dma.h>
+#include <dma/dma.h>
 #include <printf.h>
 // #include <wrapper.h>
 #include <tinyalloc.h>
 // #include <sys/kmem.h>
+#include <linux/dma-direction.h>
 
 uintptr_t phys_base;
 uintptr_t virt_base;
@@ -25,6 +26,9 @@ uintptr_t allocated_dma;
 #define dma_print(...) 0
 #endif
 
+//Replace memalign with dma_memalign
+
+ 
 void sel4_dma_init(uintptr_t pbase, uintptr_t vbase, uintptr_t limit) {
     phys_base = pbase;
     allocated_dma = vbase;
@@ -52,7 +56,9 @@ void sel4_dma_init(uintptr_t pbase, uintptr_t vbase, uintptr_t limit) {
 //     return 0;
 // }
 
-int sel4_dma_alloc(size_t size, bus_dma_segment_t *sg) {
+
+
+void* sel4_dma_malloc(size_t size) {
     if (allocated_dma + size >= dma_limit) {
         dma_print("DMA_ERROR: out of memory\n");
         return 0;
@@ -60,10 +66,9 @@ int sel4_dma_alloc(size_t size, bus_dma_segment_t *sg) {
     uintptr_t start_addr = allocated_dma;
     allocated_dma += size;
     dma_print("Alloced at %p size %p\n", start_addr, size);
-    sg->ds_addr = (uintptr_t) start_addr;
-    sg->ds_len = size;
-    return 0;
+    return start_addr;
 }
+
 
 uintptr_t* getPhys(void* virt) {
     int offset = (uint64_t)virt - (int)virt_base;
@@ -76,4 +81,28 @@ uintptr_t* getVirt(void* paddr) {
     uintptr_t *offset = paddr - phys_base;
     dma_print("getting virt of %p: %p\n", paddr, virt_base+offset);
     return (virt_base + offset);
+}
+
+int sel4_dma_free(void){
+    return 0;
+}
+
+bool sel4_dma_is_mapped(void *vaddr){
+    return true;
+}
+
+void *sel4_dma_map_single(void* public_vaddr, size_t size, enum dma_data_direction dir){
+    return 0;
+}
+
+void sel4_dma_unmap_single(void* paddr){
+    return 0;
+}
+
+void flush_dcache_range(unsigned long start, unsigned long stop){
+    return 0;
+}
+
+void invalidate_dcache_range(unsigned long start, unsigned long end){
+    return 0;
 }

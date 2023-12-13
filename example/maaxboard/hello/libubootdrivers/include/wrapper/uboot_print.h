@@ -16,7 +16,7 @@
 #define debug_cond(A, ...)  ZF_LOGD(__VA_ARGS__)
 
 /* Define U-Boot log_xxx macros */
-#define log(_cat, _level, ...) ({ 							\
+#define log_uboot(_cat, _level, ...) ({ 							\
 	if      (_level <= LOGL_EMERG)   ZF_LOGF(__VA_ARGS__);	\
 	else if (_level <= LOGL_ERR)     ZF_LOGE(__VA_ARGS__);	\
 	else if (_level <= LOGL_WARNING) ZF_LOGW(__VA_ARGS__);	\
@@ -25,17 +25,17 @@
 	else							 ZF_LOGV(__VA_ARGS__);	\
 	})
 
-#define log_emer(_fmt...)		log(0, LOGL_EMERG, ##_fmt)
-#define log_alert(_fmt...)		log(0, LOGL_ALERT, ##_fmt)
-#define log_crit(_fmt...)		log(0, LOGL_CRIT, ##_fmt)
-#define log_err(_fmt...)		log(0, LOGL_ERR, ##_fmt)
-#define log_warning(_fmt...)	log(0, LOGL_WARNING, ##_fmt)
-#define log_notice(_fmt...)		log(0, LOGL_NOTICE, ##_fmt)
-#define log_info(_fmt...)		log(0, LOGL_INFO, ##_fmt)
-#define log_debug(_fmt...)		log(0, LOGL_DEBUG, ##_fmt)
-#define log_content(_fmt...)	log(0, LOGL_DEBUG_CONTENT, ##_fmt)
-#define log_io(_fmt...)			log(0, LOGL_DEBUG_IO, ##_fmt)
-#define log_cont(_fmt...)		log(0, LOGL_CONT, ##_fmt)
+#define log_emer(_fmt...)		log_uboot(0, LOGL_EMERG, ##_fmt)
+#define log_alert(_fmt...)		log_uboot(0, LOGL_ALERT, ##_fmt)
+#define log_crit(_fmt...)		log_uboot(0, LOGL_CRIT, ##_fmt)
+#define log_err(_fmt...)		log_uboot(0, LOGL_ERR, ##_fmt)
+#define log_warning(_fmt...)	log_uboot(0, LOGL_WARNING, ##_fmt)
+#define log_notice(_fmt...)		log_uboot(0, LOGL_NOTICE, ##_fmt)
+#define log_info(_fmt...)		log_uboot(0, LOGL_INFO, ##_fmt)
+#define log_debug(_fmt...)		log_uboot(0, LOGL_DEBUG, ##_fmt)
+#define log_content(_fmt...)	log_uboot(0, LOGL_DEBUG_CONTENT, ##_fmt)
+#define log_io(_fmt...)			log_uboot(0, LOGL_DEBUG_IO, ##_fmt)
+#define log_cont(_fmt...)		log_uboot(0, LOGL_CONT, ##_fmt)
 
 #define log_ret(_ret) ({ \
 	int __ret = (_ret); \
@@ -69,7 +69,7 @@
 /* Define miscellaneous logging routines */
 // #define putc(FILE, CHAR)          printf("%c", CHAR)
 // #define puts(...)           printf(__VA_ARGS__)
-#define fprintf(FILE, ...)	printf(__VA_ARGS__)
+// #define fprintf(FILE, ...)	printf(__VA_ARGS__)
 
 /* Define non spl logging routines */
 #define warn_non_spl(fmt, ...)	log_warning(fmt, ##__VA_ARGS__)

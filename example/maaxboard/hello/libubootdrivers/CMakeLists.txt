@@ -671,6 +671,7 @@ if(LibUBOOT)
         # U-Boot includes (Include 'stub' first to ensure they override U-Boot includes)
         uboot_stub/include
         uboot/include
+        # Added to add libfdt.h
         uboot/scripts/dtc/libfdt
         uboot_stub/arch/${KernelArch}/include
         uboot/arch/${KernelArch}/include
@@ -680,10 +681,11 @@ if(LibUBOOT)
         # Platform specific includes
         include/plat/${KernelPlatform}
         "${BOARD_DIR}/include"
+        ../libmicrokit/include
     )
 
     # Declare the public interface to the library.
-    target_include_directories(ubootdrivers INTERFACE ../libmicrokit/include/public_api ../libmicrokit/include/)
+    target_include_directories(ubootdrivers INTERFACE ../libmicrokit/include)
 
     # target_link_libraries(ubootdrivers sel4 muslc sel4platsupport utils)
     target_link_libraries(ubootdrivers utils printf)

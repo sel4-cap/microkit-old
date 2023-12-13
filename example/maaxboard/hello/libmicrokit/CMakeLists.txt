@@ -11,9 +11,12 @@ add_library(printf SHARED STATIC
 
 target_include_directories(printf PRIVATE 
     "${BOARD_DIR}/include" 
-    "include/dma/")
+    "include"
+    "../libubootdrivers/uboot/include")
 
 # target_include_directories(printf INTERFACE include/public_api)
+
+target_link_libraries(printf ubootdrivers)
 
 install(TARGETS printf
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

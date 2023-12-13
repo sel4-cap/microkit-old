@@ -1,4 +1,5 @@
 #include <tinyalloc.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <printf.h>
 #include <microkit.h>
@@ -19,15 +20,15 @@
 // } Heap;
 
 
-bool ta_init(const void *base, const void *limit, const size_t heap_blocks, const size_t split_thresh, const size_t alignment){
-    return ta_init(base, limit, heap_blocks, split_thresh, alignment);
-}
-void *malloc(size_t num){
-    return ta_alloc(num);
-}
-void free(void *ptr){
-    ta_free(ptr);
-}
+// bool ta_init(const void *base, const void *limit, const size_t heap_blocks, const size_t split_thresh, const size_t alignment){
+//     return ta_init(base, limit, heap_blocks, split_thresh, alignment);
+// }
+// void *malloc(size_t num){
+//     return ta_alloc(num);
+// }
+// void free(void *ptr){
+//     ta_free(ptr);
+// }
 
 // void *calloc(size_t num, size_t size) {
 //     num *= size;
@@ -48,3 +49,4 @@ void free(void *ptr){
 //   va_end(va);
 //   return ret;
 // }
+

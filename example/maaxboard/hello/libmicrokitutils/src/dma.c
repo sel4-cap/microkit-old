@@ -7,11 +7,11 @@
 /* Author: alex.kroh@nicta.com.au */
 
 #include <dma/dma.h>
-#include <printf.h>
 // #include <wrapper.h>
-#include <tinyalloc.h>
 // #include <sys/kmem.h>
 #include <linux/dma-direction.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 uintptr_t phys_base;
 uintptr_t virt_base;

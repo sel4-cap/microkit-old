@@ -681,14 +681,14 @@ if(LibUBOOT)
         # Platform specific includes
         include/plat/${KernelPlatform}
         "${BOARD_DIR}/include"
-        ../libmicrokit/include
+        ../libmicrokitutils/include
     )
 
     # Declare the public interface to the library.
     target_include_directories(ubootdrivers INTERFACE ../libmicrokit/include)
 
     # target_link_libraries(ubootdrivers sel4 muslc sel4platsupport utils)
-    target_link_libraries(ubootdrivers utils printf)
+    target_link_libraries(ubootdrivers utils libmicrokitutils)
 
     #########################
     # Manage logging levels #

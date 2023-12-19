@@ -1,4 +1,3 @@
-#include <printf.h>
 #include <microkit.h>
 
 /* Setup for getting picolibc to compile */

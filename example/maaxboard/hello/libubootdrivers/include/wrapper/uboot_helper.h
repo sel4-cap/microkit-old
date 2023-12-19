@@ -118,3 +118,12 @@ typedef long off_t;
 /* Replace uses of U-Boot's lldiv function with the equivalent from picolibc */
 #define __ldiv_t_defined
 #define lldiv(A, B)     lldiv(A, B).quot
+
+// Renames to build with picolibc
+#define stderr stderr_uboot
+#define stdin stdin_uboot
+#define stdout stdout_uboot
+#define log log_uboot
+#define putc putc_uboot
+#define getc getc_uboot
+#define putc_uboot microkit_dbg_putc

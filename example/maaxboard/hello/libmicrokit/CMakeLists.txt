@@ -7,7 +7,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/)
 add_library(printf SHARED STATIC
     src/dma.c
     src/util.c
-    src/public_api.c
     src/delay.c
 )
 

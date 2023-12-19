@@ -6,11 +6,10 @@ set(CMAKE_C_COMPILER ${TOOLCHAIN}-gcc)
 set(CMAKE_C_COMPILER_WORKS 1)
 project(hello-microkit LANGUAGES C)
 
-# set(LD ${TOOLCHAIN}-ld)
-# set(CMAKE_ASM_COMPILER ${TOOLCHAIN}-as)
+set(LD ${TOOLCHAIN}-ld)
+set(CMAKE_ASM_COMPILER ${TOOLCHAIN}-as)
 
 # microkit specific information
-#! export to makefile{
 set(MICROKIT_SDK /host/mk-manifest/microkit/release/microkit-sdk-1.2.6)
 set(MICROKIT_BOARD maaxboard)
 set(MICROKIT_CONFIG debug)

@@ -22,7 +22,7 @@
  */
 
 int initialise_uboot_drivers(
-    // ps_io_ops_t *io_ops,
+    const char *orig_fdt_blob,
     const char **reg_paths,
     uint32_t reg_count,
     const char **dev_paths,

@@ -26,9 +26,6 @@ uintptr_t allocated_dma;
 #define dma_print(...) 0
 #endif
 
-//Replace memalign with dma_memalign
-
- 
 void sel4_dma_init(uintptr_t pbase, uintptr_t vbase, uintptr_t limit) {
     phys_base = pbase;
     allocated_dma = vbase;
@@ -36,27 +33,6 @@ void sel4_dma_init(uintptr_t pbase, uintptr_t vbase, uintptr_t limit) {
     dma_limit = limit;
     dma_print("init phys_base: %p, vbase: %p\n", phys_base, virt_base);
 }
-
-// int sel4_dma_map_create(bus_dmamap_t *dmap, bus_size_t s, bus_size_t mxs) {
-//     (*dmap) = kmem_zalloc(sizeof(**dmap),0);
-// 	(*dmap)->dm_maxsegsz = mxs;
-// 	(*dmap)->dm_mapsize = s;
-// 	(*dmap)->dm_nsegs = 1;
-//     return 0;
-// }
-
-// int sel4_dma_map_load(bus_dmamap_t dmam, void* buf, bus_size_t s) {
-//     dmam->dm_segs[0].ds_addr = (bus_addr_t) buf;
-//     dmam->dm_segs[0].ds_len = s;
-//     return 0;
-// }
-
-// int sel4_dma_map(void **k, bus_dma_segment_t *sg) {
-// 	*k = (void*) sg->ds_addr;
-//     return 0;
-// }
-
-
 
 void* sel4_dma_malloc(size_t size) {
     if (allocated_dma + size >= dma_limit) {
@@ -69,6 +45,9 @@ void* sel4_dma_malloc(size_t size) {
     return start_addr;
 }
 
+void* sel4_dma_clear(){
+    allocated_dma = virt_base;
+}
 
 uintptr_t* getPhys(void* virt) {
     int offset = (uint64_t)virt - (int)virt_base;
@@ -81,10 +60,6 @@ uintptr_t* getVirt(void* paddr) {
     uintptr_t *offset = paddr - phys_base;
     dma_print("getting virt of %p: %p\n", paddr, virt_base+offset);
     return (virt_base + offset);
-}
-
-int sel4_dma_free(void){
-    return 0;
 }
 
 bool sel4_dma_is_mapped(void *vaddr){
@@ -104,5 +79,9 @@ void flush_dcache_range(unsigned long start, unsigned long stop){
 }
 
 void invalidate_dcache_range(unsigned long start, unsigned long end){
+    return 0;
+}
+
+void sel4_dma_free(void *vaddr){
     return 0;
 }

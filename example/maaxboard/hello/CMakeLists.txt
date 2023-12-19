@@ -16,20 +16,17 @@ set(MICROKIT_BOARD maaxboard)
 set(MICROKIT_CONFIG debug)
 # set python variables
 set(PYTHONPATH /host/mk-manifest/microkit/tool)
-set(MICROKIT_TOOL "python -m microkit")
-#}
+set(MICROKIT_TOOL "python3 -m microkit")
 
 set(BOARD_DIR ${MICROKIT_SDK}/board/${MICROKIT_BOARD}/${MICROKIT_CONFIG})
 set(PICOLIBC_DIR /host/mk-manifest/microkit/example/maaxboard/hello/picolibc_build/picolibc/aarch64-linux-gnu)
-
-# set(CFLAGS -mcpu=${CPU} -mstrict-align -nostdlib -ffreestanding -g3 -O3 -Wall  -Wno-unused-function -Werror)
 
 set(CMAKE_C_FLAGS "-march=armv8-a -D__KERNEL_64__ -g -D_XOPEN_SOURCE=700 -ffreestanding -mstrict-align -fno-common -fno-pic -fno-pie -nostdlib -nolibc -fpic --specs=/host/mk-manifest/microkit/example/maaxboard/hello/picolibc/build-aarch64-linux-elf_nocrt/picolibc.specs" )
   
 
 
 set(LDFLAGS -L${BOARD_DIR}/lib -nostdlib)
-set(LIBS -lmicrokit -Tmicrokit.ld ${PICOLIBC_DIR}/lib/libc.a ${PICOLIBC_DIR}/lib/libm.a)
+set(LIBS -lmicrokit -Tmicrokit.ld -lgcc -L${PICOLIBC_DIR}/lib -lc -lm -lgcc)
 
 set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/hello-build)
 set(IMAGE_FILE ${BUILD_DIR}/loader.img)

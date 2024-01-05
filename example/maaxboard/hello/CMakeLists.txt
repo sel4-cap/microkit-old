@@ -8,20 +8,23 @@ project(hello-microkit LANGUAGES C)
 
 set(LD ${TOOLCHAIN}-ld)
 set(CMAKE_ASM_COMPILER ${TOOLCHAIN}-as)
+set(MICROKIT_DIR /home/dstorer/docker_test/mk-manifest/microkit/ )
 
 # microkit specific information
-set(MICROKIT_SDK /host/mk-manifest/microkit/release/microkit-sdk-1.2.6)
+set(MICROKIT_SDK ${MICROKIT_DIR}/release/microkit-sdk-1.2.6)
 set(MICROKIT_BOARD maaxboard)
 set(MICROKIT_CONFIG debug)
 # set python variables
-set(PYTHONPATH /host/mk-manifest/microkit/tool)
+set(PYTHONPATH ${MICROKIT_DIR}/tool)
 set(MICROKIT_TOOL "python3 -m microkit")
 
 set(BOARD_DIR ${MICROKIT_SDK}/board/${MICROKIT_BOARD}/${MICROKIT_CONFIG})
-set(PICOLIBC_DIR /host/mk-manifest/microkit/example/maaxboard/hello/picolibc_build/picolibc/aarch64-linux-gnu)
+set(PICOLIBC_DIR ${MICROKIT_DIR}/example/maaxboard/hello/picolibc_build/picolibc/aarch64-linux-gnu)
 
-set(CMAKE_C_FLAGS "-march=armv8-a -D__KERNEL_64__ -g -D_XOPEN_SOURCE=700 -ffreestanding -mstrict-align -fno-common -fno-pic -fno-pie -nostdlib -nolibc -fpic --specs=/host/mk-manifest/microkit/example/maaxboard/hello/picolibc/build-aarch64-linux-elf_nocrt/picolibc.specs" )
-  
+set(CFLAGS -mcpu=${CPU} -nostdlib -ffreestanding -Wall  -Wno-unused-function)
+# -D_XOPEN_SOURCE=700 needed to remove error relating to fls
+# set(CMAKE_C_FLAGS "-mcpu=${CPU} -ffreestanding -nostdlib -nolibc" )
+
 
 
 set(LDFLAGS -L${BOARD_DIR}/lib -nostdlib)
@@ -44,7 +47,7 @@ add_custom_target(make-img
     
     # COMMAND ${CMAKE_COMMAND} -E env "MICROKIT_SDK=${MICROKIT_SDK} MICROKIT_BOARD=${MICROKIT_BOARD} MICROKIT_CONFIG=debug PYTHONPATH=${PYTHONPATH} MICROKIT_TOOL=${MICROKIT_TOOL}"
 
-add_executable(hello.elf hello.c) 
+add_executable(hello.elf hello.c)
 # add_executable(hello2.elf hello2.c) 
 
 
@@ -56,7 +59,7 @@ target_include_directories(hello.elf PRIVATE
     "libmicrokitutils/include/"
     "libubootdrivers/include/public_api/"
     "${PICOLIBC_DIR}/include/")
-# target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
+target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
 target_link_libraries(hello.elf PUBLIC ubootdrivers utils libmicrokitutils)
 target_link_libraries(hello.elf PRIVATE ${LIBS})
 

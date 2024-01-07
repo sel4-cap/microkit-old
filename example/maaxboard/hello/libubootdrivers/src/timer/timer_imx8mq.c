@@ -37,14 +37,17 @@ void initialise_and_start_timer(void)
 {
     /* Read tick frequency associated with the base counter */
     tick_frequency = readl(&ctrl_reg->cntfid0);
+    printf("After tick frequency \n");
 
     if (tick_frequency < 1000000) {
         log_err("Fatal: System counter tick frequency is too low for accurate timing\n");
         hang();
     }
 
+    printf("before write\n");
     /* Set the enable bitand select the base frequency */
     writel(CNTCR_EN | CNTCR_FCR0, &ctrl_reg->cntcr);
+    printf("after write\n");
 }
 
 void shutdown_timer(void)
@@ -94,4 +97,19 @@ unsigned long get_timer(unsigned long base) {
         return 0;
     else
         return time - base;
+}
+
+void udelay(unsigned long usec)
+{
+    return 0;timer_print("TIMER START\n");
+    unsigned long timer_count_init = get_ticks();
+	timer_print("Start count: %ld\n", timer_count_init);
+    unsigned long delay_ticks = usec*(tick_frequency/1000);
+    timer_print("Delay ticks: %ld\n", delay_ticks);
+	while (get_ticks() < timer_count_init + delay_ticks) {
+        seL4_Yield();
+	}
+	timer_print("Finish count: %ld\n", get_ticks());
+    timer_print("Target end was: %ld\n", timer_count_init + delay_ticks);
+    timer_print("TIMER END\n");
 }

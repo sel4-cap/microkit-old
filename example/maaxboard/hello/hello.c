@@ -16,8 +16,18 @@
 #include <math.h>
 #include <public_api/stdio_microkit.h>
 
+uintptr_t heap_base;
+uintptr_t clock_controller_base;
+uintptr_t iomuxc_base;
+uintptr_t ocotp_ctrl_base;
+uintptr_t syscon_base;
+uintptr_t gpio_base;
+uintptr_t timer_reg_base;
+uintptr_t test_base;
+
 // fdt initialise 
-#define STR(x) #x
+#define STR2(x) #x
+#define STR(x) STR2(x)
 #define INCBIN_SECTION ".rodata"
 #define INCBIN(name, file) \
     __asm__(".section " INCBIN_SECTION "\n" \
@@ -33,7 +43,8 @@
     ); \
     extern __attribute__((aligned(16))) const char incbin_ ## name ## _start[]; \
     extern                              const char incbin_ ## name ## _end[]
-INCBIN(device_tree, "/host/mk-manifest/microkit/example/maaxboard/hello/maaxboard.dtb"); 
+// INCBIN(device_tree, "kernel/kernel.bin"); 
+INCBIN(device_tree, "/home/dstorer/docker_test/mk-manifest/microkit/example/maaxboard/hello/maaxboard.dtb"); 
 
 char* _end = &incbin_device_tree_end;
 
@@ -72,15 +83,13 @@ char* _end = &incbin_device_tree_end;
 #define DEV_CLK_6_PATH      "/clock-ext3"
 #define DEV_CLK_7_PATH      "/clock-ext4"
 
-#define DEV_PATH_COUNT 14
+#define DEV_PATH_COUNT 12
 
 #define DEV_PATHS {                                                             \
     DEV_ETH_PATH,                                                               \
     DEV_TIMER_PATH,                                                             \
     DEV_CCM_PATH,                                                               \
-    DEV_OCOTP_PATH,                                                             \
     DEV_SYSCON_PATH,                                                            \
-    DEV_IOMUXC_PATH,                                                            \
     DEV_CLK_1_PATH,                                                             \
     DEV_CLK_2_PATH,                                                             \
     DEV_CLK_3_PATH,                                                             \
@@ -93,15 +102,6 @@ char* _end = &incbin_device_tree_end;
 // picolibc setup
 seL4_IPCBuffer* __sel4_ipc_buffer_obj;
 
-uintptr_t heap_base;
-
-int __ashlti3(int a, int b) {
-    return a << b;
-}
-
-int __lshrti3(int a, int b) {
-    return a >> b;
-}
 
 
 void
@@ -109,16 +109,16 @@ init(void)
 {
     printf("hello, world printf style\n");
 
-    // printf("start = %p\n", &incbin_device_tree_start);
-    // printf("end = %p\n", &incbin_device_tree_end);
-    // printf("size = %zu\n", (char*)&incbin_device_tree_end - (char*)&incbin_device_tree_start);
-    // printf("first byte = 0x%02hhx\n", incbin_device_tree_start[0]);
+    printf("start = %p\n", &incbin_device_tree_start);
+    printf("end = %p\n", &incbin_device_tree_end);
+    printf("size = %zu\n", (char*)&incbin_device_tree_end - (char*)&incbin_device_tree_start);
+    printf("first byte = 0x%02hhx\n", incbin_device_tree_start[0]);
 
     const char *const_reg_paths[] = REG_PATHS;
     const char *const_dev_paths[] = DEV_PATHS;
     // initialise uboot library
     initialise_uboot_drivers(
-    &incbin_device_tree_start,
+    incbin_device_tree_start,
     /* List the device tree paths that need to be memory mapped */
     const_reg_paths, REG_PATH_COUNT,
     /* List the device tree paths for the devices */

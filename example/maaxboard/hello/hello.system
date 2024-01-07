@@ -8,7 +8,26 @@
     <memory_region name="heap_mem" size="0x2000000"/>
     <memory_region name="heap_end" size="0x1000"/>
     <!-- <memory_region name="heap_mem2" size="0x2000000"/> -->
+    <memory_region name="timer_reg_mem" size="0x20000" phys_addr="0x306a0000"/>
+    <memory_region name="clock-controller_mem" size="0x10000" phys_addr="0x30380000"/>
+    <memory_region name="iomuxc_mem" size="0x10000" phys_addr="0x30330000"/>
+    <memory_region name="ocotp-ctrl_mem" size="0x10000" phys_addr="0x30350000"/>
+    <memory_region name="syscon_mem" size="0x10000" phys_addr="0x30360000"/>
+    <memory_region name="ethernet_mem" size="0x10000" phys_addr="0x30be0000"/>
+    <memory_region name="gpio_mem" size="0x10000" phys_addr="0x30200000"/>
+    <memory_region name="timer_mem" size="0x20000" phys_addr="0x306c0000"/>
+    <!-- <memory_region name="test_mem" size="0x10000" phys_addr="0x30be0000"/> -->
+    
     <protection_domain name="hello" priority="254">
+        <map mr="timer_reg_mem" vaddr="0x306a0000" perms="rw" cached="false" setvar_vaddr="timer_reg_base"/>
+        <map mr="clock-controller_mem" vaddr="0x30330000" perms="rw" cached="false" setvar_vaddr="clock_controller_base"/>
+        <map mr="iomuxc_mem" vaddr="0x30380000" perms="rw" cached="false" setvar_vaddr="iomuxc_base"/>
+        <map mr="ocotp-ctrl_mem" vaddr="0x30350000" perms="rw" cached="false" setvar_vaddr="ocotp_ctrl_base"/>
+        <map mr="syscon_mem" vaddr="0x30360000" perms="rw" cached="false" setvar_vaddr="syscon_base"/>
+        <map mr="ethernet_mem" vaddr="0x30be0000" perms="rw" cached="false" setvar_vaddr="ethernet_base"/>
+        <map mr="gpio_mem" vaddr="0x30200000" perms="rw" cached="false" setvar_vaddr="gpio_base"/>
+        <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
+        <!-- <map mr="test_mem" vaddr="0x30be0000" perms="rw" cached="false" setvar_vaddr="test_base"/> -->
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="__heap_start"/>
         <map mr="heap_end" vaddr="0x52000000" perms="rw" cached="false" setvar_vaddr="__heap_end"/>
         <program_image path="hello.elf" />  

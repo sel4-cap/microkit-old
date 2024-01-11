@@ -124,6 +124,8 @@ typedef long off_t;
 #define stdin stdin_uboot
 #define stdout stdout_uboot
 #define log log_uboot
+#undef putc
 #define putc putc_uboot
+#undef getc
 #define getc getc_uboot
 #define putc_uboot microkit_dbg_putc

@@ -111,7 +111,7 @@ static int remove(list_t *l, void *data, int (*cmp)(void *, void *),
                 prev->next = n->next;
             }
             if (should_free) {
-                ta_free(n);
+                free(n);
             }
             return 0;
         }

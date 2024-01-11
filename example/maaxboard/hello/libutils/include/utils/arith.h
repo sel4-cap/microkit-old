@@ -34,7 +34,7 @@
         MASK_UNSAFE(_n - 1) | BIT(_n - 1); \
     })
 
-#define IS_ALIGNED(n, b) (!((n) & MASK(b)))
+// #define IS_ALIGNED(n, b) (!((n) & MASK(b)))
 
 /* Calculate the log2 by finding the most significant bit that is set.
  * We have CLZL, which tells us how many places from the 'left' it is,

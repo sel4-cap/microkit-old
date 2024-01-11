@@ -41,11 +41,11 @@
 */
 void __builtin_unreachable(void);
 
-#define UNREACHABLE() \
-    do { \
-        assert(!"unreachable"); \
-        __builtin_unreachable(); \
-    } while (0)
+// #define UNREACHABLE() \
+//     do { \
+//         assert(!"unreachable"); \
+//         __builtin_unreachable(); \
+//     } while (0)
 
 /* Borrowed from linux/include/linux/compiler.h */
 #define likely(x)   __builtin_expect(!!(x), 1)

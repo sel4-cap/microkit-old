@@ -23,8 +23,6 @@
 
 int initialise_uboot_drivers(
     const char *orig_fdt_blob,
-    const char **reg_paths,
-    uint32_t reg_count,
     const char **dev_paths,
     uint32_t dev_count);
 

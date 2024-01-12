@@ -197,16 +197,14 @@ static int disable_not_required_devices(const char **device_paths, uint32_t devi
 
 int initialise_uboot_drivers(
     const char *orig_fdt_blob,
-    const char **reg_paths,
-    uint32_t reg_count,
     const char **dev_paths,
     uint32_t dev_count)
 {
     // Return immediately if no devices have been requested.
-    // if (0 == reg_count || NULL == reg_paths || 0 == dev_count || NULL == dev_paths) {
-    //     ZF_LOGE("Library initialisation cancelled, no devices supplied");
-    //     return -1;
-    // }
+    if (0 == dev_count || NULL == dev_paths) {
+        ZF_LOGE("Library initialisation cancelled, no devices supplied");
+        return -1;
+    }
 
     int ret;
 
@@ -228,9 +226,9 @@ int initialise_uboot_drivers(
 
     int fdt_size = fdt_totalsize(orig_fdt_blob) + EXTRA_FDT_BUFFER_SIZE;
     uboot_fdt_pointer = malloc(fdt_size);
-    if (uboot_fdt_pointer == NULL) {
+    if (uboot_fdt_pointer == NULL)
         return -ENOMEM;
-    }
+
     ret = fdt_open_into(orig_fdt_blob, uboot_fdt_pointer, fdt_size);
     if (0 != ret)
         goto error;

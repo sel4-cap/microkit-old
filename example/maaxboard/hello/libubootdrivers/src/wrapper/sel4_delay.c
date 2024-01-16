@@ -5,14 +5,14 @@
  *
  */
 
-// #include <platsupport/delay.h>
+#include <sel4_timer.h>
 
 void udelay(unsigned long usec)
 {
-    ps_udelay(usec);
+    udelay(usec);
 }
 
 void __udelay(unsigned long usec)
 {
-    ps_udelay(usec);
+    udelay(usec);
 }

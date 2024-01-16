@@ -7,6 +7,7 @@
 <system>
     <memory_region name="heap_mem" size="0x2000000"/>
     <memory_region name="heap_end" size="0x1000"/>
+    <memory_region name="dma_pool" size="0x2000000"/>
     <!-- <memory_region name="heap_mem2" size="0x2000000"/> -->
     <memory_region name="timer_reg_mem" size="0x20000" phys_addr="0x306a0000"/>
     <memory_region name="clock-controller_mem" size="0x10000" phys_addr="0x30380000"/>
@@ -52,6 +53,9 @@
         <map mr="timer_mem" vaddr="0x306c0000" perms="rw" cached="false" setvar_vaddr="timer_base"/>
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="__heap_start"/>
         <map mr="heap_end" vaddr="0x52000000" perms="rw" cached="false" setvar_vaddr="__heap_end"/>
+        <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
+
+        <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
         <program_image path="hello.elf" />  
     </protection_domain>
     <!-- <protection_domain name="mem_handler" pp="true" priority="252">

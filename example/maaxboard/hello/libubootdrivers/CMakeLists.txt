@@ -648,7 +648,7 @@ if(LibUBOOT)
     # list(APPEND uboot_deps src/wrapper/sel4_io_map.c)
     list(APPEND uboot_deps src/wrapper/uboot_drivers.c)
     # list(APPEND uboot_deps src/wrapper/sel4_dma.c)
-    # list(APPEND uboot_deps src/wrapper/sel4_delay.c)
+    list(APPEND uboot_deps src/wrapper/sel4_delay.c)
     file(GLOB_RECURSE plat_deps src/plat/${KernelPlatform}/*.c)
 
     # For all U-Boot source code we:

@@ -8,21 +8,23 @@
 
 #define __thread
 #include <sel4/sel4.h>
+#undef __thread
 // #include <wrapper.h>
 // #include <sys/kmem.h>
 #include <linux/dma-direction.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <sel4/sel4.h>
+#include <stdlib.h>
 
 uintptr_t phys_base;
 uintptr_t virt_base;
 uintptr_t dma_limit;
 uintptr_t allocated_dma;
 
-uintptr_t dma_base;
-uintptr_t dma_cp_paddr;
-uintptr_t dma_cp_vaddr = 0x54000000;
+// uintptr_t dma_base;
+// uintptr_t dma_cp_paddr;
+// uintptr_t dma_cp_vaddr = 0x54000000;
 
 typedef struct dma_block {
     uintptr_t start_addr;
@@ -85,6 +87,7 @@ void* sel4_dma_malloc(size_t size) {
     dma_head = block;
 
     printf("Malloc: DMA head is %x\n", dma_head);
+    
 
     allocated_dma = new_alloc;
     dma_print("Allocated at %p size %p\n", block->start_addr, size);
@@ -98,13 +101,15 @@ void sel4_dma_free(void *ptr) {
 
     printf("Pointer being freed %x\n", ptr);
 
-    if(ptr < dma_cp_vaddr || ptr > dma_limit){
-        dma_print("Trying to free non dma memory\n");
-        return 0;
-    }
+    // if(ptr < dma_cp_vaddr || ptr > dma_limit){
+    //     dma_print("Trying to free non dma memory\n");
+    //     return 0;
+    // }
 
     dma_block_t *prev = NULL;
     dma_block_t *current = dma_head;
+
+    printf("current->start_addr %x\n", current->start_addr);
 
     while (current) {
         if ((uintptr_t)ptr == current->start_addr) {
@@ -116,6 +121,7 @@ void sel4_dma_free(void *ptr) {
 
             dma_print("Freed DMA memory at %p\n", ptr);
             free(current);
+            printf("dma head %x\n", dma_head);
             return;
         }
         prev = current;
@@ -127,12 +133,12 @@ void sel4_dma_free(void *ptr) {
 
 void* sel4_dma_memalign(size_t alignment, size_t size) {
 
-    static bool initialised = false;
+    // static bool initialised = false;
 
-    if(!initialised){
-        sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x2000000);
-        initialised = true;
-    }
+    // if(!initialised){
+    //     sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x2000000);
+    //     initialised = true;
+    // }
        
     
     printf("sel4 dma memalign\n");
@@ -182,6 +188,7 @@ void* sel4_dma_memalign(size_t alignment, size_t size) {
     dma_head = block;
 
     printf("Memalign: DMA head is %x\n", dma_head);
+    printf("block->next %x\n", block->next);
 
     allocated_dma = aligned_addr + size;
     dma_print("Aligned allocation at %p size %p\n", block->start_addr, size);
@@ -189,20 +196,16 @@ void* sel4_dma_memalign(size_t alignment, size_t size) {
 }
 
 uintptr_t* getPhys(void* virt) {
-    printf("getPhys\n");
-    printf("virt_base %x\n", virt_base);
     int offset = (uint64_t)virt - (int)virt_base;
     dma_print("offset = %d\n", offset);
     dma_print("getting phys of %p: %p\n", virt, phys_base+offset);
-    return (uintptr_t*)(virt);
+    return (uintptr_t*)(phys_base+offset);
 }
 
 uintptr_t* getVirt(void* paddr) {
-    printf("getVirt\n");
-    printf("virt_base %x\n", phys_base);
     uintptr_t *offset = paddr - phys_base;
     dma_print("getting virt of %p: %p\n", paddr, virt_base+offset);
-    return (paddr);
+    return (virt_base + offset);
 }
 
 void sel4_dma_flush_range(uintptr_t start, uintptr_t stop) {
@@ -259,9 +262,11 @@ void sel4_dma_invalidate_range(uintptr_t start, uintptr_t stop) {
 
 void sel4_dma_clear_all() {
     printf("sel4_dma_clear_all\n");
+    printf("dma_head %x\n", dma_head);
     dma_block_t *current = dma_head;
-    while (current != NULL) {
-        printf("Dma pointer currently at %x\n", current);
+    while ((!current)) {
+        printf("Dma pointer currently at %x\n", current->start_addr);
+        printf("Address of dma pointer currently at %x\n", current);
         dma_block_t *temp = current;
         current = current->next;
         free(temp);  // Free the memory used by the dma_block_t node
@@ -281,11 +286,11 @@ bool sel4_dma_is_mapped(void *vaddr){
     return true;
 }
 
-void *sel4_dma_map_single(void* public_vaddr, size_t size, enum dma_data_direction dir){
+int *sel4_dma_map_single(void* public_vaddr, size_t size, enum dma_data_direction dir){
     return 0;
 }
 
-void sel4_dma_unmap_single(void* paddr){
+int sel4_dma_unmap_single(void* paddr){
     return 0;
 }
 

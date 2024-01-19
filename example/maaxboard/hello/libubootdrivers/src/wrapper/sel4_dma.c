@@ -229,7 +229,7 @@ void sel4_dma_invalidate_range(void *start, void *stop)
             dma_alloc[alloc_index].size);
 }
 
-void sel4_dma_ta_free(void *vaddr)
+void sel4_dma_free(void *vaddr)
 {
     assert(sel4_dma_manager != NULL);
 

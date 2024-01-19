@@ -129,7 +129,7 @@ int list_remove_all(list_t *l)
     assert(l != NULL);
     for (node_t *n = l->head; n != NULL;) {
         node_t *temp = n->next;
-        ta_free(n);
+        free(n);
         n = temp;
     }
     l->head = NULL;

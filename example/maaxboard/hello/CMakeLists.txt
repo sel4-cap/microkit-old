@@ -8,7 +8,7 @@ project(hello-microkit LANGUAGES C)
 
 set(LD ${TOOLCHAIN}-ld)
 set(CMAKE_ASM_COMPILER ${TOOLCHAIN}-as)
-set(MICROKIT_DIR /home/dstorer/docker_test/mk-manifest/microkit/ )
+set(MICROKIT_DIR /home/dstorer/docker_test/mk-manifest/microkit/)
 
 # microkit specific information
 set(MICROKIT_SDK ${MICROKIT_DIR}/release/microkit-sdk-1.2.6)
@@ -51,6 +51,7 @@ add_executable(hello.elf hello.c)
 # add_executable(hello2.elf hello2.c) 
 
 
+
 # linker
 target_link_options(hello.elf PRIVATE ${LDFLAGS})
 target_compile_options(hello.elf PRIVATE ${CFLAGS})
@@ -58,6 +59,7 @@ target_include_directories(hello.elf PRIVATE
     "${BOARD_DIR}/include" 
     "libmicrokitutils/include/"
     "libubootdrivers/include/public_api/"
+    "libubootdrivers/include/wrapper"
     "${PICOLIBC_DIR}/include/")
 target_include_directories(hello.elf PRIVATE ${BOARD_DIR}/include)
 target_link_libraries(hello.elf PUBLIC ubootdrivers utils libmicrokitutils)

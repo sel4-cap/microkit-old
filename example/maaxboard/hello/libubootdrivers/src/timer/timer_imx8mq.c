@@ -12,6 +12,7 @@
 #include <asm/arch-imx8m/imx-regs.h>
 #include <asm/io.h>
 #include <hang.h>
+#include <sel4/sel4.h>
 
 struct cntl_reg {
 	u32	cntcr;
@@ -101,15 +102,20 @@ unsigned long get_timer(unsigned long base) {
 
 void udelay(unsigned long usec)
 {
-    return 0;timer_print("TIMER START\n");
+    printf("TIMER START\n");
     unsigned long timer_count_init = get_ticks();
-	timer_print("Start count: %ld\n", timer_count_init);
+	printf("Start count: %ld\n", timer_count_init);
     unsigned long delay_ticks = usec*(tick_frequency/1000);
-    timer_print("Delay ticks: %ld\n", delay_ticks);
+    printf("Delay ticks: %ld\n", delay_ticks);
 	while (get_ticks() < timer_count_init + delay_ticks) {
         seL4_Yield();
 	}
-	timer_print("Finish count: %ld\n", get_ticks());
-    timer_print("Target end was: %ld\n", timer_count_init + delay_ticks);
-    timer_print("TIMER END\n");
+	printf("Finish count: %ld\n", get_ticks());
+    printf("Target end was: %ld\n", timer_count_init + delay_ticks);
+    printf("TIMER END\n");
+}
+
+void __udelay(unsigned long usec)
+{
+    return udelay(usec);
 }

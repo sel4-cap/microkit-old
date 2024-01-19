@@ -15,27 +15,53 @@
 #include <errno.h>
 #include <math.h>
 #include <public_api/stdio_microkit.h>
+#include <sel4_timer.h>
 
-uintptr_t heap_base;
-uintptr_t timer_reg_base;
-uintptr_t clock_controller_base;
-uintptr_t iomuxc_base;
-uintptr_t ocotp_ctrl_base;
-uintptr_t syscon_base;
-uintptr_t usb_2_base;
-// uintptr_t usb_2_phy_base = 0x382f0040;
-uintptr_t ethernet_base;
-uintptr_t gpio_1_base;
-uintptr_t gpio_2_base;
-uintptr_t gpio_3_base;
-uintptr_t gpio_4_base;
-uintptr_t gpio_5_base;
-uintptr_t i2c_0_base;
-uintptr_t i2c_1_base;
-uintptr_t i2c_2_base;
-uintptr_t i2c_3_base;
-uintptr_t spi_0_base;
-uintptr_t timer_base;
+#define CONFIG_PLAT_MAAXBOARD
+
+/* Determine which functionality to test based upon the platform */
+#if defined(CONFIG_PLAT_MAAXBOARD)
+    #define TEST_CLK
+    #define TEST_CLOCKS
+    #define TEST_SPI
+    #define TEST_LED
+    #define TEST_LED_NAME_1 "usr_led"
+    #define TEST_LED_NAME_2 "sys_led"
+    #define TEST_I2C
+    #define TEST_ETHERNET
+    #define TEST_USB
+    #define TEST_MMC
+    #define TEST_PINMUX
+    #define TEST_GPIO
+    #define TEST_FILESYSTEM
+    #define TEST_FILESYSTEM_PARTITION "mmc 0:1"  // Partition 1 on mmc device 0
+    #define TEST_FILESYSTEM_FILENAME  "test_file.txt"
+
+#elif defined(CONFIG_PLAT_ODROIDC2)
+    #define TEST_PINMUX
+    #define TEST_GPIO
+    #define TEST_LED
+    #define TEST_LED_NAME_1 "c2:blue:alive"
+    #define TEST_LED_NAME_2 "c2:blue:alive"
+
+#else
+    /* Enable all tests for unrecognised platform */
+    #define TEST_CLK
+    #define TEST_CLOCKS
+    #define TEST_SPI
+    #define TEST_LED
+    #define TEST_LED_NAME_1 "dummy_led"
+    #define TEST_LED_NAME_2 "dummy_led"
+    #define TEST_I2C
+    #define TEST_ETHERNET
+    #define TEST_USB
+    #define TEST_MMC
+    #define TEST_PINMUX
+    #define TEST_GPIO
+    #define TEST_FILESYSTEM
+    #define TEST_FILESYSTEM_PARTITION "dummy_partition"
+    #define TEST_FILESYSTEM_FILENAME  "test_file.txt"
+#endif
 
 
 
@@ -61,7 +87,7 @@ uintptr_t timer_base;
 // INCBIN(device_tree, "kernel/kernel.bin"); 
 INCBIN(device_tree, "/home/dstorer/docker_test/mk-manifest/microkit/example/maaxboard/hello/maaxboard.dtb"); 
 
-char* _end = &incbin_device_tree_end;
+const char* _end = incbin_device_tree_end;
 
 #define REG_TIMER_PATH      "/soc@0/bus@30400000/timer@306a0000"
 #define REG_CCM_PATH        "/soc@0/bus@30000000/clock-controller@30380000"
@@ -170,17 +196,12 @@ init(void)
     /* List the device tree paths for the devices */
     const_dev_paths, DEV_PATH_COUNT);
 
-    run_uboot_command("printenv");
-
     run_uboot_command("dm tree");
-
-    #define TEST_CLK
 
     #ifdef TEST_CLK
     run_uboot_command("clk dump");
     #endif
 
-    #define TEST_SPI
 
     #ifdef TEST_SPI
     printf("Initialising BMP280 sensor on SPI bus (if connected):\n");
@@ -199,31 +220,25 @@ init(void)
     }
     #endif
 
-    #define TEST_CLOCKS
-
     #ifdef TEST_CLOCKS
     run_uboot_command("clocks");
     #endif
-
-    // #define TEST_LED
 
     #ifdef TEST_LED
     run_uboot_command("led list");
 
     // Flash the LEDs
     for (int x=0; x<4; x++) {
-        ps_mdelay(125);
+        mdelay(125);
         run_uboot_command("led "TEST_LED_NAME_1" off");
-        ps_mdelay(125);
+        mdelay(125);
         run_uboot_command("led "TEST_LED_NAME_2" on");
-        ps_mdelay(125);
+        mdelay(125);
         run_uboot_command("led "TEST_LED_NAME_1" on");
-        ps_mdelay(125);
+        mdelay(125);
         run_uboot_command("led "TEST_LED_NAME_2" off");
     }
     #endif
-
-    #define TEST_I2C
 
     #ifdef TEST_I2C
     // Probe and read device already present on MaaXBoard I2C bus
@@ -232,8 +247,6 @@ init(void)
     run_uboot_command("i2c probe");
     run_uboot_command("i2c md 0x4b 0x0.1 0x20");
     #endif
-
-    #define TEST_ETHERNET
 
     #ifdef TEST_ETHERNET
     /* Edit the following for your IP addresses:
@@ -250,8 +263,6 @@ init(void)
      */
     #endif
 
-    #define TEST_USB
-
     #ifdef TEST_USB
     // USB operations
     run_uboot_command("setenv stdin usbkbd"); // Use a USB keyboard as the input device
@@ -263,8 +274,6 @@ init(void)
     run_uboot_command("fatls usb 0");
     #endif
 
-    #define TEST_MMC
-
     #ifdef TEST_MMC
     // SD/MMC operations
     run_uboot_command("mmc info");
@@ -273,14 +282,10 @@ init(void)
 
     run_uboot_command("fatls mmc 0");
     #endif
-
-    #define TEST_PINMUX
     
     #ifdef TEST_PINMUX
     run_uboot_command("pinmux status -a");
     #endif
-
-    #define TEST_GPIO
 
     #ifdef TEST_GPIO
     run_uboot_command("gpio status -a");
@@ -288,7 +293,6 @@ init(void)
 
     run_uboot_command("dm tree");
 
-    // #define TEST_FILESYSTEM
 
     #ifdef TEST_FILESYSTEM
     /* Example of filesystem handling. Writes a file to a FAT partition before reading
@@ -327,8 +331,6 @@ init(void)
     sprintf(uboot_cmd, "fatrm %s %s", TEST_FILESYSTEM_PARTITION, TEST_FILESYSTEM_FILENAME);
     run_uboot_command(uboot_cmd);
     #endif
-
-    #define TEST_USB
 
     #ifdef TEST_USB
 

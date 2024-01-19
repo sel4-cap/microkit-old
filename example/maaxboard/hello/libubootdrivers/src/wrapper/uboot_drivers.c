@@ -17,6 +17,7 @@
 #include <libfdt.h>
 #include <uboot_wrapper.h>
 #include <utils/page.h>
+#include <dma/dma.h>
 
 // The amount of extra space (in bytes) provided to our copy of the FDT to
 // allow sufficient space for modifications.
@@ -29,6 +30,8 @@ static void* uboot_fdt_pointer = NULL;
 uintptr_t dma_base;
 uintptr_t dma_cp_paddr;
 uintptr_t dma_cp_vaddr = 0x54000000;
+
+extern uintptr_t allocated_dma;
 
 
 
@@ -208,10 +211,6 @@ int initialise_uboot_drivers(
 
     int ret;
 
-    // // Initialise the DMA management.
-    // sel4_dma_initialise(&io_ops->dma_manager);
-    sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x200000);
-
     // Initialise the IO mapping management.
     // sel4_io_map_initialise(&io_ops->io_mapper);
 
@@ -233,23 +232,30 @@ int initialise_uboot_drivers(
     if (0 != ret)
         goto error;
 
-        // Start by disabling all devices in the FDT that are not required.
-        ret = disable_not_required_devices(dev_paths, dev_count);
-        if (0 != ret)
-            goto error;
+    // Start by disabling all devices in the FDT that are not required.
+    ret = disable_not_required_devices(dev_paths, dev_count);
+    if (0 != ret)
+        goto error;
 
-        // Map the required device resources for all required devices.
-        // ret = map_required_device_resources(reg_paths, reg_count);
-        // if (0 != ret)
-        //     goto error;
+    // Map the required device resources for all required devices.
+    // ret = map_required_device_resources(reg_paths, reg_count);
+    // if (0 != ret)
+    //     goto error;
 
-        // Start the U-Boot wrapper. Provide it a pointer to the FDT blob.
-        ret = initialise_uboot_wrapper(uboot_fdt_pointer);
-        if (0 != ret)
-            goto error;
+    //Initialise the DMA management.
+    printf("dma_cp_paddr %x\n", dma_cp_paddr);
+    sel4_dma_init(dma_cp_paddr, dma_cp_vaddr, dma_cp_vaddr + 0x2000000);
 
-        // All done.
-        return 0;
+    printf("allocated_dma after initialisation %x\n", allocated_dma);
+
+    // Start the U-Boot wrapper. Provide it a pointer to the FDT blob.
+    ret = initialise_uboot_wrapper(uboot_fdt_pointer);
+    printf("allocated_dma after uboot wrapper %x\n", allocated_dma);
+    if (0 != ret)
+        goto error;
+
+    // All done.
+    return 0;
 
     error:
         // Failed to initialise library, clean up and return error code.
@@ -268,5 +274,5 @@ void shutdown_uboot_drivers(void) {
 
     // sel4_io_map_shutdown();
 
-    sel4_dma_clear();
+    sel4_dma_clear_all();
 }

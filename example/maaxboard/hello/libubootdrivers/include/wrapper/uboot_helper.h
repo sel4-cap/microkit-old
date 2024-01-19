@@ -112,6 +112,9 @@ typedef long off_t;
 #include <linux/libfdt_env.h>
 #include <linux/libfdt.h>
 
+/* Include headers for microkit*/
+#include <microkit.h>
+
 #undef __KERNEL_STRICT_NAMES
 
 

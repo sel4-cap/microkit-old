@@ -58,7 +58,7 @@
 #define IS_POWER_OF_2_OR_ZERO(x) (0 == ((x) & ((x) - 1)))
 #define IS_POWER_OF_2(x) (((x) != 0) && IS_POWER_OF_2_OR_ZERO(x))
 #define ALIGN_UP(x, n) (((x) + (n) - 1) & ~((n) - 1))
-#define ALIGN_DOWN(x, n) ((x) & ~((n) - 1))
+// #define ALIGN_DOWN(x, n) ((x) & ~((n) - 1))
 
 #define ROUND_DOWN_UNSAFE(n, b) ((n) - ((n) % (b)))
 
@@ -76,11 +76,11 @@
        (_n + (_n % _b == 0 ? 0 : (_b - (_n % _b)))); \
     })
 
-#define DIV_ROUND_UP(n,d)   \
-    ({ typeof (n) _n = (n); \
-       typeof (d) _d = (d); \
-       (_n/_d + (_n % _d == 0 ? 0 : 1)); \
-   })
+// #define DIV_ROUND_UP(n,d)   \
+//     ({ typeof (n) _n = (n); \
+//        typeof (d) _d = (d); \
+//        (_n/_d + (_n % _d == 0 ? 0 : 1)); \
+//    })
 
 /* Divides and rounds to the nearest whole number
     DIV_ROUND(5,2) returns 3
@@ -118,7 +118,7 @@
     ({ typeof (x) _x = (x); \
        _x == INRANGE(a, _x, b); })
 
-#define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
+// #define ARRAY_SIZE(x) (sizeof(x)/sizeof((x)[0]))
 
 /* Clamp a value between two limits. Sample usage: CLAMP(-3, 7, 4) == 4. */
 #define CLAMP(min, value, max) \

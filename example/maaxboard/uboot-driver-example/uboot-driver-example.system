@@ -56,7 +56,7 @@
         <map mr="dma_pool" vaddr="0x54000000" perms="rw" cached="true" setvar_vaddr="dma_base"/>
 
         <setvar symbol="dma_cp_paddr" region_paddr="dma_pool" />
-        <program_image path="hello.elf" />  
+        <program_image path="uboot-driver-example.elf" />  
     </protection_domain>
     <!-- <protection_domain name="mem_handler" pp="true" priority="252">
         <map mr="heap_mem" vaddr="0x50000000" perms="rw" cached="false" setvar_vaddr="heap_base"/>

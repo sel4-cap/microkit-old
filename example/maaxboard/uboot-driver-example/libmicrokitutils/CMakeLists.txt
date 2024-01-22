@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.7.2)
+
+project(libmicrokitutils LANGUAGES C)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/)
+
+add_library(libmicrokitutils SHARED STATIC
+    src/dma.c
+    src/delay.c
+)
+
+target_include_directories(libmicrokitutils PRIVATE 
+    "${BOARD_DIR}/include" 
+    "include"
+    "../libubootdrivers/uboot/include")
+
+# target_include_directories(printf INTERFACE include/public_api)
+
+target_link_libraries(libmicrokitutils ubootdrivers)
+
+install(TARGETS libmicrokitutils
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

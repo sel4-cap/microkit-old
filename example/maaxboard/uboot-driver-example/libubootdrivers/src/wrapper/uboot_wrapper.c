@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern uintptr_t __heap_start;
+
 
 
 // Global declaration of global_data.
@@ -148,7 +150,9 @@ int initialise_uboot_wrapper(char* fdt_blob)
         goto error;
 
     // Scan the device tree for compatible drivers.
+    printf("__heap_start %x\n", __heap_start);
     ret = dm_init_and_scan(false);
+    printf("__heap_start %x\n", __heap_start);
     if (0 != ret)
         goto error;
 

@@ -19,7 +19,7 @@ set(PYTHONPATH ${MICROKIT_DIR}/tool)
 set(MICROKIT_TOOL "python3 -m microkit")
 
 set(BOARD_DIR ${MICROKIT_SDK}/board/${MICROKIT_BOARD}/${MICROKIT_CONFIG})
-set(PICOLIBC_DIR ${MICROKIT_DIR}/example/maaxboard/hello/picolibc_build/picolibc/aarch64-linux-gnu)
+set(PICOLIBC_DIR ${MICROKIT_DIR}/example/maaxboard/uboot-driver-example/picolibc_build/picolibc/aarch64-linux-gnu)
 
 set(CFLAGS -mcpu=${CPU} -nostdlib -ffreestanding -Wall  -Wno-unused-function)
 # -D_XOPEN_SOURCE=700 needed to remove error relating to fls

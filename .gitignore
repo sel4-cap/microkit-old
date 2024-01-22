@@ -11,7 +11,6 @@ env/
 pyenv/
 release/
 tmp_build/
-<<<<<<< HEAD
 *.img
 *.elf
 *.o
@@ -19,4 +18,10 @@ tmp_build/
 *.sh.venv/
 .venv/
 example/maaxboard/xhci_stub
+example/maaxboard/uboot-driver-example/picolibc_build
+example/maaxboard/hello_libc
+example/maaxboard/uboot-driver-example/.vscode
+example/maaxboard/uboot-driver-example/kernel
+example/maaxboard/uboot-driver-example/Makefile
+tool/
 .vscode/*

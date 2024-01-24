@@ -9,15 +9,17 @@ python3 build_sdk.py --sel4 ../seL4
 rm -rf ../picolibc/picolibc-microkit/
 mkdir ../picolibc/picolibc-microkit/
 cd ../picolibc/picolibc-microkit/
-../../picolibc_build
+rm -rf ../../picolibc_build
+mkdir ../../picolibc_build
 ../scripts/do-aarch64-configure-nocrt -Dprefix=${PWD}/../../picolibc_build
 ninja 
 ninja install
 # Build application 
-rm -rf example/maaxboard/build/uboot-driver-example/build
-mkdir example/maaxboard/build/uboot-driver-example/build
-rm -rf example/maaxboard/build/uboot-driver-example/hello-build
-mkdir example/maaxboard/build/uboot-driver-example/hello-build
-cd example/maaxboard/build/uboot-driver-example/build
+cd ../../microkit
+rm -rf example/maaxboard/uboot-driver-example/build
+mkdir example/maaxboard/uboot-driver-example/build
+rm -rf example/maaxboard/uboot-driver-example/hello-build
+mkdir example/maaxboard/uboot-driver-example/hello-build
+cd example/maaxboard/uboot-driver-example/build
 cmake .. 
 make 

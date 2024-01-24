@@ -53,8 +53,8 @@ fi
 cd ../../microkit
 rm -rf example/maaxboard/$string_argument/build
 mkdir example/maaxboard/$string_argument/build
-rm -rf example/maaxboard/$string_argument/hello-build
-mkdir example/maaxboard/$string_argument/hello-build
+rm -rf example/maaxboard/$string_argument/example-build
+mkdir example/maaxboard/$string_argument/example-build
 cd example/maaxboard/$string_argument/build
 cmake .. 
 make 

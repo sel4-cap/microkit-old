@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 # Assign the first argument to a variable
 string_argument="$1"
 
@@ -21,17 +22,32 @@ if [ ! -d "$EXTRACTED_DIR" ]; then
     rm -r compiler.xz
 fi
 export PATH=${PWD}/gcc-arm-10.2-2020.11-x86_64-aarch64-none-elf/bin:$PATH
-python3 build_sdk.py --sel4 ../seL4
+echo "Do you want to build the sdk? (yes/no)"
+read user_input
+
+# Convert the input to lowercase (optional, for more flexible input handling)
+user_input=$(echo "$user_input" | tr '[:upper:]' '[:lower:]')
+if [ "$user_input" = "yes" ]; then
+    python3 build_sdk.py --sel4 ../seL4
+fi
 
 # Build picolibc
-rm -rf ../picolibc/picolibc-microkit/
-mkdir ../picolibc/picolibc-microkit/
-cd ../picolibc/picolibc-microkit/
-rm -rf ../../picolibc_build
-mkdir ../../picolibc_build
-../scripts/do-aarch64-configure-nocrt -Dprefix=${PWD}/../../picolibc_build
-ninja 
-ninja install
+echo "Do you want to build picolibc? (yes/no)"
+read user_input1
+
+# Convert the input to lowercase (optional, for more flexible input handling)
+user_input1=$(echo "$user_input1" | tr '[:upper:]' '[:lower:]')
+
+if [ "$user_input1" = "yes" ]; then
+    rm -rf ../picolibc/picolibc-microkit/
+    mkdir ../picolibc/picolibc-microkit/
+    cd ../picolibc/picolibc-microkit/
+    rm -rf ../../picolibc_build
+    mkdir ../../picolibc_build
+    ../scripts/do-aarch64-configure-nocrt -Dprefix=${PWD}/../../picolibc_build
+    ninja 
+    ninja install
+fi
 
 # Build application 
 cd ../../microkit

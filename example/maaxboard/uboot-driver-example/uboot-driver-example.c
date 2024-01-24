@@ -85,7 +85,7 @@
     extern __attribute__((aligned(16))) const char incbin_ ## name ## _start[]; \
     extern                              const char incbin_ ## name ## _end[]
 // INCBIN(device_tree, "kernel/kernel.bin"); 
-INCBIN(device_tree, "/home/dstorer/docker_test/mk-manifest/microkit/example/maaxboard/uboot-driver-example/maaxboard.dtb"); 
+INCBIN(device_tree, DTB_PATH); 
 
 const char* _end = incbin_device_tree_end;
 

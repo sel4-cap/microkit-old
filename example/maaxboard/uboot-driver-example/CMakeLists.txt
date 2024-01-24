@@ -17,11 +17,13 @@ set(MICROKIT_CONFIG debug)
 # set python variables
 set(PYTHONPATH ${MICROKIT_DIR}/tool)
 set(MICROKIT_TOOL "python3 -m microkit")
+# set dtb path
+set(DTB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/maaxboard.dtb)
 
 set(BOARD_DIR ${MICROKIT_SDK}/board/${MICROKIT_BOARD}/${MICROKIT_CONFIG})
 set(PICOLIBC_DIR ${MICROKIT_DIR}/example/maaxboard/uboot-driver-example/picolibc_build/picolibc/aarch64-linux-gnu)
 
-set(CFLAGS -mcpu=${CPU} -nostdlib -ffreestanding -Wall  -Wno-unused-function)
+set(CFLAGS -mcpu=${CPU} "-DDTB_PATH=\"${DTB_PATH}\"" -nostdlib -ffreestanding -Wall -Wno-unused-function)
 # -D_XOPEN_SOURCE=700 needed to remove error relating to fls
 # set(CMAKE_C_FLAGS "-mcpu=${CPU} -ffreestanding -nostdlib -nolibc" )
 

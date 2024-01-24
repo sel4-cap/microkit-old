@@ -177,30 +177,9 @@ const char* _end = incbin_device_tree_end;
 // picolibc setup
 seL4_IPCBuffer* __sel4_ipc_buffer_obj;
 
-// hack for libgcc
-#define __getauxval(...) 0
-
-//tiny alloc
-int ta_blocks = 256;
-int ta_thresh = 16;
-int ta_align = 64;
-uintptr_t ta_limit;
-uintptr_t heap_base;
-uintptr_t _heap_limit;
-
-
 void
 init(void)
 {
-    printf("hello, world printf style\n");
-
-    printf("start = %p\n", &incbin_device_tree_start);
-    printf("end = %p\n", &incbin_device_tree_end);
-    printf("size = %zu\n", (char*)&incbin_device_tree_end - (char*)&incbin_device_tree_start);
-    printf("first byte = 0x%02hhx\n", incbin_device_tree_start[0]);
-
-    // ta_init(heap_base, _heap_limit, ta_blocks, ta_thresh, ta_align);
-
     const char *const_dev_paths[] = DEV_PATHS;
     // initialise uboot library
     initialise_uboot_drivers(

@@ -6,11 +6,10 @@ rm -r compiler.xz
 export PATH=${PWD}/gcc-arm-10.2-2020.11-x86_64-aarch64-none-elf/bin:$PATH
 python3 build_sdk.py --sel4 ../seL4
 # Build picolibc
-sudo rm -rf picolibc-microkit/
-sudo mkdir picolibc-microkit
-cd picolib-microkit
+sudo rm -rf ../picolibc/picolibc-microkit/
+sudo mkdir ../picolibc/picolibc-microkit/
+cd ../picolibc/picolibc-microkit/
 mkdir ../../picolibc_build
 sudo ../scripts/do-aarch64-configure-nocrt -Dprefix=${PWD}/../../picolibc_build
 sudo ninja 
 sudo ninja install
-

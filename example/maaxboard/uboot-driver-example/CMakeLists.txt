@@ -32,8 +32,8 @@ set(CFLAGS -mcpu=${CPU} "-DDTB_PATH=\"${DTB_PATH}\"" -nostdlib -ffreestanding -W
 set(LDFLAGS -L${BOARD_DIR}/lib -nostdlib)
 set(LIBS -lmicrokit -Tmicrokit.ld -lgcc -L${PICOLIBC_DIR}/lib -lc -lm -lgcc)
 
-set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/hello-build)
-set(IMAGE_FILE ${BUILD_DIR}/loader.img)
+set(BUILD_DIR ${CMAKE_CURRENT_LIST_DIR}/example-build)
+set(IMAGE_FILE ${BUILD_DIR}/sel4test-driver-image-arm-maaxboard.img)
 set(REPORT_FILE ${BUILD_DIR}/report.txt)
 
 set(libUbootPlatform "maaxboard")

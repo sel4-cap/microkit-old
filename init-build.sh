@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Microkit path
+microkit_path=${PWD}
 
 # Assign the first argument to a variable
 string_argument="$1"
@@ -45,8 +47,8 @@ if [ "$user_input1" = "yes" ]; then
     rm -rf ../../picolibc_build
     mkdir ../../picolibc_build
     ../scripts/do-aarch64-configure-nocrt -Dprefix=${PWD}/../../picolibc_build
-    ninja 
-    ninja install
+    sudo ninja 
+    sudo ninja install
 fi
 
 # Build application 

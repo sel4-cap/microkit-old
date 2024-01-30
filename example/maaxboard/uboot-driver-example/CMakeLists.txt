@@ -8,7 +8,7 @@ project(uboot-driver-example-microkit LANGUAGES C)
 
 set(LD ${TOOLCHAIN}-ld)
 set(CMAKE_ASM_COMPILER ${TOOLCHAIN}-as)
-set(MICROKIT_DIR /home/dstorer/docker_test/mk-manifest/microkit/)
+set(MICROKIT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../..)
 
 # microkit specific information
 set(MICROKIT_SDK ${MICROKIT_DIR}/release/microkit-sdk-1.2.6)
@@ -21,7 +21,7 @@ set(MICROKIT_TOOL "python3 -m microkit")
 set(DTB_PATH ${CMAKE_CURRENT_SOURCE_DIR}/maaxboard.dtb)
 
 set(BOARD_DIR ${MICROKIT_SDK}/board/${MICROKIT_BOARD}/${MICROKIT_CONFIG})
-set(PICOLIBC_DIR ${MICROKIT_DIR}/example/maaxboard/uboot-driver-example/picolibc_build/picolibc/aarch64-linux-gnu)
+set(PICOLIBC_DIR ${MICROKIT_DIR}/../picolibc_build/picolibc/aarch64-linux-gnu)
 
 set(CFLAGS -mcpu=${CPU} "-DDTB_PATH=\"${DTB_PATH}\"" -nostdlib -ffreestanding -Wall -Wno-unused-function)
 # -D_XOPEN_SOURCE=700 needed to remove error relating to fls

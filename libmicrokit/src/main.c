@@ -17,7 +17,7 @@
 
 #define NOTIFICATION_BITS 57
 
-char _stack[4096]  __attribute__((__aligned__(16)));
+char _stack[16384]  __attribute__((__aligned__(16)));
 
 bool passive;
 char microkit_name[16];

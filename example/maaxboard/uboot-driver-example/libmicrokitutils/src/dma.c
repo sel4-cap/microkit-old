@@ -122,6 +122,7 @@ void sel4_dma_free(void *ptr) {
             dma_print("Freed DMA memory at %p\n", ptr);
             free(current);
             printf("dma head %x\n", dma_head);
+            allocated_dma -= current->size;
             return;
         }
         prev = current;
@@ -198,15 +199,18 @@ void* sel4_dma_memalign(size_t alignment, size_t size) {
 uintptr_t* getPhys(void* virt) {
     int offset = (uint64_t)virt - (int)virt_base;
     dma_print("offset = %d\n", offset);
-    dma_print("getting phys of %p: %p\n", virt, phys_base+offset);
+    dma_print("getting phys of %x: %x\n", virt, phys_base+offset);
     return (uintptr_t*)(phys_base+offset);
 }
 
 uintptr_t* getVirt(void* paddr) {
-    uintptr_t *offset = paddr - phys_base;
-    dma_print("getting virt of %p: %p\n", paddr, virt_base+offset);
-    return (virt_base + offset);
+    uintptr_t offset = (uintptr_t)paddr - phys_base; 
+    dma_print("offset %x\n", offset);
+    dma_print("getting virt of %x: %x\n", paddr, virt_base + offset);
+    dma_print("virt_base %x\n", virt_base);
+    return (uintptr_t*)(virt_base + offset); 
 }
+
 
 void sel4_dma_flush_range(uintptr_t start, uintptr_t stop) {
     printf("sel4_dma_flush_range\n");

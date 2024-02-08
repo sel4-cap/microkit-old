@@ -9,10 +9,10 @@
 
 void udelay(unsigned long usec)
 {
-    udelay(usec);
+    mdelay(DIV_ROUND_UP(usec, 1000));
 }
 
 void __udelay(unsigned long usec)
 {
-    udelay(usec);
+    mdelay(DIV_ROUND_UP(usec, 1000));
 }

@@ -37,8 +37,6 @@ dma_block_t *dma_head = NULL;
 // Define CACHE_LINE_SIZE based on your ARM CPU architecture
 #define CACHE_LINE_SIZE 64  // Adjust this value based on your specific ARM CPU
 
-#define DMA_DEBUG 
-
 #ifdef DMA_DEBUG
 #define dma_print(...) printf(__VA_ARGS__)
 #else
@@ -51,8 +49,8 @@ void sel4_dma_init(uintptr_t pbase, uintptr_t vbase, uintptr_t limit) {
     allocated_dma = vbase;
     virt_base = vbase;
     dma_limit = limit;
-    printf("sel4_dma_init\n");
-    printf("allocated_dma %x\n", allocated_dma);
+    dma_print("sel4_dma_init\n");
+    dma_print("allocated_dma %x\n", allocated_dma);
     dma_print("init phys_base: %p, vbase: %p\n", phys_base, virt_base);
 }
 
@@ -60,8 +58,8 @@ void sel4_dma_init(uintptr_t pbase, uintptr_t vbase, uintptr_t limit) {
 
 void* sel4_dma_malloc(size_t size) {
 
-    printf("sel4 dma malloc\n");
-    printf("allocated_dma %x\n", allocated_dma);
+    dma_print("sel4 dma malloc\n");
+    dma_print("allocated_dma %x\n", allocated_dma);
     
     if (!size) {
         return NULL;
@@ -86,7 +84,7 @@ void* sel4_dma_malloc(size_t size) {
     block->next = dma_head;
     dma_head = block;
 
-    printf("Malloc: DMA head is %x\n", dma_head);
+    dma_print("Malloc: DMA head is %x\n", dma_head);
     
 
     allocated_dma = new_alloc;
@@ -96,10 +94,10 @@ void* sel4_dma_malloc(size_t size) {
 
 void sel4_dma_free(void *ptr) {
 
-    printf("sel4_dma_free\n");
-    printf("allocated_dma %x\n", allocated_dma);
+    dma_print("sel4_dma_free\n");
+    dma_print("allocated_dma %x\n", allocated_dma);
 
-    printf("Pointer being freed %x\n", ptr);
+    dma_print("Pointer being freed %x\n", ptr);
 
     // if(ptr < dma_cp_vaddr || ptr > dma_limit){
     //     dma_print("Trying to free non dma memory\n");
@@ -109,7 +107,7 @@ void sel4_dma_free(void *ptr) {
     dma_block_t *prev = NULL;
     dma_block_t *current = dma_head;
 
-    printf("current->start_addr %x\n", current->start_addr);
+    dma_print("current->start_addr %x\n", current->start_addr);
 
     while (current) {
         if ((uintptr_t)ptr == current->start_addr) {
@@ -121,7 +119,7 @@ void sel4_dma_free(void *ptr) {
 
             dma_print("Freed DMA memory at %p\n", ptr);
             free(current);
-            printf("dma head %x\n", dma_head);
+            dma_print("dma head %x\n", dma_head);
             allocated_dma -= current->size;
             return;
         }
@@ -142,12 +140,12 @@ void* sel4_dma_memalign(size_t alignment, size_t size) {
     // }
        
     
-    printf("sel4 dma memalign\n");
-    printf("allocated_dma %x\n", allocated_dma);
+    dma_print("sel4 dma memalign\n");
+    dma_print("allocated_dma %x\n", allocated_dma);
 
 
     if (!size || alignment == 0) {
-        printf("Failed here\n");
+        dma_print("Failed here\n");
         return NULL;
     }
 
@@ -165,15 +163,15 @@ void* sel4_dma_memalign(size_t alignment, size_t size) {
 
     // Calculate the worst case allocation address by adding alignment - 1
     uintptr_t worst_case_addr = allocated_dma + alignment - 1;
-    printf("worst_case_addr %x\n", worst_case_addr);
+    dma_print("worst_case_addr %x\n", worst_case_addr);
     // Align the address down to the required alignment
     uintptr_t aligned_addr = worst_case_addr & ~(alignment - 1);
 
     // Check if aligned address goes beyond the DMA limit
-    printf("aligned addr %x\n", aligned_addr);
+    dma_print("aligned addr %x\n", aligned_addr);
     if (aligned_addr + size > dma_limit) {
-        printf("aligned_addr + size %x\n", aligned_addr + size);
-        printf("dma limit %x\n", dma_limit);
+        dma_print("aligned_addr + size %x\n", aligned_addr + size);
+        dma_print("dma limit %x\n", dma_limit);
         dma_print("DMA_ERROR: Aligned allocation exceeds memory limit\n");
         return NULL;
     }
@@ -188,8 +186,8 @@ void* sel4_dma_memalign(size_t alignment, size_t size) {
     block->next = dma_head;
     dma_head = block;
 
-    printf("Memalign: DMA head is %x\n", dma_head);
-    printf("block->next %x\n", block->next);
+    dma_print("Memalign: DMA head is %x\n", dma_head);
+    dma_print("block->next %x\n", block->next);
 
     allocated_dma = aligned_addr + size;
     dma_print("Aligned allocation at %p size %p\n", block->start_addr, size);
@@ -213,9 +211,9 @@ uintptr_t* getVirt(void* paddr) {
 
 
 void sel4_dma_flush_range(uintptr_t start, uintptr_t stop) {
-    printf("sel4_dma_flush_range\n");
-    printf("Start %x\n", start);
-    printf("Stop %x\n", stop);
+    dma_print("sel4_dma_flush_range\n");
+    dma_print("Start %x\n", start);
+    dma_print("Stop %x\n", stop);
     uintptr_t end = stop;
 
     // Ensure that the range is within the allocated DMA memory
@@ -229,19 +227,17 @@ void sel4_dma_flush_range(uintptr_t start, uintptr_t stop) {
 
     // Flush each cache line in the range
     for (uintptr_t addr = start; addr < end; addr += CACHE_LINE_SIZE) {
-        printf("here 1\n");
         asm volatile("dc civac, %0" : : "r" (addr) : "memory");
     }
 
     // Ensure completion of cache flush
     __asm__ volatile("dsb sy");
-    printf("here 2\n");
 
     dma_print("Cache flush completed for range: %p - %p\n", start, end);
 }
 
 void sel4_dma_invalidate_range(uintptr_t start, uintptr_t stop) {
-    printf("sel4_dma_invalidate_range\n");
+    dma_print("sel4_dma_invalidate_range\n");
     uintptr_t end = stop;
 
     // Ensure that the range is within the allocated DMA memory
@@ -265,12 +261,12 @@ void sel4_dma_invalidate_range(uintptr_t start, uintptr_t stop) {
 }
 
 void sel4_dma_clear_all() {
-    printf("sel4_dma_clear_all\n");
-    printf("dma_head %x\n", dma_head);
+    dma_print("sel4_dma_clear_all\n");
+    dma_print("dma_head %x\n", dma_head);
     dma_block_t *current = dma_head;
     while ((!current)) {
-        printf("Dma pointer currently at %x\n", current->start_addr);
-        printf("Address of dma pointer currently at %x\n", current);
+        dma_print("Dma pointer currently at %x\n", current->start_addr);
+        dma_print("Address of dma pointer currently at %x\n", current);
         dma_block_t *temp = current;
         current = current->next;
         free(temp);  // Free the memory used by the dma_block_t node

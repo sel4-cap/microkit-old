@@ -11,14 +11,9 @@ void initialise_and_start_timer(void);
 
 void shutdown_timer(void);
 
-void udelay(unsigned long);
-
-static inline void mdelay(unsigned long msec)
-{
-	udelay(1000 * msec);
-}
+void mdelay(unsigned long);
 
 static inline void ndelay(unsigned long nsec)
 {
-	udelay(DIV_ROUND_UP(nsec, 1000));
+	mdelay(DIV_ROUND_UP(nsec, 1000000));
 }
